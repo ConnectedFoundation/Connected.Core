@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<RootNamespace>Connected.Net</RootNamespace>
+		<OutputType>Library</OutputType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client.Core" Version="9.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Connected.Core.Collections.Extensions\Connected.Core.Collections.Extensions.csproj" />
+		<ProjectReference Include="..\Connected.Core.Identities.Model\Connected.Core.Identities.Model.csproj" />
+		<ProjectReference Include="..\Connected.Core.Model.Extensions\Connected.Core.Model.Extensions.csproj" />
+		<ProjectReference Include="..\Connected.Core.Model\Connected.Core.Model.csproj" />
+		<ProjectReference Include="..\Connected.Core.Net.Model\Connected.Core.Net.Model.csproj" />
+		<ProjectReference Include="..\Connected.Core.Reflection.Extensions\Connected.Core.Reflection.Extensions.csproj" />
+		<ProjectReference Include="..\Connected.Core.Services.Extensions\Connected.Core.Services.Extensions.csproj" />
+	</ItemGroup>
+
+</Project>

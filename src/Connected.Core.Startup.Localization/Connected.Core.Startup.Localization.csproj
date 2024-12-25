@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Connected.Startup.Localization</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Connected.Core.Authentication.Model\Connected.Core.Authentication.Model.csproj" />
+    <ProjectReference Include="..\Connected.Core.Configuration.Model\Connected.Core.Configuration.Model.csproj" />
+    <ProjectReference Include="..\Connected.Core.Globalization.Extensions\Connected.Core.Globalization.Extensions.csproj" />
+    <ProjectReference Include="..\Connected.Core.Globalization.Model\Connected.Core.Globalization.Model.csproj" />
+    <ProjectReference Include="..\Connected.Core.Identities.Model\Connected.Core.Identities.Model.csproj" />
+    <ProjectReference Include="..\Connected.Core.Model\Connected.Core.Model.csproj" />
+  </ItemGroup>
+
+</Project>

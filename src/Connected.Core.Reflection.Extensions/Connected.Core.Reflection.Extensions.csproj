@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Connected.Reflection</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Connected.Core.Model\Connected.Core.Model.csproj" />
+    <ProjectReference Include="..\Connected.Core.Services.Model\Connected.Core.Services.Model.csproj" />
+  </ItemGroup>
+
+</Project>
