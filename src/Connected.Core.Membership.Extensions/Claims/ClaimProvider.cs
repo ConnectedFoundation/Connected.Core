@@ -1,4 +1,6 @@
-﻿namespace Connected.Membership.Claims;
+﻿using System.Collections.Immutable;
+
+namespace Connected.Membership.Claims;
 
 public abstract class ClaimProvider : MiddlewareComponent, IClaimProvider
 {

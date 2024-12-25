@@ -1,4 +1,6 @@
-﻿namespace Connected.Net.Hubs;
+﻿using System.Collections.Immutable;
+
+namespace Connected.Net.Hubs;
 
 public interface IClientMessages<TDto>
 {

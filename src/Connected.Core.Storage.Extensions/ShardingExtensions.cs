@@ -2,6 +2,7 @@
 using Connected.Services;
 using Connected.Storage.Sharding;
 using Connected.Storage.Sharding.Nodes;
+using System.Collections.Immutable;
 
 namespace Connected.Storage;
 /// <summary>

@@ -2,22 +2,23 @@
 
 public static class WebUtils
 {
-	public static string RootUrl
-	{
-		get
-		{
-			var request = Core.HttpContext?.Request;
+	//public static string RootUrl
+	//{
+	//	get
+	//	{
 
-			if (request is null)
-				throw new NullReferenceException("No active Http request.");
+	//		var request = Scope Instance.HttpContext?.Request;
 
-			var forwardedScheme = request.Headers["X-Forwarded-Proto"].ToString();
-			var scheme = request.Scheme;
+	//		if (request is null)
+	//			throw new NullReferenceException("No active Http request.");
 
-			if (!string.IsNullOrWhiteSpace(forwardedScheme))
-				scheme = forwardedScheme;
+	//		var forwardedScheme = request.Headers["X-Forwarded-Proto"].ToString();
+	//		var scheme = request.Scheme;
 
-			return $"{scheme}://{request.Host}/{request.PathBase.ToString().Trim('/')}".TrimEnd('/');
-		}
-	}
+	//		if (!string.IsNullOrWhiteSpace(forwardedScheme))
+	//			scheme = forwardedScheme;
+
+	//		return $"{scheme}://{request.Host}/{request.PathBase.ToString().Trim('/')}".TrimEnd('/');
+	//	}
+	//}
 }

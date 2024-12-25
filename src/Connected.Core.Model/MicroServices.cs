@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Collections.Immutable;
+using System.Reflection;
 
 namespace Connected;
 
@@ -7,28 +8,16 @@ public static class MicroServices
 	private static readonly List<Assembly> _all;
 	private static readonly List<Runtime.IStartup> _startups;
 
-	public static void Register(string assemblyName)
+	public static void Register<TStartup>()
+		where TStartup : Runtime.IStartup
 	{
-		var fileName = ResolveFileName(assemblyName);
-		var name = AssemblyName.GetAssemblyName(fileName);
-		var assembly = Assembly.Load(name);
+		var instance = (Runtime.IStartup)Activator.CreateInstance<TStartup>() ?? throw new NullReferenceException($"{SR.ErrCreateStartupInstance} ('{typeof(TStartup).Name}, {typeof(TStartup).Assembly.GetName().Name}')");
 
-		_all.Add(assembly);
-
-		foreach (var type in assembly.GetTypes())
-		{
-			if (IsStartup(type))
-			{
-				var instance = Activator.CreateInstance(type) ?? throw new NullReferenceException($"{SR.ErrCreateStartupInstance} ('{type.Name}, {assembly.GetName().Name}')");
-
-				if (instance is not Runtime.IStartup startup)
-					throw new NullReferenceException($"{SR.ErrCreateStartupInstance} ('{type.Name}, {assembly.GetName().Name}')");
-
-				_startups.Add(startup);
-			}
-		}
-
+		_startups.Add(instance);
 		_startups.SortByPriority();
+
+		if (!_all.Contains(instance.GetType().Assembly))
+			_all.Add(instance.GetType().Assembly);
 	}
 
 	private static string ResolveFileName(string assemblyName)

@@ -17,6 +17,7 @@
 		<RepositoryUrl>https://github.com/Tom-PIT/Connected.Core</RepositoryUrl>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
 		<PackageOutputPath>$(ProjectDir)..\..\packages\</PackageOutputPath>
+		<RootNamespace>Connected</RootNamespace>
 	</PropertyGroup>
 
 	<ItemGroup>

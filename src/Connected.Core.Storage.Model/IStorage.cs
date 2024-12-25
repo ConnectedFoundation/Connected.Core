@@ -1,6 +1,7 @@
 ﻿using Connected.Entities;
 using Connected.Services;
 using System.Collections;
+using System.Collections.Immutable;
 using System.Data;
 
 namespace Connected.Storage;

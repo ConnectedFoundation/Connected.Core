@@ -1,4 +1,6 @@
-﻿namespace Connected;
+﻿using System.Collections.Immutable;
+
+namespace Connected;
 
 public interface IMiddlewareService
 {

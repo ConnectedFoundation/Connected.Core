@@ -1,5 +1,6 @@
 ﻿using Connected.Identities;
 using Connected.Reflection;
+using Connected.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
@@ -191,16 +192,30 @@ public static class HttpExtensions
 		if (context.User.Identity is not IIdentityProxy proxy || proxy.Identity?.Token is null)
 			return null;
 
-		using var scope = Bootstrapper.Services.CreateAsyncScope();
-		var users = scope.ServiceProvider.GetRequiredService<IUserService>();
-		var dto = scope.ServiceProvider.GetRequiredService<ISelectUserDto>();
+		using var scope = Scope.Create();
 
-		dto.User = proxy.Identity.Token;
+		try
+		{
+			var users = scope.ServiceProvider.GetRequiredService<IUserService>();
+			var dto = scope.ServiceProvider.GetRequiredService<ISelectUserDto>();
 
-		var result = await users.Select(dto);
+			dto.User = proxy.Identity.Token;
 
-		await scope.Commit();
+			var result = await users.Select(dto);
 
-		return result;
+			await scope.Commit();
+
+			return result;
+		}
+		catch
+		{
+			await scope.Rollback();
+
+			return null;
+		}
+		finally
+		{
+			await scope.Flush();
+		}
 	}
 }

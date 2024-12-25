@@ -10,6 +10,15 @@ public static class ScopeExtensions
 			await transaction.Commit();
 	}
 
+	public static async Task Flush(this AsyncServiceScope? scope)
+	{
+		if (scope?.ServiceProvider.GetService<ITransactionContext>() is ITransactionContext transaction)
+		{
+			if (transaction.State == MiddlewareTransactionState.Active)
+				await transaction.Commit();
+		}
+	}
+
 	public static async Task Rollback(this AsyncServiceScope? scope)
 	{
 		if (scope?.ServiceProvider.GetService<ITransactionContext>() is ITransactionContext transaction)
@@ -27,4 +36,14 @@ public static class ScopeExtensions
 		if (scope.ServiceProvider.GetService<ITransactionContext>() is ITransactionContext transaction)
 			await transaction.Rollback();
 	}
+
+	public static async Task Flush(this AsyncServiceScope scope)
+	{
+		if (scope.ServiceProvider.GetService<ITransactionContext>() is ITransactionContext transaction)
+		{
+			if (transaction.State == MiddlewareTransactionState.Active)
+				await transaction.Commit();
+		}
+	}
+
 }

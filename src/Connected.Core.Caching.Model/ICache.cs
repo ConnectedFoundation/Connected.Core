@@ -1,4 +1,6 @@
-﻿namespace Connected.Caching;
+﻿using System.Collections.Immutable;
+
+namespace Connected.Caching;
 /// <summary>
 /// Represents the cache cointainer.
 /// </summary>

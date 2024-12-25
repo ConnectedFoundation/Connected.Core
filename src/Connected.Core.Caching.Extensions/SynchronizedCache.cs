@@ -1,4 +1,5 @@
 ﻿using Connected.Threading;
+using System.Collections.Immutable;
 
 namespace Connected.Caching;
 

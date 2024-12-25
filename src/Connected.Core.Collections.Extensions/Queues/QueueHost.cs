@@ -2,6 +2,7 @@
 using Connected.Workers;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 
 namespace Connected.Collections.Queues;
 /// <summary>

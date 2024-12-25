@@ -3,6 +3,7 @@ using Connected.Entities;
 using Connected.Reflection;
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 
 namespace Connected.Services;
 

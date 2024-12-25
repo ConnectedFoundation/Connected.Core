@@ -1,5 +1,6 @@
 ﻿using Connected.Annotations;
 using Connected.Services;
+using System.Collections.Immutable;
 
 namespace Connected.Storage.Sharding.Nodes;
 /// <summary>

@@ -1,5 +1,5 @@
 ﻿namespace Connected.Services;
 public interface IHeadDto<T> : IDto
 {
-	public T? Head { get; set; }
+	T? Head { get; set; }
 }

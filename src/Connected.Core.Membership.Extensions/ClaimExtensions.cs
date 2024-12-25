@@ -37,7 +37,7 @@ public static class ClaimExtensions
 
 	public static async Task<bool> HasClaim(this IIdentity identity, string claim)
 	{
-		using var scope = Bootstrapper.Services.CreateAsyncScope();
+		using var scope = ServiceExtensionsStartup.Services.CreateAsyncScope();
 
 		var claims = scope.ServiceProvider.GetRequiredService<IClaimService>();
 		var dto = scope.ServiceProvider.GetRequiredService<IRequestClaimDto>();

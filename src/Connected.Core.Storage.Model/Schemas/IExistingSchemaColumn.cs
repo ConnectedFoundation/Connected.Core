@@ -1,4 +1,6 @@
-﻿namespace Connected.Storage.Schemas;
+﻿using System.Collections.Immutable;
+
+namespace Connected.Storage.Schemas;
 
 public interface IExistingSchemaColumn
 {

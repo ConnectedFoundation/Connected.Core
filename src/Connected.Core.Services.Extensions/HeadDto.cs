@@ -1,14 +1,7 @@
 ﻿namespace Connected.Services;
 
-public class HeadDto<T> : Dto, IHeadDto<T>
+internal class HeadDto<T> : Dto, IHeadDto<T>
 {
-	public HeadDto() { }
-
-	public HeadDto(T head)
-	{
-		this.Head = head;
-	}
-
 	public T? Head { get; set; }
 
 	public static implicit operator HeadDto<T?>(T value)

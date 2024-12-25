@@ -7,15 +7,28 @@ public static class SettingUtils
 {
 	public static async Task<TValue?> GetValue<TValue>(string key)
 	{
-		using var scope = Bootstrapper.Services.CreateAsyncScope();
+		using var scope = Scope.Create();
 
-		var service = scope.ServiceProvider.GetRequiredService<ISettingService>();
+		try
+		{
+			var service = scope.ServiceProvider.GetRequiredService<ISettingService>();
 
-		var setting = await service.Select((NameDto)key);
+			var setting = await service.Select((NameDto)key);
 
-		if (setting is null)
-			return default;
+			if (setting is null)
+				return default;
 
-		return (TValue?)Convert.ChangeType(setting.Value, typeof(TValue));
+			return (TValue?)Convert.ChangeType(setting.Value, typeof(TValue));
+		}
+		catch
+		{
+			await scope.Rollback();
+
+			throw;
+		}
+		finally
+		{
+			await scope.Flush();
+		}
 	}
 }

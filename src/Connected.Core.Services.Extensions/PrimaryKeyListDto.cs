@@ -1,4 +1,5 @@
 ﻿using Connected.Annotations;
+using System.Collections.Immutable;
 
 namespace Connected.Services;
 

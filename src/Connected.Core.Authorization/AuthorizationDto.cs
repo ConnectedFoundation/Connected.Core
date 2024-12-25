@@ -2,7 +2,7 @@
 
 namespace Connected.Authorization;
 
-public class AuthorizationDto : Dto
+internal class AuthorizationDto : Dto
 {
 	public IAuthorizationSchema? Schema { get; init; }
 	public int? User { get; init; }

@@ -129,6 +129,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connected.Sdk", "src\Connec
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connected.Runtime", "src\Connected.Runtime\Connected.Runtime.csproj", "{ED2210D5-B9B2-489A-89BA-51CE70F132E7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestClient", "src\TestClient\TestClient.csproj", "{18EFE5DA-9CE0-498A-9CE0-A258DDD222C4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connected.Core.Startup.Diagnostics", "src\Connected.Core.Startup.Diagnostics\Connected.Core.Startup.Diagnostics.csproj", "{0B89198C-E1DA-4EA7-B57D-7700902FF77F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -319,6 +323,14 @@ Global
 		{ED2210D5-B9B2-489A-89BA-51CE70F132E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ED2210D5-B9B2-489A-89BA-51CE70F132E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ED2210D5-B9B2-489A-89BA-51CE70F132E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{18EFE5DA-9CE0-498A-9CE0-A258DDD222C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{18EFE5DA-9CE0-498A-9CE0-A258DDD222C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{18EFE5DA-9CE0-498A-9CE0-A258DDD222C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{18EFE5DA-9CE0-498A-9CE0-A258DDD222C4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0B89198C-E1DA-4EA7-B57D-7700902FF77F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0B89198C-E1DA-4EA7-B57D-7700902FF77F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0B89198C-E1DA-4EA7-B57D-7700902FF77F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0B89198C-E1DA-4EA7-B57D-7700902FF77F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -370,5 +382,7 @@ Global
 		{AF371509-768B-42E2-AAC4-471322E56194} = {228CC387-CE7E-4B55-91FD-D34F1123F94A}
 		{5B7639A0-194F-4F2E-826B-C7EA03CCEAAE} = {66F768A4-67DC-46BA-A9FF-74CC11237532}
 		{ED2210D5-B9B2-489A-89BA-51CE70F132E7} = {66F768A4-67DC-46BA-A9FF-74CC11237532}
+		{18EFE5DA-9CE0-498A-9CE0-A258DDD222C4} = {66F768A4-67DC-46BA-A9FF-74CC11237532}
+		{0B89198C-E1DA-4EA7-B57D-7700902FF77F} = {32112800-E274-4602-B3EC-C7B630A9BC1B}
 	EndGlobalSection
 EndGlobal

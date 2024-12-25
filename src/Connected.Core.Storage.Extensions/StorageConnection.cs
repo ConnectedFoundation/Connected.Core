@@ -1,6 +1,7 @@
 ﻿using Connected.Services;
 using Connected.Threading;
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Data;
 using System.Data.Common;
 

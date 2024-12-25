@@ -27,18 +27,31 @@ public static class IdentityMetaDataExtensions
 
 	public static async Task<string?> UserName(this IIdentity identity)
 	{
-		using var scope = Bootstrapper.Services.CreateAsyncScope();
+		using var scope = Scope.Create();
 
-		var metaDataService = scope.ServiceProvider.GetService<IIdentityMetaDataService>();
+		try
+		{
+			var metaDataService = scope.ServiceProvider.GetService<IIdentityMetaDataService>();
 
-		if (metaDataService is null)
-			return null;
+			if (metaDataService is null)
+				return null;
 
-		var metaData = await metaDataService.Select(new PrimaryKeyDto<string> { Id = identity.Token });
+			var metaData = await metaDataService.Select(new PrimaryKeyDto<string> { Id = identity.Token });
 
-		if (metaData is null)
-			return null;
+			if (metaData is null)
+				return null;
 
-		return metaData.UserName;
+			return metaData.UserName;
+		}
+		catch
+		{
+			await scope.Rollback();
+
+			throw;
+		}
+		finally
+		{
+			await scope.Flush();
+		}
 	}
 }

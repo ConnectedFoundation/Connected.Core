@@ -1,4 +1,5 @@
 ﻿using Connected.Identities;
+using System.Collections.Immutable;
 
 namespace Connected.Membership.Schemas;
 

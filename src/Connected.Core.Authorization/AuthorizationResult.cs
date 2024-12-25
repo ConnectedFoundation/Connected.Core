@@ -1,6 +1,6 @@
 ﻿namespace Connected.Authorization;
 
-public sealed class AuthorizationResult : IAuthorizationResult
+internal sealed class AuthorizationResult : IAuthorizationResult
 {
 	public bool Success { get; init; }
 

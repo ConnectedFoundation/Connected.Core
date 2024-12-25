@@ -1,6 +1,7 @@
 ﻿using Connected.Entities;
 using Connected.Reflection;
 using Connected.Storage;
+using System.Collections.Immutable;
 
 namespace Connected.Caching;
 

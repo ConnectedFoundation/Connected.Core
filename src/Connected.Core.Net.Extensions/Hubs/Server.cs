@@ -1,5 +1,6 @@
 ﻿using Connected.Services;
 using Microsoft.AspNetCore.SignalR;
+using System.Collections.Immutable;
 
 namespace Connected.Net.Hubs;
 

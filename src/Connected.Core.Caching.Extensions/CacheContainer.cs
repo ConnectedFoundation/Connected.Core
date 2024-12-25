@@ -1,4 +1,7 @@
-﻿namespace Connected.Caching;
+﻿using System.Collections;
+using System.Collections.Immutable;
+
+namespace Connected.Caching;
 
 public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKey> where TEntry : class
 {

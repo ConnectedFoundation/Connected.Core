@@ -1,6 +1,4 @@
 ﻿using Connected.Annotations;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,9 +14,5 @@ internal sealed class Bootstrapper : Runtime.Startup
 		services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
 		services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 		services.AddHttpClient();
-	}
-
-	protected override void OnConfigure(IApplicationBuilder app, IWebHostEnvironment env)
-	{
 	}
 }

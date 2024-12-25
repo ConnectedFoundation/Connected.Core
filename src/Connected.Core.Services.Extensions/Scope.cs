@@ -1,17 +1,18 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Connected.Services;
 public static class Scope
 {
 	public static AsyncServiceScope Create()
 	{
-		return Bootstrapper.Services.CreateAsyncScope();
+		return ServiceExtensionsStartup.Services.CreateAsyncScope();
 	}
 
 	public static async Task<TDto> ResolveDto<TDto>()
 		where TDto : IDto
 	{
-		using var scope = Bootstrapper.Services.CreateAsyncScope();
+		using var scope = ServiceExtensionsStartup.Services.CreateAsyncScope();
 
 		var result = scope.ServiceProvider.GetRequiredService<TDto>();
 
@@ -19,4 +20,11 @@ public static class Scope
 
 		return result;
 	}
+
+	public static TService? GetSingletonService<TService>()
+	{
+		return ServiceExtensionsStartup.Services.GetService<TService>();
+	}
+
+	public static HttpContext? HttpContext => GetSingletonService<IHttpContextAccessor>()?.HttpContext;
 }

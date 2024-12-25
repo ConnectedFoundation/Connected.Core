@@ -1,4 +1,5 @@
 ﻿using Connected.Entities;
+using System.Collections.Immutable;
 
 namespace Connected.Storage;
 /// <summary>

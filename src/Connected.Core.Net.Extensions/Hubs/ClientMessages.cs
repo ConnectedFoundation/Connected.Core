@@ -1,5 +1,6 @@
 ﻿using Connected.Collections;
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 
 namespace Connected.Net.Hubs;
 

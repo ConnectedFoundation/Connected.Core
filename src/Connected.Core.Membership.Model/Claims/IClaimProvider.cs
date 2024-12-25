@@ -1,6 +1,8 @@
-﻿namespace Connected.Membership.Claims;
+﻿using System.Collections.Immutable;
+
+namespace Connected.Membership.Claims;
 
 public interface IClaimProvider : IMiddleware
 {
-   Task<ImmutableList<string>> Invoke();
+	Task<ImmutableList<string>> Invoke();
 }

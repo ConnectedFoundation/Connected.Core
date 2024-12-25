@@ -1,5 +1,6 @@
 ﻿using Connected.Entities;
 using Connected.Storage.Sharding.Nodes;
+using System.Collections.Immutable;
 
 namespace Connected.Storage.Sharding;
 /// <summary>
