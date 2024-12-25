@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Connected;
 
-public static class Runtime
+public static class Application
 {
 	private static object _lastException = new();
 	private static bool _startedErrorServer = false;
@@ -102,10 +102,11 @@ public static class Runtime
 
 	private static void RegisterCoreMicroServices()
 	{
+		MicroServices.Register<RuntimeStartup>();
 		MicroServices.Register<Authorization.AuthorizationStartup>();
 		MicroServices.Register<Services.ServiceExtensionsStartup>();
+		MicroServices.Register<Services.ServicesStartup>();
 		MicroServices.Register<Entities.EntitiesStartup>();
 		MicroServices.Register<Net.NetStartup>();
-
 	}
 }

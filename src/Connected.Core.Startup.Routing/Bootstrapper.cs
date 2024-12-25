@@ -1,6 +1,9 @@
 ﻿using Connected.Annotations;
+using Connected.Runtime;
+using Connected.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Connected.Startup.Routing;
 
@@ -13,10 +16,27 @@ internal sealed class Bootstrapper : Runtime.Startup
 	{
 		app.UseRouting();
 
-		app.UseEndpoints(async routes =>
+		using var scope = Scope.Create();
+
+		try
 		{
-			foreach (var startup in MicroServices.Startups)
-				await startup.ConfigureEndpoints(routes);
-		});
+			var rt = scope.ServiceProvider.GetRequiredService<IRuntimeService>();
+
+			app.UseEndpoints(async routes =>
+			{
+				foreach (var startup in rt.QueryStartups().Result)
+					await startup.ConfigureEndpoints(routes);
+			});
+		}
+		catch
+		{
+			scope.Rollback().Wait();
+
+			throw;
+		}
+		finally
+		{
+			scope.Flush().Wait();
+		}
 	}
 }

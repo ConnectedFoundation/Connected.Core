@@ -3,6 +3,7 @@ using Connected.Reflection;
 using Connected.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Primitives;
 using System.Net;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -12,6 +13,17 @@ namespace Connected.Net;
 public static class HttpExtensions
 {
 	private const string RequestArgumentsKey = "TP-REQUEST-ARGUMENTS";
+
+	public static bool IsAjaxRequest(this HttpRequest? request)
+	{
+		if (request is null)
+			return false;
+
+		if (request.Headers is not null && request.Headers.TryGetValue("X-Requested-With", out StringValues value))
+			return string.Equals(value, "XMLHttpRequest", StringComparison.OrdinalIgnoreCase);
+
+		return false;
+	}
 
 	public static async Task<IDictionary<string, object?>?> Deserialize(this HttpRequest request)
 	{

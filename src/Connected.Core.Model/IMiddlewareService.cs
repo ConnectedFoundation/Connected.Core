@@ -1,7 +1,9 @@
-﻿using System.Collections.Immutable;
+﻿using Connected.Annotations;
+using System.Collections.Immutable;
 
 namespace Connected;
 
+[Service]
 public interface IMiddlewareService
 {
 	Task<TMiddleware?> First<TMiddleware>() where TMiddleware : IMiddleware;

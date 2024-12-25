@@ -59,5 +59,14 @@ namespace Connected {
                 resourceCulture = value;
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cannot create startup instance.
+        /// </summary>
+        internal static string ErrCreateStartupInstance {
+            get {
+                return ResourceManager.GetString("ErrCreateStartupInstance", resourceCulture);
+            }
+        }
     }
 }

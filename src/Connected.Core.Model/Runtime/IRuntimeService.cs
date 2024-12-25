@@ -1,4 +1,5 @@
-﻿using System.Collections.Immutable;
+﻿using Connected.Annotations;
+using System.Collections.Immutable;
 using System.Reflection;
 
 namespace Connected.Runtime;
@@ -36,12 +37,15 @@ public enum Optimization
 	Release = 2
 }
 
+[Service]
 public interface IRuntimeService
 {
 	Task<ImmutableList<Assembly>> QueryMicroServices();
+	Task<ImmutableList<IStartup>> QueryStartups();
 	Task<ImmutableList<Assembly>> QueryUpdatedMicroServices();
 	Task<StartOptions> SelectStartOptions();
 	Task<Platform> SelectPlatform();
 	Task<Connectivity> SelectConnectivity();
 	Task<Optimization> SelectOptimization();
+	Task<ImmutableList<Type>> QueryMiddlewares();
 }

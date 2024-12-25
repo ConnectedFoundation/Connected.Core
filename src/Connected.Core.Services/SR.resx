@@ -117,4 +117,13 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="ValAntiForgery" xml:space="preserve">
+    <value>Invalid Antiforgery token</value>
+  </data>
+  <data name="ValEnumValueNotDefined" xml:space="preserve">
+    <value>Property value not defined</value>
+  </data>
+  <data name="ValScriptTagNotAllowed" xml:space="preserve">
+    <value>Script tag is not allowed</value>
+  </data>
 </root>

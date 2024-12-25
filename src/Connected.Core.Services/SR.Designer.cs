@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Connected {
+namespace Connected.Services {
     using System;
     
     
@@ -39,7 +39,7 @@ namespace Connected {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Connected.SR", typeof(SR).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Connected.Services.SR", typeof(SR).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -57,6 +57,33 @@ namespace Connected {
             }
             set {
                 resourceCulture = value;
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid Antiforgery token.
+        /// </summary>
+        internal static string ValAntiForgery {
+            get {
+                return ResourceManager.GetString("ValAntiForgery", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Property value not defined.
+        /// </summary>
+        internal static string ValEnumValueNotDefined {
+            get {
+                return ResourceManager.GetString("ValEnumValueNotDefined", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Script tag is not allowed.
+        /// </summary>
+        internal static string ValScriptTagNotAllowed {
+            get {
+                return ResourceManager.GetString("ValScriptTagNotAllowed", resourceCulture);
             }
         }
     }
