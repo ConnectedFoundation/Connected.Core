@@ -1,19 +1,42 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <RootNamespace>Connected.Startup.Localization</RootNamespace>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<RootNamespace>Connected.Startup.Localization</RootNamespace>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Title>Connected Startup Localization</Title>
+		<Company>Tom PIT</Company>
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+		<Product>Connected Core</Product>
+		<PackageVersion>1.0.0-beta1</PackageVersion>
+		<FileVersion>1.0.0.0</FileVersion>
+		<Copyright>Connected Foundation</Copyright>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<RepositoryUrl>https://github.com/Tom-PIT/Connected.Core</RepositoryUrl>
+		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+		<PackageOutputPath>$(ProjectDir)..\..\packages\</PackageOutputPath>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Connected.Core.Authentication.Model\Connected.Core.Authentication.Model.csproj" />
-    <ProjectReference Include="..\Connected.Core.Configuration.Model\Connected.Core.Configuration.Model.csproj" />
-    <ProjectReference Include="..\Connected.Core.Globalization.Extensions\Connected.Core.Globalization.Extensions.csproj" />
-    <ProjectReference Include="..\Connected.Core.Globalization.Model\Connected.Core.Globalization.Model.csproj" />
-    <ProjectReference Include="..\Connected.Core.Identities.Model\Connected.Core.Identities.Model.csproj" />
-    <ProjectReference Include="..\Connected.Core.Model\Connected.Core.Model.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Include="..\..\LICENSE.txt">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Connected.Core.Authentication.Model\Connected.Core.Authentication.Model.csproj" />
+		<ProjectReference Include="..\Connected.Core.Configuration.Model\Connected.Core.Configuration.Model.csproj" />
+		<ProjectReference Include="..\Connected.Core.Globalization.Extensions\Connected.Core.Globalization.Extensions.csproj" />
+		<ProjectReference Include="..\Connected.Core.Globalization.Model\Connected.Core.Globalization.Model.csproj" />
+		<ProjectReference Include="..\Connected.Core.Identities.Model\Connected.Core.Identities.Model.csproj" />
+		<ProjectReference Include="..\Connected.Core.Model\Connected.Core.Model.csproj" />
+	</ItemGroup>
 
 </Project>

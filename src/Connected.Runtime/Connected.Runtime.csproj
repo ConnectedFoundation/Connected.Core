@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Company>Tom PIT</Company>
+		<PackageId>Connected.Runtime</PackageId>
+		<Title>Connected Runtime</Title>
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+		<Product>Connected</Product>
+		<PackageVersion>1.0.0-beta1</PackageVersion>
+		<FileVersion>1.0.0.0</FileVersion>
+		<Copyright>Connected Foundation</Copyright>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<RepositoryUrl>https://github.com/Tom-PIT/Connected.Core</RepositoryUrl>
+		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+		<PackageOutputPath>$(ProjectDir)..\..\packages\</PackageOutputPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="..\..\LICENSE.txt">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Connected.Core.Authorization\Connected.Core.Authorization.csproj" />
+		<ProjectReference Include="..\Connected.Core.Entities\Connected.Core.Entities.csproj" />
+		<ProjectReference Include="..\Connected.Core.Net\Connected.Core.Net.csproj" />
+		<ProjectReference Include="..\Connected.Core.Services\Connected.Core.Services.csproj" />
+		<ProjectReference Include="..\Connected.Core.Startup.Authentication\Connected.Core.Startup.Authentication.csproj" />
+		<ProjectReference Include="..\Connected.Core.Startup.Cors\Connected.Core.Startup.Cors.csproj" />
+		<ProjectReference Include="..\Connected.Core.Startup.Http\Connected.Core.Startup.Http.csproj" />
+		<ProjectReference Include="..\Connected.Core.Startup.Localization\Connected.Core.Startup.Localization.csproj" />
+		<ProjectReference Include="..\Connected.Core.Startup.Mvc\Connected.Core.Startup.Mvc.csproj" />
+		<ProjectReference Include="..\Connected.Core.Startup.Routing\Connected.Core.Startup.Routing.csproj" />
+		<ProjectReference Include="..\Connected.Core.Startup.SignalR\Connected.Core.Startup.SignalR.csproj" />
+		<ProjectReference Include="..\Connected.Core.Startup.StaticFiles\Connected.Core.Startup.StaticFiles.csproj" />
+		<ProjectReference Include="..\Connected.Core.Storage.Sharding.Nodes\Connected.Core.Storage.Sharding.Nodes.csproj" />
+		<ProjectReference Include="..\Connected.Sdk\Connected.Sdk.csproj" />
+	</ItemGroup>
+
+</Project>

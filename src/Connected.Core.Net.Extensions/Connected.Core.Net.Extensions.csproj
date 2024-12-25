@@ -6,7 +6,30 @@
 		<Nullable>enable</Nullable>
 		<RootNamespace>Connected.Net</RootNamespace>
 		<OutputType>Library</OutputType>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Company>Tom PIT</Company>
+		<Title>Connected Net Extensions</Title>
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+		<Product>Connected Core</Product>
+		<PackageVersion>1.0.0-beta1</PackageVersion>
+		<FileVersion>1.0.0.0</FileVersion>
+		<Copyright>Connected Foundation</Copyright>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<RepositoryUrl>https://github.com/Tom-PIT/Connected.Core</RepositoryUrl>
+		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+		<PackageOutputPath>$(ProjectDir)..\..\packages\</PackageOutputPath>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="..\..\LICENSE.txt">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client.Core" Version="9.0.0" />

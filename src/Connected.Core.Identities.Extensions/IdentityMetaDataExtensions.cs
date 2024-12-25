@@ -1,6 +1,4 @@
-﻿using Connected.Identities.Graphics;
-using Connected.Identities.MetaData;
-using Connected.SaaS.Storage;
+﻿using Connected.Identities.MetaData;
 using Connected.Services;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -11,18 +9,20 @@ public static class IdentityMetaDataExtensions
 	public const string AvatarFileNameExtension = "png";
 	public static async Task<string?> CreateDefaultAvatar(this IIdentityMetaDataService service, IIdentity identity)
 	{
-		using var scope = Bootstrapper.Services.CreateAsyncScope();
+		//TODO: move this extension method out of the core model since it requires a reference to the service model.
+		throw new NotImplementedException();
+		//using var scope = Bootstrapper.Services.CreateAsyncScope();
 
-		var files = scope.ServiceProvider.GetRequiredService<IFileService>();
-		var directories = scope.ServiceProvider.GetRequiredService<IDirectoryService>();
+		//var files = scope.ServiceProvider.GetRequiredService<IFileService>();
+		//var directories = scope.ServiceProvider.GetRequiredService<IDirectoryService>();
 
-		var fileName = $"{identity.Token}.{AvatarFileNameExtension}";
-		var avatar = Avatar.Create(identity.Token, 512, 512);
+		//var fileName = $"{identity.Token}.{AvatarFileNameExtension}";
+		//var avatar = Avatar.Create(identity.Token, 512, 512);
 
-		await directories.Ensure(AvatarDirectoryName);
-		await files.Ensure(AvatarDirectoryName, fileName, avatar);
+		//await directories.Ensure(AvatarDirectoryName);
+		//await files.Ensure(AvatarDirectoryName, fileName, avatar);
 
-		return fileName;
+		//return fileName;
 	}
 
 	public static async Task<string?> UserName(this IIdentity identity)
