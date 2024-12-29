@@ -2,7 +2,7 @@
 using Connected.Services;
 
 namespace Connected.Storage.Schemas;
-public class UpdateSchemaDto : Dto, IUpdateSchemaDto
+internal sealed class UpdateSchemaDto : Dto, IUpdateSchemaDto
 {
 	public UpdateSchemaDto()
 	{

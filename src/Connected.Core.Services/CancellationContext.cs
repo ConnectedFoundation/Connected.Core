@@ -1,6 +1,6 @@
 namespace Connected.Services;
 
-internal class CancellationContext : ICancellationContext
+internal sealed class CancellationContext : ICancellationContext
 {
 	public CancellationContext()
 	{

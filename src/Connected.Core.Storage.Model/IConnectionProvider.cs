@@ -1,4 +1,5 @@
-﻿using Connected.Entities;
+﻿using Connected.Annotations;
+using Connected.Entities;
 using System.Collections.Immutable;
 
 namespace Connected.Storage;
@@ -11,6 +12,7 @@ namespace Connected.Storage;
 /// since only one entity at a time is usually performed. For query operations the scenario could be more complex 
 /// because data could reside in more than one shard. In that case one connection for each shard will be returned.
 /// </remarks>
+[Service]
 public interface IConnectionProvider
 {
 	/// <summary>

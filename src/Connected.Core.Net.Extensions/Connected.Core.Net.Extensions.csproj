@@ -6,7 +6,7 @@
 		<Nullable>enable</Nullable>
 		<RootNamespace>Connected.Net</RootNamespace>
 		<OutputType>Library</OutputType>
-		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 		<Company>Tom PIT</Company>
 		<Title>Connected Net Extensions</Title>
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>

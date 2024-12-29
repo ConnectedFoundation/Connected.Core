@@ -5,7 +5,7 @@ namespace Connected.Reflection;
 
 public static class TypeSystem
 {
-	public static bool IsInteger(Type type)
+	public static bool IsInteger(this Type type)
 	{
 		var nnType = type.GetNonNullableType();
 
@@ -16,7 +16,7 @@ public static class TypeSystem
 		};
 	}
 
-	public static TypeCode GetTypeCode(Type type)
+	public static TypeCode GetTypeCode(this Type type)
 	{
 		if (type.IsEnum)
 			return GetTypeCode(Enum.GetUnderlyingType(type));
@@ -139,6 +139,6 @@ public static class TypeSystem
 
 	public static bool IsIndexer(this PropertyInfo property)
 	{
-		return property.GetIndexParameters().Any();
+		return property.GetIndexParameters().Length != 0;
 	}
 }

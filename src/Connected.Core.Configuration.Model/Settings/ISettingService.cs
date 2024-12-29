@@ -19,7 +19,7 @@ public interface ISettingService
 	Task<ImmutableList<ISetting>> Query(IQueryDto? dto);
 
 	[ServiceOperation(ServiceOperationVerbs.Post | ServiceOperationVerbs.Patch)]
-	Task Update(ISettingDto dto);
+	Task Update(IUpdateSettingDto dto);
 
 	[ServiceOperation(ServiceOperationVerbs.Post | ServiceOperationVerbs.Delete)]
 	Task Delete(IPrimaryKeyDto<int> dto);

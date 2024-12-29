@@ -18,6 +18,6 @@ public sealed class NonDefaultAttribute : ValidationAttribute
 
 		var defaultValue = value.GetType().IsClass || value.GetType().IsInterface ? null : Activator.CreateInstance(value.GetType());
 
-		return Comparer.DefaultInvariant.Compare(value, defaultValue) == 0;
+		return Comparer.DefaultInvariant.Compare(value, defaultValue) != 0;
 	}
 }

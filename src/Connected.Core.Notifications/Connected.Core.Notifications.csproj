@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Connected.Notifications</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Connected.Core.Model.Extensions\Connected.Core.Model.Extensions.csproj" />
+    <ProjectReference Include="..\Connected.Core.Net.Extensions\Connected.Core.Net.Extensions.csproj" />
+    <ProjectReference Include="..\Connected.Core.Net.Model\Connected.Core.Net.Model.csproj" />
+    <ProjectReference Include="..\Connected.Core.Notifications.Model\Connected.Core.Notifications.Model.csproj" />
+    <ProjectReference Include="..\Connected.Core.Services.Extensions\Connected.Core.Services.Extensions.csproj" />
+  </ItemGroup>
+
+</Project>

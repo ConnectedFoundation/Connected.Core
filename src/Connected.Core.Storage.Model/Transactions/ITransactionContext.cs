@@ -1,4 +1,6 @@
-﻿namespace Connected.Storage.Transactions;
+﻿using Connected.Annotations;
+
+namespace Connected.Storage.Transactions;
 
 public enum MiddlewareTransactionState
 {
@@ -8,6 +10,7 @@ public enum MiddlewareTransactionState
 	Completed = 4
 }
 
+[Service]
 public interface ITransactionContext
 {
 	event EventHandler? StateChanged;

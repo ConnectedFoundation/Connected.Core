@@ -11,7 +11,7 @@ public static class ClaimExtensions
 		if (identity is null)
 			return false;
 
-		var dto = await Scope.ResolveDto<IRequestClaimDto>();
+		var dto = Scope.GetDto<IRequestClaimDto>();
 
 		dto.Claims = ClaimUtils.FullControl;
 		dto.Identity = identity.Token;
@@ -27,7 +27,7 @@ public static class ClaimExtensions
 		if (await claims.HasFullControl(identity))
 			return true;
 
-		var dto = await Scope.ResolveDto<IRequestClaimDto>();
+		var dto = Scope.GetDto<IRequestClaimDto>();
 
 		dto.Claims = ClaimUtils.ManageSystemSecurity;
 		dto.Identity = identity.Token;

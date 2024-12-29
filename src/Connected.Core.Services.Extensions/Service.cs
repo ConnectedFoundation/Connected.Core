@@ -10,9 +10,9 @@ namespace Connected.Services;
 
 public abstract class Service : IService, IDisposable
 {
-	protected Service(IServiceProvider serviceLocator)
+	protected Service(IServiceProvider services)
 	{
-		ServiceLocator = serviceLocator;
+		ServiceLocator = services;
 
 		Middleware = ServiceLocator.GetRequiredService<IMiddlewareService>();
 	}

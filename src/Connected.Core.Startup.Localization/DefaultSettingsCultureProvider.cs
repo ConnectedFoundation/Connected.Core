@@ -9,7 +9,7 @@ internal sealed class DefaultSettingsCultureProvider : CultureProviderBase, IReq
 {
 	public override async Task<ProviderCultureResult?> DetermineProviderCultureResult(HttpContext httpContext)
 	{
-		using var scope = Bootstrapper.Services.CreateAsyncScope();
+		using var scope = Scope.Create();
 
 		var settings = scope.ServiceProvider.GetRequiredService<ISettingService>();
 		var value = await settings.Select((NameDto)"DefaultCulture");

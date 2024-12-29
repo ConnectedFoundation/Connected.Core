@@ -1,11 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<PropertyGroup>
 		<TargetFramework>net9.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<RootNamespace>Connected.Startup.Mvc</RootNamespace>
-		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 		<Title>Connected Startup MVC</Title>
 		<Company>Tom PIT</Company>
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>
@@ -17,6 +17,7 @@
 		<RepositoryUrl>https://github.com/Tom-PIT/Connected.Core</RepositoryUrl>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
 		<PackageOutputPath>$(ProjectDir)..\..\packages\</PackageOutputPath>
+		<OutputType>Library</OutputType>
 	</PropertyGroup>
 
 	<ItemGroup>

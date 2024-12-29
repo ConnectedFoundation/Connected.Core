@@ -20,7 +20,7 @@ public abstract class SchemaAttribute : MappingAttribute
 	/// <summary>
 	/// A schema name that is being used by Core Entities.
 	/// </summary>
-	public const string FrameworkSchema = "framework";
+	public const string CoreSchema = "core";
 	/// <summary>
 	/// A schema name that is being used by common Core Entities.
 	/// </summary>

@@ -26,7 +26,7 @@ public static class Members
 		}
 	}
 
-	public static Type? GetMemberType(MemberInfo mi)
+	public static Type? GetMemberType(this MemberInfo mi)
 	{
 		if (mi is FieldInfo fi)
 			return fi.FieldType;
@@ -43,7 +43,7 @@ public static class Members
 		return default;
 	}
 
-	public static bool IsReadOnly(MemberInfo member)
+	public static bool IsReadOnly(this MemberInfo member)
 	{
 		if (member is PropertyInfo pi)
 			return !pi.CanWrite || pi.SetMethod is null;

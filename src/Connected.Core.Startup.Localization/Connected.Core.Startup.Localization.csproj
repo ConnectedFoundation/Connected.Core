@@ -5,7 +5,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<RootNamespace>Connected.Startup.Localization</RootNamespace>
-		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 		<Title>Connected Startup Localization</Title>
 		<Company>Tom PIT</Company>
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>

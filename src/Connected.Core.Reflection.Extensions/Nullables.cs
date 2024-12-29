@@ -59,10 +59,10 @@ public static class Nullables
 		if (type is null)
 			return false;
 
-		if (type.IsNullable())
+		if (type == typeof(string))
 			return true;
 
-		if (type == typeof(string))
+		if (type.GetTypeInfo().IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
 			return true;
 
 		return Nullable.GetUnderlyingType(type) is not null;
@@ -75,6 +75,9 @@ public static class Nullables
 
 	public static Type GetNonNullableType(this Type type)
 	{
+		if (type == typeof(string))
+			return typeof(string);
+
 		if (type.IsNullable())
 			return type.GetTypeInfo().GenericTypeArguments[0];
 

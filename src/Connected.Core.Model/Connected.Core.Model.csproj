@@ -6,7 +6,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<RootNamespace>Connected</RootNamespace>
-		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 		<Company>Tom PIT</Company>
 		<Title>Connected Core Model</Title>
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>

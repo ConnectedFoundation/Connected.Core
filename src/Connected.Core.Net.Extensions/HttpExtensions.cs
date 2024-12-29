@@ -201,7 +201,7 @@ public static class HttpExtensions
 		if (!context.User.Identity.IsAuthenticated)
 			return null;
 
-		if (context.User.Identity is not IIdentityProxy proxy || proxy.Identity?.Token is null)
+		if (context.User.Identity is not IIdentityAccessor accessor || accessor.Identity?.Token is null)
 			return null;
 
 		using var scope = Scope.Create();
@@ -211,7 +211,7 @@ public static class HttpExtensions
 			var users = scope.ServiceProvider.GetRequiredService<IUserService>();
 			var dto = scope.ServiceProvider.GetRequiredService<ISelectUserDto>();
 
-			dto.User = proxy.Identity.Token;
+			dto.User = accessor.Identity.Token;
 
 			var result = await users.Select(dto);
 

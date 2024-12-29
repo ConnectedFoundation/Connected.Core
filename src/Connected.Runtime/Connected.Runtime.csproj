@@ -4,7 +4,7 @@
 		<TargetFramework>net9.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 		<Company>Tom PIT</Company>
 		<PackageId>Connected.Runtime</PackageId>
 		<Title>Connected Runtime</Title>
@@ -34,23 +34,29 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Connected.Core.Authentication.Extensions\Connected.Core.Authentication.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Authentication.Model\Connected.Core.Authentication.Model.csproj" />
+		<ProjectReference Include="..\Connected.Core.Authentication\Connected.Core.Authentication.csproj" />
 		<ProjectReference Include="..\Connected.Core.Authorization.Extensions\Connected.Core.Authorization.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Authorization.Model\Connected.Core.Authorization.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Authorization\Connected.Core.Authorization.csproj" />
 		<ProjectReference Include="..\Connected.Core.Caching.Extensions\Connected.Core.Caching.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Caching.Model\Connected.Core.Caching.Model.csproj" />
+		<ProjectReference Include="..\Connected.Core.Caching\Connected.Core.Caching.csproj" />
 		<ProjectReference Include="..\Connected.Core.Collections.Extensions\Connected.Core.Collections.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Collections.Model\Connected.Core.Collections.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Configuration.Extensions\Connected.Core.Configuration.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Configuration.Model\Connected.Core.Configuration.Model.csproj" />
+		<ProjectReference Include="..\Connected.Core.Configuration.Settings\Connected.Core.Configuration.Settings.csproj" />
+		<ProjectReference Include="..\Connected.Core.Configuration\Connected.Core.Configuration.csproj" />
 		<ProjectReference Include="..\Connected.Core.Data.Extensions\Connected.Core.Data.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Data.Model\Connected.Core.Data.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Entities.Extensions\Connected.Core.Entities.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Entities.Model\Connected.Core.Entities.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Entities\Connected.Core.Entities.csproj" />
 		<ProjectReference Include="..\Connected.Core.Globalization.Extensions\Connected.Core.Globalization.Extensions.csproj" />
+		<ProjectReference Include="..\Connected.Core.Globalization.Languages\Connected.Core.Globalization.Languages.csproj" />
 		<ProjectReference Include="..\Connected.Core.Globalization.Model\Connected.Core.Globalization.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Identities.Extensions\Connected.Core.Identities.Extensions.csproj" />
+		<ProjectReference Include="..\Connected.Core.Identities.Globalization\Connected.Core.Identities.Globalization.csproj" />
 		<ProjectReference Include="..\Connected.Core.Identities.Model\Connected.Core.Identities.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Membership.Extensions\Connected.Core.Membership.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Membership.Model\Connected.Core.Membership.Model.csproj" />
@@ -61,6 +67,7 @@
 		<ProjectReference Include="..\Connected.Core.Net\Connected.Core.Net.csproj" />
 		<ProjectReference Include="..\Connected.Core.Notifications.Extensions\Connected.Core.Notifications.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Notifications.Model\Connected.Core.Notifications.Model.csproj" />
+		<ProjectReference Include="..\Connected.Core.Notifications\Connected.Core.Notifications.csproj" />
 		<ProjectReference Include="..\Connected.Core.Reflection.Extensions\Connected.Core.Reflection.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Services.Extensions\Connected.Core.Services.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Services.Model\Connected.Core.Services.Model.csproj" />
@@ -77,6 +84,7 @@
 		<ProjectReference Include="..\Connected.Core.Storage.Extensions\Connected.Core.Storage.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Storage.Model\Connected.Core.Storage.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Storage.Sharding.Nodes\Connected.Core.Storage.Sharding.Nodes.csproj" />
+		<ProjectReference Include="..\Connected.Core.Web.Views\Connected.Core.Web.Views.csproj" />
 		<ProjectReference Include="..\Connected.Sdk\Connected.Sdk.csproj" />
 	</ItemGroup>
 

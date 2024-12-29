@@ -5,7 +5,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<RootNamespace>Connected.Globalization</RootNamespace>
-		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 		<Company>Tom PIT</Company>
 		<Title>Connected Globalization Model</Title>
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>

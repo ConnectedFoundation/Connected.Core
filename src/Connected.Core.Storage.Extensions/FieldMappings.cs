@@ -45,7 +45,7 @@ internal class FieldMappings<TEntity>
 		for (var i = 0; i < reader.FieldCount; i++)
 		{
 			if (FieldMappings<TEntity>.ResolveProperty(properties, reader.GetName(i)) is PropertyInfo property)
-				Properties.Add(i, new PropertyContext(property, ResolveEntityPropertySerializer(property)));
+				Properties.Add(i, new PropertyContext(property, property.ResolveEntityPropertySerializer()));
 		}
 	}
 	/// <summary>
@@ -196,26 +196,5 @@ internal class FieldMappings<TEntity>
 		 * Now bind the property from the converted value.
 		 */
 		prop.SetValue(instance, value);
-	}
-
-	private static IEntityPropertySerializer? ResolveEntityPropertySerializer(PropertyInfo property)
-	{
-		var attribute = property.FindAttribute<SerializerAttribute>();
-		IEntityPropertySerializer? serializer = null;
-
-		if (attribute is null)
-			return null;
-
-		var serializerInstance = attribute.Type.CreateInstance();
-
-		if (serializerInstance is null)
-			throw new NullReferenceException($"{Strings.ErrCreateInstanceNull} ('{attribute.Type}')");
-
-		serializer = serializerInstance as IEntityPropertySerializer;
-
-		if (serializer is null)
-			throw new NullReferenceException($"{Strings.ErrInterfaceExpected} ('{attribute.Type}, {nameof(IEntityPropertySerializer)}')");
-
-		return serializer;
 	}
 }

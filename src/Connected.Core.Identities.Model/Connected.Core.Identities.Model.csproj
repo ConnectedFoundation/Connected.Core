@@ -7,7 +7,7 @@
 		<Nullable>enable</Nullable>
 		<AssemblyName>$(MSBuildProjectName)</AssemblyName>
 		<RootNamespace>Connected.Identities</RootNamespace>
-		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 		<Company>Tom PIT</Company>
 		<Title>Connected Identities Model</Title>
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>

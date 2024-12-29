@@ -9,7 +9,7 @@ public static class Properties
 	{
 		var props = GetProperties(instance, false);
 
-		if (props is null || !props.Any())
+		if (props is null || props.Length == 0)
 			return default;
 
 		foreach (var property in props)
@@ -48,7 +48,7 @@ public static class Properties
 			temp.Add(i);
 		}
 
-		return temp.ToArray();
+		return [.. temp];
 	}
 
 	public static IEnumerable<PropertyInfo> GetInheritedProperites(this Type type)
@@ -98,7 +98,7 @@ public static class Properties
 		if (value is null)
 			property.SetMethod.Invoke(instance, null);
 		else
-			property.SetMethod.Invoke(instance, new object[] { value });
+			property.SetMethod.Invoke(instance, [value]);
 	}
 
 	public static T? FindAttribute<T>(this PropertyInfo info) where T : Attribute

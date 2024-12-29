@@ -1,7 +1,9 @@
-﻿using Connected.Entities;
+﻿using Connected.Annotations;
+using Connected.Entities;
 
 namespace Connected.Storage;
 
+[Service]
 public interface IStorageProvider
 {
 	IStorage<TEntity> Open<TEntity>()

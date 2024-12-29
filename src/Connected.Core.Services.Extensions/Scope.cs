@@ -6,24 +6,35 @@ public static class Scope
 {
 	public static AsyncServiceScope Create()
 	{
+		if (ServiceExtensionsStartup.Services is null)
+			return ServiceExtensionsStartup.ServicesCollection.BuildServiceProvider(false).CreateAsyncScope();
+
 		return ServiceExtensionsStartup.Services.CreateAsyncScope();
-	}
-
-	public static async Task<TDto> ResolveDto<TDto>()
-		where TDto : IDto
-	{
-		using var scope = ServiceExtensionsStartup.Services.CreateAsyncScope();
-
-		var result = scope.ServiceProvider.GetRequiredService<TDto>();
-
-		await scope.Commit();
-
-		return result;
 	}
 
 	public static TService? GetSingletonService<TService>()
 	{
+		if (ServiceExtensionsStartup.Services is null)
+		{
+			var provider = ServiceExtensionsStartup.ServicesCollection.BuildServiceProvider(false);
+
+			return provider.GetService<TService>();
+		}
+
 		return ServiceExtensionsStartup.Services.GetService<TService>();
+	}
+
+	public static TDto GetDto<TDto>()
+		where TDto : IDto
+	{
+		if (ServiceExtensionsStartup.Services is null)
+		{
+			var provider = ServiceExtensionsStartup.ServicesCollection.BuildServiceProvider(false);
+
+			return provider.GetRequiredService<TDto>();
+		}
+
+		return ServiceExtensionsStartup.Services.GetRequiredService<TDto>();
 	}
 
 	public static HttpContext? HttpContext => GetSingletonService<IHttpContextAccessor>()?.HttpContext;

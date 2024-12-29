@@ -101,7 +101,7 @@ public static class ShardingExtensions
 		/*
 		 * We have a value so there a good chance wi'll get the node.
 		 */
-		var dto = await Scope.ResolveDto<ISelectShardDto>();
+		var dto = Scope.GetDto<ISelectShardDto>();
 
 		dto.Entity = entityName;
 		dto.EntityId = value;

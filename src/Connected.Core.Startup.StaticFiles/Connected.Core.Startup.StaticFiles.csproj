@@ -6,7 +6,7 @@
 		<Nullable>enable</Nullable>
 		<AssemblyName>$(MSBuildProjectName)</AssemblyName>
 		<RootNamespace>Connected.Startup.StaticFiles</RootNamespace>
-		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 		<Company>Tom PIT</Company>
 		<Title>Connected Startup Static Files</Title>
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>

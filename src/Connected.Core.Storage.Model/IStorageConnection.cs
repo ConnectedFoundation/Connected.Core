@@ -1,4 +1,5 @@
-﻿using System.Collections.Immutable;
+﻿using Connected.Annotations;
+using System.Collections.Immutable;
 using System.Data;
 
 namespace Connected.Storage;
@@ -9,6 +10,7 @@ public enum StorageConnectionMode
 	Isolated = 2
 }
 
+[Service(ServiceRegistrationScope.Transient)]
 public interface IStorageConnection : IMiddleware, IAsyncDisposable, IDisposable
 {
 	StorageConnectionMode Mode { get; }

@@ -134,7 +134,7 @@ internal sealed class ObjectMerger : Merger
 		property.SetValue(destination, instance);
 	}
 
-	private void MergeObject(object destination, Dictionary<string, object?> source, PropertyInfo property)
+	private static void MergeObject(object destination, Dictionary<string, object?> source, PropertyInfo property)
 	{
 		if (!property.CanWrite)
 			throw new NotImplementedException("Deep merge is not implemented.");

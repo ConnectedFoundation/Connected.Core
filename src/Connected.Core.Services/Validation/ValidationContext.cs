@@ -63,7 +63,7 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 
 	private void Validate(List<ValidationResult> results, object? value, List<object> references)
 	{
-		if (value is null)
+		if (value is null || value is Type)
 			return;
 
 		if (value.GetType().IsTypePrimitive())

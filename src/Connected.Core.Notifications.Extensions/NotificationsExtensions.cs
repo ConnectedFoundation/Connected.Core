@@ -21,7 +21,7 @@ public static class NotificationsExtensions
 
 	private static async Task Insert<TService, TPrimaryKey>(this IEventService events, IOperationState sender, TService service, TPrimaryKey id, string @event)
 	{
-		var dto = await Scope.ResolveDto<IInsertEventDto<TService, PrimaryKeyDto<TPrimaryKey>>>();
+		var dto = Scope.GetDto<IInsertEventDto<TService, PrimaryKeyDto<TPrimaryKey>>>();
 
 		dto.Dto = new PrimaryKeyDto<TPrimaryKey> { Id = id };
 		dto.Event = @event;

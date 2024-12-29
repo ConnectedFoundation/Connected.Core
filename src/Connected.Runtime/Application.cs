@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using System.Net.Mime;
@@ -21,7 +22,11 @@ public static class Application
 
 		try
 		{
+
 			var builder = WebApplication.CreateBuilder(args);
+
+			builder.WebHost.UseStaticWebAssets();
+
 			var startups = MicroServices.Startups;
 
 			foreach (var microService in MicroServices.All)
@@ -100,13 +105,38 @@ public static class Application
 		app.Run();
 	}
 
+	public static void RegisterMicroService<TMicroService>()
+		where TMicroService : Runtime.IStartup
+	{
+		MicroServices.Register<TMicroService>();
+	}
+
 	private static void RegisterCoreMicroServices()
 	{
+
 		MicroServices.Register<RuntimeStartup>();
+		MicroServices.Register<Startup.Mvc.MvcStartup>();
+		MicroServices.Register<Startup.Authentication.AuthenticationStartup>();
+		MicroServices.Register<Startup.Cors.CorsStartup>();
+		MicroServices.Register<Startup.Diagnostics.DiagnosticsStartup>();
+		MicroServices.Register<Startup.Http.HttpStartup>();
+		MicroServices.Register<Startup.Localization.LocalizationStartup>();
+		MicroServices.Register<Startup.SignalR.SignalRStartup>();
+		MicroServices.Register<Startup.Routing.RoutingStartup>();
+		MicroServices.Register<Startup.StaticFiles.StaticFilesStartup>();
 		MicroServices.Register<Authorization.AuthorizationStartup>();
 		MicroServices.Register<Services.ServiceExtensionsStartup>();
 		MicroServices.Register<Services.ServicesStartup>();
 		MicroServices.Register<Entities.EntitiesStartup>();
 		MicroServices.Register<Net.NetStartup>();
+		MicroServices.Register<Web.Views.ViewsStartup>();
+		MicroServices.Register<Configuration.Settings.SettingsStartup>();
+		MicroServices.Register<Caching.CachingStartup>();
+		MicroServices.Register<Storage.StorageExtensionsStartup>();
+		MicroServices.Register<Configuration.ConfigurationStartup>();
+		MicroServices.Register<Notifications.NotificationsStartup>();
+		MicroServices.Register<Authentication.AuthenticationStartup>();
+		MicroServices.Register<Identities.Globalization.IdentitiesGlobalizationStartup>();
+		MicroServices.Register<Globalization.Languages.LanguagesStartup>();
 	}
 }

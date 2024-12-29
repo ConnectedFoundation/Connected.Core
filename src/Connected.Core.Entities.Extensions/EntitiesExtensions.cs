@@ -10,91 +10,6 @@ namespace Connected.Entities;
 
 public static class EntitiesExtensions
 {
-	/// <summary>
-	/// Converts the <see cref="IDto"/> object into entity and overwrites the provided properties.
-	/// </summary>
-	/// <remarks>
-	/// All provided arguments are used when overwriting properties in the order they  are specified. This means
-	/// the value from the last defined property is used when setting the entity's value.
-	/// </remarks>
-	/// <typeparam name="TEntity">The type of the entity to create.</typeparam>
-	/// <param name="dto">The dto containing base property set.</param>
-	/// <param name="state">The state modifier to which entity is set.</param>
-	/// <param name="sources">An array of additional modifier objects providing modified values.</param>
-	/// <returns>A new instance of the entity with modified values.</returns>
-	public static TEntity AsEntity<TEntity>(this IDto dto, State state, params object[] sources)
-		where TEntity : IEntity
-	{
-		if (typeof(TEntity).CreateInstance<TEntity>() is not TEntity instance)
-			throw new NullReferenceException(typeof(TEntity).Name);
-
-		return Merge(instance, dto, state, sources);
-	}
-
-	public static TDto AsDto<TDto>(this IEntity entity) where TDto : IDto
-	{
-		var instance = typeof(TDto).CreateInstance<TDto>();
-		var result = Serializer.Merge(instance, entity);
-
-		if (result is null)
-			throw new NullReferenceException(Strings.ErrMergeNull);
-
-		return result;
-	}
-
-	public static TDto AsDto<TDto>(this IDto dto) where TDto : IDto
-	{
-		var instance = typeof(TDto).CreateInstance<TDto>();
-		var result = Serializer.Merge(instance, dto);
-
-		if (result is null)
-			throw new NullReferenceException(Strings.ErrMergeNull);
-
-		return result;
-	}
-
-	public static TDto AsDto<TDto, TPrimaryKey>(this IPrimaryKeyEntity<TPrimaryKey> entity)
-		where TDto : IDto
-		where TPrimaryKey : notnull
-	{
-		var instance = typeof(TDto).CreateInstance<TDto>();
-		var result = Serializer.Merge(instance, entity);
-
-		if (result is null)
-			throw new NullReferenceException(Strings.ErrMergeNull);
-
-		return result;
-	}
-
-	public static TDto Patch<TDto, TEntity>(this IDto dto, TEntity? entity, params object[] sources)
-		where TDto : IDto
-		where TEntity : IEntity
-	{
-		if (entity is null)
-			return dto.AsEntity<TEntity>(State.Default).AsDto<TDto>(dto);
-
-		return Merge(entity, dto, State.Default, sources).AsDto<TDto>();
-	}
-
-	public static TDto AsDto<TDto>(this IEntity entity, params object[] sources) where TDto : IDto
-	{
-		var instance = typeof(TDto).CreateInstance<TDto>();
-		var result = Serializer.Merge(instance, entity, sources);
-
-		if (result is null)
-			throw new NullReferenceException(Strings.ErrMergeNull);
-
-		return result;
-	}
-
-	public static TEntity Merge<TEntity>(this TEntity existing, IDto? modifier, State state, params object[] sources)
-		where TEntity : IEntity
-	{
-		var newEntity = Activator.CreateInstance<TEntity>();
-
-		return Serializer.Merge(newEntity, existing, modifier, new StateModifier { State = state }, sources);
-	}
-
 	public static TResultEntity Merge<TEntity, TResultEntity>(this TEntity existing, params object[] sources)
 		where TEntity : IEntity
 		where TResultEntity : IEntity
@@ -115,24 +30,24 @@ public static class EntitiesExtensions
 	public static async Task<ImmutableList<TSource>> AsEntities<TSource>(this IQueryable<TSource> source, CancellationToken cancellationToken = default)
 	{
 		if (source is null)
-			return ImmutableList<TSource>.Empty;
+			return [];
 
 		var list = new List<TSource>();
 
 		await foreach (var element in source.AsAsyncEnumerable().WithCancellation(cancellationToken))
 			list.Add(element);
 
-		return list.ToImmutableList();
+		return [.. list];
 	}
 
 	/*
 	 * This method is actually not asynchronous but to avoid future refactorings its signature is 
 	 * marked as async.
 	 */
-	public static async Task<ImmutableList<TSource>> AsEntities<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate, CancellationToken cancellationToken = default)
+	public static async Task<ImmutableList<TSource>> AsEntities<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate)
 	{
 		if (source is null)
-			return ImmutableList<TSource>.Empty;
+			return [];
 
 		await Task.CompletedTask;
 
@@ -142,7 +57,7 @@ public static class EntitiesExtensions
 	public static async Task<ImmutableList<TSource>> AsEntities<TSource>(this IEnumerable<TSource> source)
 	{
 		if (source is null)
-			return ImmutableList<TSource>.Empty;
+			return [];
 
 		await Task.CompletedTask;
 
@@ -236,7 +151,7 @@ public static class EntitiesExtensions
 		return orderPredicate;
 	}
 
-	private static async Task<TResult?> Execute<TSource, TResult>(MethodInfo operatorMethodInfo, IQueryable<TSource> source, Expression? expression, CancellationToken cancellationToken = default)
+	private static async Task<TResult?> Execute<TSource, TResult>(MethodInfo operatorMethodInfo, IQueryable<TSource> source, Expression? expression)
 	{
 		if (operatorMethodInfo.IsGenericMethod)
 		{
@@ -249,7 +164,7 @@ public static class EntitiesExtensions
 
 		try
 		{
-			var arguments = expression is null ? new[] { source.Expression } : new[] { source.Expression, expression };
+			var arguments = expression is null ? [source.Expression] : new[] { source.Expression, expression };
 			var callExpression = Expression.Call(instance: null, method: operatorMethodInfo, arguments: arguments);
 			var result = source.Provider.Execute(callExpression);
 
@@ -266,7 +181,7 @@ public static class EntitiesExtensions
 
 	private static async Task<TResult?> Execute<TSource, TResult>(MethodInfo operatorMethodInfo, IQueryable<TSource> source, CancellationToken cancellationToken = default)
 	{
-		return await Execute<TSource, TResult>(operatorMethodInfo, source, null, cancellationToken);
+		return await Execute<TSource, TResult>(operatorMethodInfo, source, null);
 	}
 
 	public static PropertyInfo? PrimaryKeyProperty(this IEntity entity)
@@ -420,5 +335,26 @@ public static class EntitiesExtensions
 		}
 
 		return null;
+	}
+
+	public static IEntityPropertySerializer? ResolveEntityPropertySerializer(this PropertyInfo property)
+	{
+		var attribute = property.FindAttribute<SerializerAttribute>();
+		IEntityPropertySerializer? serializer = null;
+
+		if (attribute is null)
+			return null;
+
+		var serializerInstance = attribute.Type.CreateInstance();
+
+		if (serializerInstance is null)
+			throw new NullReferenceException($"{Strings.ErrCreateInstanceNull} ('{attribute.Type}')");
+
+		serializer = serializerInstance as IEntityPropertySerializer;
+
+		if (serializer is null)
+			throw new NullReferenceException($"{Strings.ErrInterfaceExpected} ('{attribute.Type}, {nameof(IEntityPropertySerializer)}')");
+
+		return serializer;
 	}
 }

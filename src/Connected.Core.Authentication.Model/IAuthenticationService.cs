@@ -12,5 +12,5 @@ public interface IAuthenticationService
 	/// Gets the identity for the current scope. This property is null is the scope is anonymous.
 	/// </summary>
 	Task<IIdentity?> SelectIdentity();
-	Task UpdateIdentity(IUpdateIdentityDto identity);
+	Task UpdateIdentity(IUpdateIdentityDto dto);
 }
