@@ -36,4 +36,8 @@
 		<ProjectReference Include="..\Connected.Core.Services.Extensions\Connected.Core.Services.Extensions.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Rest\" />
+	</ItemGroup>
+
 </Project>

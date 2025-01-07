@@ -140,7 +140,7 @@ public static class ServicesExtensions
 
 	public static TDto AsDto<TDto>(this IEntity entity) where TDto : IDto
 	{
-		var instance = Scope.GetDto<TDto>();
+		var instance = Dto.Factory.Create<TDto>();
 		var result = Serializer.Merge(instance, entity);
 
 		return result is null ? throw new NullReferenceException(Strings.ErrMergeNull) : result;
@@ -148,7 +148,7 @@ public static class ServicesExtensions
 
 	public static TDto AsDto<TDto>(this IDto dto) where TDto : IDto
 	{
-		var instance = Scope.GetDto<TDto>();
+		var instance = Dto.Factory.Create<TDto>();
 		var result = Serializer.Merge(instance, dto);
 
 		return result is null ? throw new NullReferenceException(Strings.ErrMergeNull) : result;
@@ -158,7 +158,7 @@ public static class ServicesExtensions
 		where TDto : IDto
 		where TPrimaryKey : notnull
 	{
-		var instance = Scope.GetDto<TDto>();
+		var instance = Dto.Factory.Create<TDto>();
 		var result = Serializer.Merge(instance, entity);
 
 		return result is null ? throw new NullReferenceException(Strings.ErrMergeNull) : result;
@@ -176,7 +176,7 @@ public static class ServicesExtensions
 
 	public static TDto AsDto<TDto>(this IEntity entity, params object[] sources) where TDto : IDto
 	{
-		var instance = Scope.GetDto<TDto>();
+		var instance = Dto.Factory.Create<TDto>();
 		var result = Serializer.Merge(instance, entity, sources);
 
 		return result is null ? throw new NullReferenceException(Strings.ErrMergeNull) : result;

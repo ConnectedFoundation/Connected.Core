@@ -1,6 +1,6 @@
 ﻿namespace Connected.Services;
 
-public class PrimaryKeyDto<T> : Dto, IPrimaryKeyDto<T>
+internal class PrimaryKeyDto<T> : Dto, IPrimaryKeyDto<T>
 {
 	public PrimaryKeyDto() { }
 

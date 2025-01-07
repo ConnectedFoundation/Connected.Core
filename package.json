@@ -1,0 +1,13 @@
+{
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/webpack": "^5.28.5",
+    "@types/webpack-dev-server": "^4.7.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2",
+    "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "ts-loader": "^9.5.1"
+  }
+}

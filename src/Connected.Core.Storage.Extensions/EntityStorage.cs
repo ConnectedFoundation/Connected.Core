@@ -156,7 +156,7 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 		if (entity is null)
 			return entity;
 
-		var dto = Scope.GetDto<IEntityProtectionDto<TEntity>>();
+		var dto = Dto.Factory.Create<IEntityProtectionDto<TEntity>>();
 
 		dto.Entity = entity;
 		dto.State = entity.State;
@@ -165,7 +165,7 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 
 		var operation = await CreateOperation(entity) ?? throw new NullReferenceException($"Could not create Storage operation for entity '{entity}'.");
 
-		var storageDto = Scope.GetDto<IStorageContextDto>();
+		var storageDto = Dto.Factory.Create<IStorageContextDto>();
 
 		storageDto.Operation = operation;
 		storageDto.ConnectionMode = Mode;

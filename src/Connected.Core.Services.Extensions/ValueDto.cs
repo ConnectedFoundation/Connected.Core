@@ -1,6 +1,6 @@
 ﻿namespace Connected.Services;
 
-public class ValueDto<T> : Dto, IValueDto<T>
+internal class ValueDto<T> : Dto, IValueDto<T>
 {
 	public ValueDto() { }
 

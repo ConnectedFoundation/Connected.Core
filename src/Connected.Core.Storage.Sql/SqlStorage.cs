@@ -76,7 +76,7 @@ internal sealed class SqlStorage : QueryProvider, IStorageExecutor, IQueryMiddle
 	public IEnumerable<TResult?> Execute<TResult>(IStorageOperation operation)
 		 where TResult : IEntity
 	{
-		var dto = Scope.GetDto<IStorageContextDto>();
+		var dto = Dto.Factory.Create<IStorageContextDto>();
 
 		dto.Operation = operation;
 		dto.ConnectionMode = ConnectionMode;

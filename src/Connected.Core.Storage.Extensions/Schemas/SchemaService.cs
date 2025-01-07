@@ -1,4 +1,5 @@
 using Connected.Services;
+using Connected.Storage.Schemas.Ops;
 
 namespace Connected.Storage.Schemas;
 

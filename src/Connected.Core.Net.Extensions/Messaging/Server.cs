@@ -28,7 +28,7 @@ public abstract class Server<THub, TDto>(IHubContext<THub> hub) : IServer<TDto>
 
 		Messages.Add(client.Connection, message);
 
-		var ack = Scope.GetDto<IMessageAcknowledgeDto>();
+		var ack = Dto.Factory.Create<IMessageAcknowledgeDto>();
 
 		ack.Id = message.Id;
 
@@ -52,7 +52,7 @@ public abstract class Server<THub, TDto>(IHubContext<THub> hub) : IServer<TDto>
 		}
 		catch (Exception ex)
 		{
-			var exDto = Scope.GetDto<IServerExceptionDto>();
+			var exDto = Dto.Factory.Create<IServerExceptionDto>();
 
 			exDto.Message = ex.Message;
 

@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 
 namespace Connected.Services;
 
-public class PrimaryKeyListDto<T> : Dto, IPrimaryKeyListDto<T>
+internal class PrimaryKeyListDto<T> : Dto, IPrimaryKeyListDto<T>
 {
 	[NonDefault]
 	public List<T> Items { get; init; } = null!;

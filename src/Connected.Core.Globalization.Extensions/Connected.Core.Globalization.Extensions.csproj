@@ -31,6 +31,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\Connected.Core.Authentication.Model\Connected.Core.Authentication.Model.csproj" />
+		<ProjectReference Include="..\Connected.Core.Configuration.Model\Connected.Core.Configuration.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Globalization.Model\Connected.Core.Globalization.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Model\Connected.Core.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Services.Extensions\Connected.Core.Services.Extensions.csproj" />

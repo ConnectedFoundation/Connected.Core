@@ -1,6 +1,6 @@
 ﻿namespace Connected.Services;
 
-public class NameDto : Dto, INameDto
+internal class NameDto : Dto, INameDto
 {
 	public NameDto()
 	{

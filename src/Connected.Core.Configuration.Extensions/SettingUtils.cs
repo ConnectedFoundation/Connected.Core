@@ -12,8 +12,7 @@ public static class SettingUtils
 		try
 		{
 			var service = scope.ServiceProvider.GetRequiredService<ISettingService>();
-
-			var setting = await service.Select((NameDto)key);
+			var setting = await service.Select(Dto.Factory.CreateName(key));
 
 			if (setting is null)
 				return default;

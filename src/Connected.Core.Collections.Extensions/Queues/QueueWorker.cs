@@ -115,7 +115,7 @@ internal sealed class QueueWorker : DispatcherJob<IQueueMessage>
 
 	private async Task Complete()
 	{
-		await Queue.Delete((ValueDto<Guid>)Dto.PopReceipt.GetValueOrDefault());
+		await Queue.Delete(Services.Dto.Factory.CreateValue(Dto.PopReceipt.GetValueOrDefault()));
 	}
 
 	private object? CreateClient()

@@ -31,8 +31,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\Connected.Core.Caching.Extensions\Connected.Core.Caching.Extensions.csproj" />
+		<ProjectReference Include="..\Connected.Core.Caching.Model\Connected.Core.Caching.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Model.Extensions\Connected.Core.Model.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Model\Connected.Core.Model.csproj" />
+		<ProjectReference Include="..\Connected.Core.Notifications.Extensions\Connected.Core.Notifications.Extensions.csproj" />
+		<ProjectReference Include="..\Connected.Core.Notifications.Model\Connected.Core.Notifications.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Services.Extensions\Connected.Core.Services.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Storage.Model\Connected.Core.Storage.Model.csproj" />
 	</ItemGroup>

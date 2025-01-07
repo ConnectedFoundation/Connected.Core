@@ -2,7 +2,7 @@
 
 namespace Connected.Services;
 
-public class EntityDto : Dto, IEntityDto
+internal class EntityDto : Dto, IEntityDto
 {
 	[Required, MaxLength(128)]
 	public string Entity { get; set; } = default!;

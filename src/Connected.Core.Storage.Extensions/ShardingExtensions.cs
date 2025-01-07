@@ -101,7 +101,7 @@ public static class ShardingExtensions
 		/*
 		 * We have a value so there a good chance wi'll get the node.
 		 */
-		var dto = Scope.GetDto<ISelectShardDto>();
+		var dto = Dto.Factory.Create<ISelectShardDto>();
 
 		dto.Entity = entityName;
 		dto.EntityId = value;
@@ -117,7 +117,7 @@ public static class ShardingExtensions
 		/*
 		 * We have a node, one more check to see if it actually exists or we have a void pointer.
 		 */
-		var node = await nodes.Select(new PrimaryKeyDto<int> { Id = result.Node });
+		var node = await nodes.Select(Dto.Factory.CreatePrimaryKey(result.Node));
 
 		if (node is null)
 			throw new NullReferenceException($"{Strings.ErrShardingNodeNotFound} ('{result.Node}')");

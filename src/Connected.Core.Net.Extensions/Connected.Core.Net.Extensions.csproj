@@ -46,4 +46,28 @@
 		<ProjectReference Include="..\Connected.Core.Services.Extensions\Connected.Core.Services.Extensions.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Compile Update="Http\HttpStrings.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>HttpStrings.resx</DependentUpon>
+	  </Compile>
+	  <Compile Update="Rest\RestStrings.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>RestStrings.resx</DependentUpon>
+	  </Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Update="Http\HttpStrings.resx">
+	    <Generator>ResXFileCodeGenerator</Generator>
+	    <LastGenOutput>HttpStrings.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
+	  <EmbeddedResource Update="Rest\RestStrings.resx">
+	    <Generator>ResXFileCodeGenerator</Generator>
+	    <LastGenOutput>RestStrings.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
+	</ItemGroup>
+
 </Project>

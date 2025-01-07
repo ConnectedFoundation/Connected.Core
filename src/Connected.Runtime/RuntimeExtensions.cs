@@ -41,10 +41,7 @@ public static class RuntimeExtensions
 	private static void AddServiceOperation(Type type, IServiceCollection services, bool manual)
 	{
 		if (CanRegister(type, manual) && type.IsServiceOperation())
-		{
 			services.AddTransient(type);
-			Components.AddServiceOperation(type);
-		}
 	}
 
 	public static void AddService(Type type, IServiceCollection services)
@@ -77,8 +74,6 @@ public static class RuntimeExtensions
 					default:
 						throw new NotSupportedException();
 				}
-
-				Components.AddService(type);
 			}
 		}
 	}
@@ -99,9 +94,7 @@ public static class RuntimeExtensions
 			return;
 
 		if (typeRef is null || !typeRef.Contains(type))
-			services.Add(ServiceDescriptor.Transient(type, type));
-
-		Components.AddMiddleware(type);
+			services.AddMiddleware(type);
 	}
 
 	public static void AddCache(Type type, IServiceCollection services)
@@ -120,10 +113,7 @@ public static class RuntimeExtensions
 		foreach (var itf in type.GetInterfaces())
 		{
 			if (itf.GetInterface(fullName) is not null)
-			{
 				services.Add(ServiceDescriptor.Scoped(itf, type));
-				Components.AddCache(type);
-			}
 		}
 	}
 
@@ -141,7 +131,6 @@ public static class RuntimeExtensions
 			return;
 
 		services.AddTransient(type);
-		Components.AddDispatcher(type);
 	}
 
 	public static void AddDispatcherJob(Type type, IServiceCollection services)
@@ -158,7 +147,6 @@ public static class RuntimeExtensions
 			return;
 
 		services.AddTransient(type);
-		Components.AddDispatcherJob(type);
 	}
 
 	private static void AddAmbientValue(Type type, IServiceCollection services, bool manual, List<Type>? typeRef)
@@ -227,8 +215,6 @@ public static class RuntimeExtensions
 				services.AddTransient(interfaceDefinition, typeDefinition);
 			}
 		}
-
-		Components.AddDto(type);
 	}
 
 	private static void AddClaimProvider(Type type, IServiceCollection services, bool manual)
@@ -242,8 +228,6 @@ public static class RuntimeExtensions
 			return;
 
 		services.Add(ServiceDescriptor.Scoped(type, type));
-
-		Components.AddClaimProvider(type);
 	}
 
 	private static bool CanRegister(Type type, bool manual)

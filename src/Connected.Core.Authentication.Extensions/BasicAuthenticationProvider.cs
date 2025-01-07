@@ -10,6 +10,7 @@ namespace Connected.Authentication;
 /// This implementation expects that a basic scheme has been set to a Dto.
 /// </remarks>
 [Priority(1)]
+[ServiceRegistration(ServiceRegistrationMode.Manual)]
 public abstract class BasicAuthenticationProvider : AuthenticationProvider
 {
 	/// <summary>

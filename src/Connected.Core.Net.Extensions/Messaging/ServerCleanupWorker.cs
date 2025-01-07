@@ -33,7 +33,7 @@ public abstract class ServerCleanupWorker<TDto, THub> : ScheduledWorker
 
 		foreach (var item in messages)
 		{
-			var dto = Scope.GetDto<IMessageAcknowledgeDto>();
+			var dto = Dto.Factory.Create<IMessageAcknowledgeDto>();
 
 			dto.Id = item.Id;
 

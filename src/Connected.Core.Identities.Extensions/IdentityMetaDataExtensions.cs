@@ -36,7 +36,7 @@ public static class IdentityMetaDataExtensions
 			if (metaDataService is null)
 				return null;
 
-			var metaData = await metaDataService.Select(new PrimaryKeyDto<string> { Id = identity.Token });
+			var metaData = await metaDataService.Select(Dto.Factory.CreatePrimaryKey(identity.Token));
 
 			if (metaData is null)
 				return null;

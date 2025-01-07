@@ -72,19 +72,9 @@
 		<ProjectReference Include="..\Connected.Core.Services.Extensions\Connected.Core.Services.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Services.Model\Connected.Core.Services.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Services\Connected.Core.Services.csproj" />
-		<ProjectReference Include="..\Connected.Core.Startup.Authentication\Connected.Core.Startup.Authentication.csproj" />
-		<ProjectReference Include="..\Connected.Core.Startup.Cors\Connected.Core.Startup.Cors.csproj" />
-		<ProjectReference Include="..\Connected.Core.Startup.Diagnostics\Connected.Core.Startup.Diagnostics.csproj" />
-		<ProjectReference Include="..\Connected.Core.Startup.Http\Connected.Core.Startup.Http.csproj" />
-		<ProjectReference Include="..\Connected.Core.Startup.Localization\Connected.Core.Startup.Localization.csproj" />
-		<ProjectReference Include="..\Connected.Core.Startup.Mvc\Connected.Core.Startup.Mvc.csproj" />
-		<ProjectReference Include="..\Connected.Core.Startup.Routing\Connected.Core.Startup.Routing.csproj" />
-		<ProjectReference Include="..\Connected.Core.Startup.SignalR\Connected.Core.Startup.SignalR.csproj" />
-		<ProjectReference Include="..\Connected.Core.Startup.StaticFiles\Connected.Core.Startup.StaticFiles.csproj" />
 		<ProjectReference Include="..\Connected.Core.Storage.Extensions\Connected.Core.Storage.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Storage.Model\Connected.Core.Storage.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Storage.Sharding.Nodes\Connected.Core.Storage.Sharding.Nodes.csproj" />
-		<ProjectReference Include="..\Connected.Core.Web.Views\Connected.Core.Web.Views.csproj" />
 		<ProjectReference Include="..\Connected.Sdk\Connected.Sdk.csproj" />
 	</ItemGroup>
 

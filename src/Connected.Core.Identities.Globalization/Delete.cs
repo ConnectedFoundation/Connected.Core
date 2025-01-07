@@ -10,7 +10,10 @@ internal sealed class Delete(IIdentityGlobalizationCache cache, IStorageProvider
 {
 	protected override async Task OnInvoke()
 	{
-		if (SetState(await globalization.Select(new PrimaryKeyDto<string> { Id = Dto.Id })) is not IdentityGlobalization existing)
+		if (Dto.Id is null)
+			return;
+
+		if (SetState(await globalization.Select(Dto.CreatePrimaryKey(Dto.Id))) is not IdentityGlobalization existing)
 			return;
 
 		await storage.Open<IdentityGlobalization>().Update(Dto.AsEntity<IdentityGlobalization>(State.Deleted));

@@ -24,18 +24,5 @@ public static class Scope
 		return ServiceExtensionsStartup.Services.GetService<TService>();
 	}
 
-	public static TDto GetDto<TDto>()
-		where TDto : IDto
-	{
-		if (ServiceExtensionsStartup.Services is null)
-		{
-			var provider = ServiceExtensionsStartup.ServicesCollection.BuildServiceProvider(false);
-
-			return provider.GetRequiredService<TDto>();
-		}
-
-		return ServiceExtensionsStartup.Services.GetRequiredService<TDto>();
-	}
-
 	public static HttpContext? HttpContext => GetSingletonService<IHttpContextAccessor>()?.HttpContext;
 }

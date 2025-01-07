@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Connected.Collections.Queues</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Connected.Core.Caching.Extensions\Connected.Core.Caching.Extensions.csproj" />
+    <ProjectReference Include="..\Connected.Core.Caching.Model\Connected.Core.Caching.Model.csproj" />
+    <ProjectReference Include="..\Connected.Core.Collections.Model\Connected.Core.Collections.Model.csproj" />
+    <ProjectReference Include="..\Connected.Core.Model.Extensions\Connected.Core.Model.Extensions.csproj" />
+    <ProjectReference Include="..\Connected.Core.Services.Extensions\Connected.Core.Services.Extensions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="QueueStrings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>QueueStrings.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="QueueStrings.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>QueueStrings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

@@ -11,7 +11,7 @@ public static class LanguageExtensions
 		foreach (var item in items)
 		{
 			if (string.Equals(item.Mapping, qualifier, StringComparison.OrdinalIgnoreCase))
-				return await service.Select(new PrimaryKeyDto<int> { Id = item.Language });
+				return await service.Select(Dto.Factory.CreatePrimaryKey(item.Language));
 		}
 
 		return null;

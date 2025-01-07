@@ -39,7 +39,7 @@ internal sealed class Insert<TService, TDto>(IServiceProvider services, IMiddlew
 		if (url is null)
 			return;
 
-		var dto = Scope.GetDto<ISendContextDto>();
+		var dto = Dto.Create<ISendContextDto>();
 
 		dto.Method = "Notify";
 

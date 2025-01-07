@@ -17,7 +17,7 @@ internal sealed class RuntimeService(IConfiguration configuration) : IRuntimeSer
 
 	public async Task<ImmutableList<Type>> QueryMiddlewares()
 	{
-		return await Task.FromResult(Components.Middlewares);
+		return await Task.FromResult(configuration.QueryMiddlewares());
 	}
 
 	public async Task<ImmutableList<IStartup>> QueryStartups()

@@ -1,4 +1,5 @@
 using Connected.Identities;
+using Connected.Net.Http;
 using Connected.Services;
 using Microsoft.AspNetCore.SignalR;
 

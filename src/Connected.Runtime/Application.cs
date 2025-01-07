@@ -10,54 +10,56 @@ namespace Connected;
 public static class Application
 {
 	private static object _lastException = new();
-	private static bool _startedErrorServer = false;
-	private static IHost? _host;
 
-	public static async Task Run(string[] args)
+	public static bool IsErrorServerStarted { get; private set; }
+	public static void AddOutOfMemoryExceptionHandler()
 	{
-		RegisterCoreMicroServices();
-
-		AppDomain.CurrentDomain.UnhandledException += OnUnhandledExceptionThrown;
 		AppDomain.CurrentDomain.FirstChanceException += OnFirstChanceException;
+	}
 
-		try
-		{
+	public static void AddAutoRestart()
+	{
+		AppDomain.CurrentDomain.UnhandledException += OnUnhandledExceptionThrown;
+	}
 
-			var builder = WebApplication.CreateBuilder(args);
+	public static void AddMicroServices(this WebApplicationBuilder builder)
+	{
+		var startups = MicroServices.Startups;
 
-			builder.WebHost.UseStaticWebAssets();
+		foreach (var microService in MicroServices.All)
+			builder.Services.AddMicroService(microService);
+	}
 
-			var startups = MicroServices.Startups;
+	public static void ConfigureMicroServicesServices(this IHostApplicationBuilder builder)
+	{
+		var startups = MicroServices.Startups;
 
-			foreach (var microService in MicroServices.All)
-				builder.Services.AddMicroService(microService);
+		foreach (var startup in startups)
+			startup.ConfigureServices(builder.Services);
+	}
 
-			foreach (var startup in startups)
-				startup.ConfigureServices(builder.Services);
+	public static void ConfigureMicroServices(this IApplicationBuilder builder, IWebHostEnvironment environment)
+	{
+		var startups = MicroServices.Startups;
 
-			var webApp = builder.Build();
+		foreach (var startup in startups)
+			startup.Configure(builder, environment);
+	}
 
-			_host = webApp;
+	public static async Task InitializeMicroServices(this IApplicationBuilder builder, IHost host)
+	{
+		var startups = MicroServices.Startups;
 
-			foreach (var startup in startups)
-				startup.Configure(webApp, builder.Environment);
+		foreach (var startup in startups)
+			await startup.Initialize(host);
+	}
 
-			foreach (var startup in startups)
-				await startup.Initialize(_host);
+	public static async Task StartMicroServices(this IApplicationBuilder builder)
+	{
+		var startups = MicroServices.Startups;
 
-			foreach (var startup in startups)
-				await startup.Start();
-
-			await _host.RunAsync();
-		}
-		finally
-		{
-			if (_startedErrorServer)
-			{
-				while (true)
-					Thread.Sleep(1000);
-			}
-		}
+		foreach (var startup in startups)
+			await startup.Start();
 	}
 
 	private static void OnFirstChanceException(object? sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
@@ -78,10 +80,10 @@ public static class Application
 	{
 		_lastException = exception;
 
-		if (_startedErrorServer)
+		if (IsErrorServerStarted)
 			return;
 
-		_startedErrorServer = true;
+		IsErrorServerStarted = true;
 
 		var app = WebApplication.CreateBuilder().Build();
 
@@ -111,25 +113,14 @@ public static class Application
 		MicroServices.Register<TMicroService>();
 	}
 
-	private static void RegisterCoreMicroServices()
+	public static void RegisterCoreMicroServices()
 	{
-
 		MicroServices.Register<RuntimeStartup>();
-		MicroServices.Register<Startup.Mvc.MvcStartup>();
-		MicroServices.Register<Startup.Authentication.AuthenticationStartup>();
-		MicroServices.Register<Startup.Cors.CorsStartup>();
-		MicroServices.Register<Startup.Diagnostics.DiagnosticsStartup>();
-		MicroServices.Register<Startup.Http.HttpStartup>();
-		MicroServices.Register<Startup.Localization.LocalizationStartup>();
-		MicroServices.Register<Startup.SignalR.SignalRStartup>();
-		MicroServices.Register<Startup.Routing.RoutingStartup>();
-		MicroServices.Register<Startup.StaticFiles.StaticFilesStartup>();
 		MicroServices.Register<Authorization.AuthorizationStartup>();
 		MicroServices.Register<Services.ServiceExtensionsStartup>();
 		MicroServices.Register<Services.ServicesStartup>();
 		MicroServices.Register<Entities.EntitiesStartup>();
 		MicroServices.Register<Net.NetStartup>();
-		MicroServices.Register<Web.Views.ViewsStartup>();
 		MicroServices.Register<Configuration.Settings.SettingsStartup>();
 		MicroServices.Register<Caching.CachingStartup>();
 		MicroServices.Register<Storage.StorageExtensionsStartup>();
