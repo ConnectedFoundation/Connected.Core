@@ -1,4 +1,7 @@
+using Connected.Reflection;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Connected.Net.Rest.Formatters;
 
@@ -11,7 +14,13 @@ internal class JsonFormatter : Formatter
 		if (Context is null)
 			return null;
 
-		return await Context.Request.Deserialize();
+		using var reader = new StreamReader(Context.Request.Body, Encoding.UTF8);
+		var text = await reader.ReadToEndAsync();
+
+		if (JsonNode.Parse(text, new JsonNodeOptions { PropertyNameCaseInsensitive = true }) is not JsonNode node)
+			return default;
+
+		return node.ToDictionary();
 	}
 
 	protected override async Task OnRenderResult(object? content)

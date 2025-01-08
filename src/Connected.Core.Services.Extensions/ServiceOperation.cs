@@ -1,4 +1,5 @@
-﻿using Connected.Storage.Transactions;
+﻿using Connected.Reflection;
+using Connected.Storage.Transactions;
 using System.Collections.Concurrent;
 
 namespace Connected.Services;
@@ -53,7 +54,7 @@ public abstract class ServiceOperation<TDto> : IServiceOperation<TDto>, ITransac
 		if (!State.TryGetValue(key, out object? result))
 			return default;
 
-		return (TEntity?)Convert.ChangeType(result, typeof(TEntity));
+		return Types.Convert<TEntity>(result);
 	}
 
 	async Task ITransactionClient.Commit()

@@ -1,3 +1,4 @@
+using Connected.Reflection;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 
@@ -342,7 +343,7 @@ internal abstract class Cache : ICache
 		if (entry is null || entry.Instance is null)
 			return default;
 
-		return (T?)Convert.ChangeType(entry.Instance, typeof(T?));
+		return Types.Convert<T>(entry.Instance);
 	}
 
 	protected static string ResolveId(object id)

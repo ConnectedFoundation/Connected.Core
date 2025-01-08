@@ -37,7 +37,7 @@ public enum Optimization
 	Release = 2
 }
 
-[Service]
+[Service(ServiceRegistrationScope.Singleton)]
 public interface IRuntimeService
 {
 	Task<ImmutableList<Assembly>> QueryMicroServices();

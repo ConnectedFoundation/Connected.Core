@@ -88,7 +88,7 @@ internal static class ReturnValueBinder
 			if (overwriteAtt is null)
 				continue;
 
-			property.SetValue(entity, Convert.ChangeType(parameter.Value, property.PropertyType));
+			property.SetValue(entity, Types.Convert(parameter.Value, property.PropertyType));
 		}
 	}
 }

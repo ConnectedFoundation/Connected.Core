@@ -1,4 +1,7 @@
+using Connected.Annotations;
+using Connected.Reflection;
 using Connected.Runtime;
+using Connected.Services;
 using Microsoft.AspNetCore.Http;
 using System.Collections.Immutable;
 using System.Reflection;
@@ -6,31 +9,21 @@ using System.Text;
 
 namespace Connected.Net.Rest;
 
-internal class ResolutionService : IResolutionService
+internal class ResolutionService(IRuntimeService runtimeService) : IResolutionService
 {
-	private readonly Dictionary<string, List<InvokeDescriptor>> _methods;
-	private readonly Dictionary<string, List<DtoRestDescriptor>> _dtos;
-
-	public ResolutionService(IRuntimeService environmentService)
-	{
-		_methods = new(StringComparer.OrdinalIgnoreCase);
-		_dtos = new(StringComparer.OrdinalIgnoreCase);
-
-		EnvironmentService = environmentService;
-
-		Initialize();
-	}
-
-	private Dictionary<string, List<InvokeDescriptor>> Methods => _methods;
-	private Dictionary<string, List<DtoRestDescriptor>> Dtos => _dtos;
+	private bool IsInitialized { get; set; }
+	private Dictionary<string, List<InvokeDescriptor>> Methods { get; } = new(StringComparer.OrdinalIgnoreCase);
+	private Dictionary<string, List<DtoRestDescriptor>> Dtos { get; } = new(StringComparer.OrdinalIgnoreCase);
 
 	/// <summary>
 	/// This method tries to resolve argument implementation type based on the parameter's type interface.
 	/// </summary>
 	/// <param name="parameter">The implementation parameter of the method which declares the argument</param>
 	/// <returns><see cref="Type"/> that implements <paramref name="parameter"/>'s type interface.</returns>
-	public Type? ResolveDto(ParameterInfo parameter)
+	public async Task<Type?> SelectDto(ParameterInfo parameter)
 	{
+		await Initialize();
+
 		if (!Dtos.ContainsKey(DtoName(parameter.ParameterType)))
 			return null;
 
@@ -73,8 +66,10 @@ internal class ResolutionService : IResolutionService
 		return dto.MakeGenericType(parameter.ParameterType.GetGenericArguments());
 	}
 
-	public InvokeDescriptor? ResolveMethod(HttpContext context)
+	public async Task<InvokeDescriptor?> SelectMethod(HttpContext context)
 	{
+		await Initialize();
+
 		var route = context.Request.Path.Value;
 
 		if (route is null)
@@ -100,18 +95,40 @@ internal class ResolutionService : IResolutionService
 		return descriptor[0];
 	}
 
-	private void Initialize()
+	private async Task Initialize()
 	{
-		foreach (var type in EnvironmentService.Services.Services)
-			InitializeService(type);
+		if (IsInitialized)
+			return;
 
-		foreach (var type in EnvironmentService.Services.Dtos)
-			InitializeDto(type);
+		IsInitialized = true;
+
+		var startups = await runtimeService.QueryStartups();
+
+		foreach (var startup in startups)
+		{
+			foreach (var type in startup.GetType().Assembly.GetTypes())
+			{
+				if (type.IsAbstract)
+					continue;
+
+				if (type.ImplementsInterface<IDto>())
+					InitializeDto(type);
+
+				foreach (var itf in type.GetInterfaces())
+				{
+					if (itf.GetCustomAttribute<ServiceAttribute>() is not null)
+					{
+						InitializeService(type);
+						break;
+					}
+				}
+			}
+		}
 	}
 
 	private void InitializeDto(Type type)
 	{
-		if (type.GetImplementedDtos() is not List<Type> dtos || !dtos.Any())
+		if (type.GetImplementedDtos() is not List<Type> dtos || dtos.Count == 0)
 			return;
 
 		foreach (var dto in dtos)
@@ -121,13 +138,13 @@ internal class ResolutionService : IResolutionService
 			if (Dtos.TryGetValue(name, out _))
 				Dtos[name].Add(new DtoRestDescriptor(type));
 			else
-				Dtos.Add(name, new List<DtoRestDescriptor> { new DtoRestDescriptor(type) });
+				Dtos.Add(name, [new DtoRestDescriptor(type)]);
 		}
 	}
 
 	private void InitializeService(Type type)
 	{
-		if (type.GetImplementedServices() is not List<Type> services || !services.Any())
+		if (type.GetImplementedServices() is not List<Type> services || services.Count == 0)
 			return;
 
 		foreach (var service in services)
@@ -152,13 +169,9 @@ internal class ResolutionService : IResolutionService
 		foreach (var parameter in method.GetParameters())
 			parameterTypes.Add(parameter.ParameterType);
 
-		var targetMethod = serviceType.GetMethod(method.Name, parameterTypes.ToArray());
-
-		if (targetMethod is null)
-			throw new NullReferenceException($"Method not found ({method.Name})");
-
+		var targetMethod = serviceType.GetMethod(method.Name, [.. parameterTypes]) ?? throw new NullReferenceException($"Method not found ({method.Name})");
 		var methodUrl = $"{serviceUrl}/{ResolveMethodUrl(targetMethod)}";
-		var descriptor = new InvokeDescriptor { Service = serviceType, Method = targetMethod, Parameters = parameterTypes.ToArray(), Verbs = verbs };
+		var descriptor = new InvokeDescriptor { Service = serviceType, Method = targetMethod, Parameters = [.. parameterTypes], Verbs = verbs };
 
 		if (!methodUrl.StartsWith('/'))
 			methodUrl = $"/{methodUrl}";
@@ -166,11 +179,13 @@ internal class ResolutionService : IResolutionService
 		if (Methods.TryGetValue(methodUrl, out List<InvokeDescriptor>? items))
 			items.Add(descriptor);
 		else
-			Methods.Add(methodUrl, new List<InvokeDescriptor> { descriptor });
+			Methods.Add(methodUrl, [descriptor]);
 	}
 
-	public ImmutableList<Tuple<string, ServiceOperationVerbs>> QueryRoutes()
+	public async Task<ImmutableList<Tuple<string, ServiceOperationVerbs>>> QueryRoutes()
 	{
+		await Initialize();
+
 		var result = new List<Tuple<string, ServiceOperationVerbs>>();
 
 		foreach (var method in Methods)
@@ -183,7 +198,7 @@ internal class ResolutionService : IResolutionService
 			result.Add(Tuple.Create(method.Key, verbs));
 		}
 
-		return result.ToImmutableList();
+		return [.. result];
 	}
 
 	private static string ResolveServiceUrl(Type type)

@@ -1,4 +1,5 @@
 using Connected.Annotations.Entities;
+using Connected.Reflection;
 using Connected.Storage.Schemas;
 using System.Data;
 
@@ -135,7 +136,7 @@ internal static class SchemaExtensions
 		if (r.IsDBNull(idx))
 			return defaultValue;
 
-		return (T)Convert.ChangeType(r.GetValue(idx), typeof(T));
+		return Types.Convert<T>(r.GetValue(idx));
 	}
 
 	public static string SchemaName(this ISchema schema)

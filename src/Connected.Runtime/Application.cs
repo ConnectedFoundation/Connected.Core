@@ -129,5 +129,6 @@ public static class Application
 		MicroServices.Register<Authentication.AuthenticationStartup>();
 		MicroServices.Register<Identities.Globalization.IdentitiesGlobalizationStartup>();
 		MicroServices.Register<Globalization.Languages.LanguagesStartup>();
+		MicroServices.Register<Net.NetExtensionsStartup>();
 	}
 }

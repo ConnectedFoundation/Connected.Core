@@ -1,80 +1,53 @@
+using Connected.Annotations;
+using Connected.Net.Http;
+using Connected.Reflection;
+using Connected.Services;
 using Microsoft.AspNetCore.Http;
-using System.Threading.Tasks;
-using System.Text;
-using System.IO;
-using System.Text.Json;
-using TomPIT.Services;
-using TomPIT.Net;
-using TomPIT.Configuration.Environment;
-using System.Reflection;
-using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
-using System.ComponentModel.DataAnnotations;
-using TomPIT.Annotations;
-using System.Net;
-using System.Linq;
 using System.ComponentModel;
-using TomPIT.Interop;
+using System.ComponentModel.DataAnnotations;
+using System.Net;
+using System.Reflection;
+using System.Text.Json;
 
 namespace Connected.Net.Rest.Dtos;
 
-internal sealed class DtoRequestDelegate : HttpRequestHandler
+internal sealed class DtoRequestDelegate(HttpContext context)
+	: HttpRequestHandler(context)
 {
-	public DtoRequestDelegate(HttpContext context) : base(context)
+	private static readonly JsonSerializerOptions _options = new()
 	{
-
-	}
+		PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+	};
 
 	protected override async Task OnInvoke()
 	{
-		var options = new JsonDocumentOptions
-		{
-			AllowTrailingCommas = true
-		};
+		using var scope = Scope.Create();
 
-		using var context = Context.RequestServices.GetRequiredService<IContextProvider>().Create();
-
-		if (context.GetService<IResolutionService>()?.ResolveMethod(Context) is not InvokeDescriptor descriptor)
+		if ((await scope.ServiceProvider.GetRequiredService<IResolutionService>().SelectMethod(Context)) is not InvokeDescriptor descriptor)
 		{
 			Context.Response.StatusCode = (int)HttpStatusCode.NotFound;
 			return;
 		}
 
-		if (descriptor.Parameters is null || !descriptor.Parameters.Any())
+		if (descriptor.Parameters is null || descriptor.Parameters.Length == 0)
 			return;
 
-		var environment = context.GetService<IEnvironmentService>();
-
-		if (environment is null)
-			return;
-
-		foreach (var argument in environment.Services.Dtos)
-		{
-			if (string.Equals(argument.FullName, descriptor.Parameters[0].FullName, StringComparison.Ordinal))
-			{
-				await ResolveDto(argument);
-				return;
-			}
-		}
+		await ResolveDto(descriptor.Parameters[0]);
 	}
 
 	private async Task ResolveDto(Type argument)
 	{
-		var options = new JsonSerializerOptions
-		{
-			PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-		};
-
 		var descriptor = CreateDescriptor(argument);
 		using var ms = new MemoryStream();
-		await JsonSerializer.SerializeAsync(ms, descriptor, options, Context.RequestAborted);
+		await JsonSerializer.SerializeAsync(ms, descriptor, _options, Context.RequestAborted);
 
 		ms.Seek(0, SeekOrigin.Begin);
 
 		await Write(DateTime.UtcNow, "application/json", ms.ToArray());
 	}
 
-	private DtoDescriptor CreateDescriptor(Type type)
+	private static DtoDescriptor CreateDescriptor(Type type)
 	{
 		var result = new DtoDescriptor();
 		var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.GetProperty);
@@ -149,7 +122,7 @@ internal sealed class DtoRequestDelegate : HttpRequestHandler
 		return displayAttribute.GetDescription();
 	}
 
-	private void ResolveRequired(DtoPropertyDescriptor descriptor, PropertyInfo property)
+	private static void ResolveRequired(DtoPropertyDescriptor descriptor, PropertyInfo property)
 	{
 		var requiredAttribute = property.FindAttribute<RequiredAttribute>();
 
@@ -160,7 +133,7 @@ internal sealed class DtoRequestDelegate : HttpRequestHandler
 		descriptor.Required.ErrorMessage = requiredAttribute.ErrorMessage;
 	}
 
-	private void ResolveMinLength(DtoPropertyDescriptor descriptor, PropertyInfo property)
+	private static void ResolveMinLength(DtoPropertyDescriptor descriptor, PropertyInfo property)
 	{
 		var minLengthAttribute = property.FindAttribute<MinLengthAttribute>();
 
@@ -171,7 +144,7 @@ internal sealed class DtoRequestDelegate : HttpRequestHandler
 		descriptor.MinLength.ErrorMessage = minLengthAttribute.ErrorMessage;
 	}
 
-	private void ResolveMaxLength(DtoPropertyDescriptor descriptor, PropertyInfo property)
+	private static void ResolveMaxLength(DtoPropertyDescriptor descriptor, PropertyInfo property)
 	{
 		var maxLengthAttribute = property.FindAttribute<MaxLengthAttribute>();
 
@@ -182,7 +155,7 @@ internal sealed class DtoRequestDelegate : HttpRequestHandler
 		descriptor.MaxLength.ErrorMessage = maxLengthAttribute.ErrorMessage;
 	}
 
-	private void ResolveMinValue(DtoPropertyDescriptor descriptor, PropertyInfo property)
+	private static void ResolveMinValue(DtoPropertyDescriptor descriptor, PropertyInfo property)
 	{
 		var minValueAttribute = property.FindAttribute<MinValueAttribute>();
 
@@ -193,18 +166,18 @@ internal sealed class DtoRequestDelegate : HttpRequestHandler
 		descriptor.MinValue.ErrorMessage = minValueAttribute.ErrorMessage;
 	}
 
-	private void ResolveMaxValue(DtoPropertyDescriptor descriptor, PropertyInfo property)
+	private static void ResolveMaxValue(DtoPropertyDescriptor descriptor, PropertyInfo property)
 	{
-		var maxValueAttribute = property.FindAttribute<MaxValueAttribute>();
+		var maxValueAttribute = property.FindAttribute<RangeAttribute>();
 
 		if (maxValueAttribute is null)
 			return;
 
-		descriptor.MaxValue.Value = maxValueAttribute.Value;
+		descriptor.MaxValue.Value = Convert.ToDouble(maxValueAttribute.Maximum);
 		descriptor.MaxValue.ErrorMessage = maxValueAttribute.ErrorMessage;
 	}
 
-	private void ResolveEmail(DtoPropertyDescriptor descriptor, PropertyInfo property)
+	private static void ResolveEmail(DtoPropertyDescriptor descriptor, PropertyInfo property)
 	{
 		var emailAttribute = property.FindAttribute<EmailAddressAttribute>();
 
@@ -215,7 +188,7 @@ internal sealed class DtoRequestDelegate : HttpRequestHandler
 		descriptor.Email.ErrorMessage = emailAttribute.ErrorMessage;
 	}
 
-	private void ResolvePassword(DtoPropertyDescriptor descriptor, PropertyInfo property)
+	private static void ResolvePassword(DtoPropertyDescriptor descriptor, PropertyInfo property)
 	{
 		descriptor.IsPassword = property.FindAttribute<PasswordPropertyTextAttribute>() is not null;
 	}

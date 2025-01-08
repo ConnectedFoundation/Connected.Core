@@ -1,38 +1,26 @@
-using System.Reflection;
-using System.Text.Json.Nodes;
-using TomPIT.Annotations;
-using TomPIT.Interop;
-using TomPIT.Services;
-using Microsoft.AspNetCore.Http;
-using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using TomPIT.Authorization;
-using System.Linq;
-using TomPIT.Data.Transactions;
+using Connected.Annotations;
 using Connected.Net.Rest.Formatters;
+using Connected.Reflection;
+using Connected.Services;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 
 namespace Connected.Net.Rest;
 
 internal sealed class ServiceRequestDelegate : IDisposable
 {
-	private IContext? _context;
-
+	private AsyncServiceScope? _scope = null;
 	public ServiceRequestDelegate(HttpContext httpContext)
 	{
 		HttpContext = httpContext;
 
-		var contextProvider = httpContext.RequestServices.GetService<IContextProvider>();
+		_scope = Services.Scope.Create();
 
-		if (contextProvider is null)
-			throw new NullReferenceException(nameof(IContextProvider));
-
-		_context = contextProvider.Create();
-
-		HttpContext.RequestAborted.Register(() =>
+		HttpContext.RequestAborted.Register(async () =>
 		{
-			Context?.Cancel();
+			await Scope.Cancel();
 		});
 
 		InitializeFormatter();
@@ -40,7 +28,7 @@ internal sealed class ServiceRequestDelegate : IDisposable
 
 	private bool IsDisposed { get; set; }
 	private HttpContext HttpContext { get; }
-	private IContext? Context => _context;
+	private AsyncServiceScope? Scope => _scope;
 	private Formatter Formatter { get; set; } = default!;
 
 	private void InitializeFormatter()
@@ -64,7 +52,7 @@ internal sealed class ServiceRequestDelegate : IDisposable
 			{
 				HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
 
-				throw new NotSupportedException($"{SR.ErrContentTypeNotSupported} ({contentType})");
+				throw new NotSupportedException($"{RestStrings.ErrContentTypeNotSupported} ({contentType})");
 			}
 		}
 
@@ -82,7 +70,7 @@ internal sealed class ServiceRequestDelegate : IDisposable
 			/*
 			 * Now, commit changes made in the context.
 			 */
-			await Context.Commit();
+			await Scope.Commit();
 			/*
 			 * Send result to the client.
 			 */
@@ -90,7 +78,7 @@ internal sealed class ServiceRequestDelegate : IDisposable
 		}
 		catch
 		{
-			await Context.Rollback();
+			await Scope.Rollback();
 
 			throw;
 		}
@@ -100,9 +88,12 @@ internal sealed class ServiceRequestDelegate : IDisposable
 	{
 		/*
 		 * First, try to get appropriate method (target) from the resolution service.
-		 * Methods must be defined with interface which have ApiServie attribute
+		 * Methods must be defined with interface which have ApiService attribute
 		 */
-		if (Context is null || Context.GetService<IResolutionService>()?.ResolveMethod(HttpContext) is not InvokeDescriptor descriptor
+		if (Scope is null)
+			return null;
+
+		if ((await Scope.Value.ServiceProvider.GetRequiredService<IResolutionService>().SelectMethod(HttpContext)) is not InvokeDescriptor descriptor
 			|| descriptor.Service is null || descriptor.Method is null)
 			throw new NullReferenceException();
 		/*
@@ -116,15 +107,12 @@ internal sealed class ServiceRequestDelegate : IDisposable
 		/*
 		 * And instantiate the Scoped service from the DI.
 		 */
-		var service = Context.GetService(descriptor.Service) as IService;
-
-		if (service is null)
-			throw new NullReferenceException();
+		var service = Scope.Value.ServiceProvider.GetService(descriptor.Service) ?? throw new NullReferenceException();
 		/*
 		 * Invoking the method with parsed arguments and rendering results with the formatter
 		 * specified in the request content type (probably Json).
 		 */
-		var methodArguments = arguments is null ? new object[0] : arguments.ToArray();
+		var methodArguments = arguments is null ? [] : arguments.ToArray();
 
 		try
 		{
@@ -132,7 +120,8 @@ internal sealed class ServiceRequestDelegate : IDisposable
 		}
 		finally
 		{
-			service?.Dispose();
+			if (service is IDisposable disposable)
+				disposable?.Dispose();
 		}
 	}
 
@@ -182,7 +171,7 @@ internal sealed class ServiceRequestDelegate : IDisposable
 	/// <exception cref="SysException">Thrown if a method argument is interface but no <see cref="ArgsBindingAttribute{T}"/> is present.</exception>
 	private async Task<List<object?>?> MapArguments(MethodInfo? method)
 	{
-		if (method is null)
+		if (method is null || Scope is null)
 			return null;
 
 		var arguments = new List<object?>();
@@ -209,12 +198,12 @@ internal sealed class ServiceRequestDelegate : IDisposable
 
 					arguments.Add(null);
 				}
-				else if (Context?.GetService<IResolutionService>()?.ResolveDto(parameter) is Type resolvedType)
+				else
 				{
-					var argument = Context.GetService(resolvedType);
-
-					if (argument is not null)
+					try
 					{
+						var argument = Dto.Factory.Create(parameter.ParameterType);
+
 						/*
 						 * Merge request properties into argument instance.
 						 */
@@ -222,9 +211,11 @@ internal sealed class ServiceRequestDelegate : IDisposable
 
 						arguments.Add(argument);
 					}
+					catch
+					{
+						throw new InvalidOperationException($"{RestStrings.ErrBindingAttributeMissing} ({method?.DeclaringType?.FullName}.{method?.Name})");
+					}
 				}
-				else
-					throw new InvalidOperationException($"{RestStrings.ErrBindingAttributeMissing} ({method?.DeclaringType?.FullName}.{method?.Name})");
 			}
 			else
 			{
@@ -273,13 +264,10 @@ internal sealed class ServiceRequestDelegate : IDisposable
 		if (requestParams is null || parameter.Name is null)
 			return null;
 
-		if (!requestParams.TryGetValue(parameter.Name, out object? value))
+		if (!requestParams.TryGetValue(parameter.Name, out object? value) || value is null)
 			return null;
 
-		if (TypeConversion.TryConvert(value, out object? result, parameter.ParameterType))
-			return result;
-
-		return null;
+		return Types.Convert(value, parameter.ParameterType);
 	}
 	/// <summary>
 	/// This method parses Request arguments into JsonNode.
@@ -308,7 +296,7 @@ internal sealed class ServiceRequestDelegate : IDisposable
 		}
 	}
 
-	private IDtoBinder? ResolveBinder(object argument)
+	private static IDtoBinder? ResolveBinder(object argument)
 	{
 		foreach (var attribute in argument.GetType().GetCustomAttributes())
 		{
@@ -329,10 +317,10 @@ internal sealed class ServiceRequestDelegate : IDisposable
 		{
 			if (disposing)
 			{
-				if (_context is not null)
+				if (_scope is not null)
 				{
-					_context.Dispose();
-					_context = null;
+					_scope.Value.Dispose();
+					_scope = null;
 				}
 			}
 

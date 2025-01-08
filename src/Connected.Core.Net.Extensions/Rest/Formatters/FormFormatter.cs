@@ -1,3 +1,4 @@
+using Connected.Reflection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using System.Reflection;
@@ -25,8 +26,6 @@ internal class FormFormatter : Formatter
 
 		foreach (var q in qs)
 			result.Add(q.Key, q.Value);
-
-		Context.SetRequestArguments(result);
 
 		return result;
 	}

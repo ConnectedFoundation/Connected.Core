@@ -174,7 +174,7 @@ internal sealed class Select : ServiceFunction<ISelectSchemaDto, ISchema?>
 		var value = def.Value;
 
 		if (def.Value is not null && def.Value.GetType().IsEnum)
-			value = Convert.ChangeType(def.Value, def.Value.GetType().GetEnumUnderlyingType());
+			value = Types.Convert(def.Value, def.Value.GetType().GetEnumUnderlyingType());
 
 		column.DefaultValue = Convert.ToString(value, CultureInfo.InvariantCulture);
 	}

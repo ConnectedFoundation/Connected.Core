@@ -1,4 +1,5 @@
-﻿using Connected.Storage.Transactions;
+﻿using Connected.Services;
+using Connected.Storage.Transactions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Connected;
@@ -17,6 +18,14 @@ public static class ScopeExtensions
 			if (transaction.State == MiddlewareTransactionState.Active)
 				await transaction.Commit();
 		}
+	}
+
+	public static async Task Cancel(this AsyncServiceScope? scope)
+	{
+		if (scope?.ServiceProvider.GetService<ICancellationContext>() is ICancellationContext cancel)
+			cancel.Cancel();
+
+		await Task.CompletedTask;
 	}
 
 	public static async Task Rollback(this AsyncServiceScope? scope)

@@ -764,7 +764,7 @@ public sealed class Binder : DatabaseVisitor
 			var values = new List<Expression>();
 
 			foreach (object value in (IEnumerable)constSource.Value)
-				values.Add(Expression.Constant(Convert.ChangeType(value, match.Type), match.Type));
+				values.Add(Expression.Constant(Types.Convert(value, match.Type), match.Type));
 
 			match = Visit(match);
 

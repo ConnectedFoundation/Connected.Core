@@ -1,4 +1,5 @@
 ﻿using Connected.Configuration.Settings;
+using Connected.Reflection;
 using Connected.Services;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -17,7 +18,7 @@ public static class SettingUtils
 			if (setting is null)
 				return default;
 
-			return (TValue?)Convert.ChangeType(setting.Value, typeof(TValue));
+			return Types.Convert<TValue>(setting.Value);
 		}
 		catch
 		{

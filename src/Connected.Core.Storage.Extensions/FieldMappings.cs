@@ -190,7 +190,7 @@ internal class FieldMappings<TEntity>
 			/*
 			 * For other values we just perform a conversion.
 			 */
-			value = Convert.ChangeType(value, type);
+			value = Types.Convert(value, type);
 		}
 		/*
 		 * Now bind the property from the converted value.

@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Common\src\Connected.Common.Types.MeasureUnits\Connected.Common.Types.MeasureUnits.csproj" />
     <ProjectReference Include="..\Connected.Core.Authentication.Extensions\Connected.Core.Authentication.Extensions.csproj" />
     <ProjectReference Include="..\Connected.Core.Authentication.Model\Connected.Core.Authentication.Model.csproj" />
     <ProjectReference Include="..\Connected.Core.Authorization.Extensions\Connected.Core.Authorization.Extensions.csproj" />

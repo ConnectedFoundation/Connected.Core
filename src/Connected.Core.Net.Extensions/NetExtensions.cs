@@ -1,6 +1,7 @@
 ﻿using Connected.Annotations;
+using Connected.Net.Cors;
 using Connected.Net.Rest;
-using Connected.Net.Rest.Dto;
+using Connected.Net.Rest.Dtos;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
@@ -71,7 +72,7 @@ public static class NetExtensions
 		if (builder.ApplicationServices.GetService<IResolutionService>() is not IResolutionService resolution)
 			return;
 
-		if (resolution.QueryRoutes() is not ImmutableList<Tuple<string, ServiceOperationVerbs>> routes || !routes.Any())
+		if (resolution.QueryRoutes().Result is not ImmutableList<Tuple<string, ServiceOperationVerbs>> routes || routes.IsEmpty)
 			return;
 
 		builder.UseEndpoints(config =>

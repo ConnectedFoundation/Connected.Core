@@ -5,10 +5,10 @@ using System.Reflection;
 
 namespace Connected.Net.Rest;
 
-[Service]
+[Service(ServiceRegistrationScope.Singleton)]
 internal interface IResolutionService
 {
-	InvokeDescriptor? ResolveMethod(HttpContext context);
-	Type? ResolveDto(ParameterInfo parameter);
-	ImmutableList<Tuple<string, ServiceOperationVerbs>> QueryRoutes();
+	Task<InvokeDescriptor?> SelectMethod(HttpContext context);
+	Task<Type?> SelectDto(ParameterInfo parameter);
+	Task<ImmutableList<Tuple<string, ServiceOperationVerbs>>> QueryRoutes();
 }

@@ -1,4 +1,5 @@
-﻿using Connected.Threading;
+﻿using Connected.Reflection;
+using Connected.Threading;
 using System.Collections.Immutable;
 
 namespace Connected.Caching;
@@ -48,7 +49,7 @@ public abstract class SynchronizedCache<TEntry, TKey> : CacheContainer<TEntry, T
 
 	async Task ICachingDataProvider.Invalidate(object id)
 	{
-		var converted = (TKey?)Convert.ChangeType(id, typeof(TKey));
+		var converted = Types.Convert<TKey>(id);
 
 		if (converted is not null)
 			await OnInvalidate(converted);

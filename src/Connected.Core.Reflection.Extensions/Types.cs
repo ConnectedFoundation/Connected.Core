@@ -173,7 +173,7 @@ public static class Types
 		if (instance is null)
 			throw new NullReferenceException($"{Strings.ErrInvalidInterface} ({typeof(T).Name})");
 
-		return (T?)Convert.ChangeType(instance, typeof(T?));
+		return Convert<T>(instance);
 	}
 
 	private static object? CreateInstanceInternal(this Type type)
@@ -312,5 +312,15 @@ public static class Types
 			return type.Name.Split('`')[0] + "<" + string.Join(", ", type.GetGenericArguments().Select(x => ToFriendlyName(x)).ToArray()) + ">";
 		else
 			return type.ShortName();
+	}
+
+	public static T Convert<T>(object value)
+	{
+		return (T)TypeConversion.Convert(value, typeof(T));
+	}
+
+	public static object Convert(object value, Type type)
+	{
+		return TypeConversion.Convert(value, type);
 	}
 }

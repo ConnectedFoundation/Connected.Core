@@ -3,6 +3,20 @@
 namespace Connected.Services;
 public static class DtoExtensions
 {
+	public static IDto? Create(this IDto dto, Type type)
+	{
+		ArgumentNullException.ThrowIfNull(dto);
+
+		if (ServiceExtensionsStartup.Services is null)
+		{
+			var provider = ServiceExtensionsStartup.ServicesCollection.BuildServiceProvider(false);
+
+			return provider.GetRequiredService(type) as IDto;
+		}
+
+		return ServiceExtensionsStartup.Services.GetRequiredService(type) as IDto;
+	}
+
 	public static TDto Create<TDto>(this IDto dto)
 		where TDto : IDto
 	{

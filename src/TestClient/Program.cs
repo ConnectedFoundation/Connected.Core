@@ -9,8 +9,9 @@ public static class Program
 {
 	public static async Task Main(string[] args)
 	{
-		//Application.RegisterMicroService<Connected.Common.Types.MeasureUnits.MeasureUnitsStartup>();
+		Application.RegisterMicroService<Connected.Common.Types.MeasureUnits.MeasureUnitsStartup>();
 		Application.RegisterMicroService<Connected.Storage.Sql.SqlStartup>();
+
 		try
 		{
 			Application.RegisterCoreMicroServices();
@@ -44,6 +45,7 @@ public static class Program
 			webApp.ConfigureMicroServices(builder.Environment);
 			webApp.ActivateHttpServices();
 			webApp.ActivateAuthenticationCookieMiddleware();
+			webApp.ActivateRest();
 
 			await webApp.InitializeMicroServices(webApp);
 			await webApp.StartMicroServices();

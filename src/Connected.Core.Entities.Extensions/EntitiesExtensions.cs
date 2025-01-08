@@ -270,7 +270,7 @@ public static class EntitiesExtensions
 		if (parameter is null || parameter.Value is null)
 			return default;
 
-		return (T?)Convert.ChangeType(parameter.Value, typeof(T));
+		return Types.Convert<T>(parameter.Value);
 	}
 
 	public static T? ResolveVariableValue<T>(this IStorageOperation operation, string criteria)
@@ -285,7 +285,7 @@ public static class EntitiesExtensions
 		if (firstNonNull is null)
 			return default;
 
-		return (T?)Convert.ChangeType(firstNonNull, typeof(T));
+		return Types.Convert<T>(firstNonNull);
 	}
 
 	public static string EntityKey(this Type type)

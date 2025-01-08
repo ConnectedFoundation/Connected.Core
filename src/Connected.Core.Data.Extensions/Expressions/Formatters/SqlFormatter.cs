@@ -556,7 +556,7 @@ public class SqlFormatter : DatabaseVisitor
 		if (value is null)
 			Write("NULL");
 		else if (value.GetType().GetTypeInfo().IsEnum)
-			Write(Convert.ChangeType(value, Enum.GetUnderlyingType(value.GetType())));
+			Write(Types.Convert(value, Enum.GetUnderlyingType(value.GetType())));
 		else
 		{
 			switch (value.GetType().GetTypeCode())

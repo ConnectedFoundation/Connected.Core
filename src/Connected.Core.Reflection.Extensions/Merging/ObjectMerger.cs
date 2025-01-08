@@ -43,7 +43,7 @@ internal sealed class ObjectMerger : Merger
 				property.SetValue(destination, propertyInfo.GetValue(source));
 			else
 			{
-				var converted = Convert.ChangeType(source, property.PropertyType);
+				var converted = Types.Convert(source, property.PropertyType);
 
 				property.SetValue(destination, converted);
 			}
@@ -114,7 +114,7 @@ internal sealed class ObjectMerger : Merger
 			object? item;
 
 			if (elementType.IsTypePrimitive())
-				item = Convert.ChangeType(sourceElement, elementType);
+				item = Types.Convert(sourceElement, elementType);
 			else
 			{
 				item = Activator.CreateInstance(elementType);

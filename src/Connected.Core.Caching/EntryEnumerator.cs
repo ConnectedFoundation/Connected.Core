@@ -1,3 +1,4 @@
+using Connected.Reflection;
 using System.Collections;
 using System.Collections.Concurrent;
 
@@ -19,7 +20,7 @@ internal class EntryEnumerator<T>(ConcurrentDictionary<string, IEntry> items) : 
 			if (item.Value is null || item.Value.Instance is null)
 				throw new NullReferenceException();
 
-			return (T)Convert.ChangeType(item.Value.Instance, typeof(T));
+			return Types.Convert<T>(item.Value.Instance) ?? throw new NullReferenceException();
 		}
 	}
 
