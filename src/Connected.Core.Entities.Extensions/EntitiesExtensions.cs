@@ -78,7 +78,7 @@ public static class EntitiesExtensions
 		if (source is null)
 			return default;
 
-		return await Execute<TSource, TSource>(QueryableMethods.SingleOrDefaultWithoutPredicate, source, cancellationToken);
+		return await Execute<TSource, TSource>(QueryableMethods.SingleOrDefaultWithoutPredicate, source);
 	}
 
 	public static Task<TSource?> AsEntity<TSource>(this IEnumerable<TSource> source)
@@ -162,24 +162,17 @@ public static class EntitiesExtensions
 
 		await Task.CompletedTask;
 
-		try
-		{
-			var arguments = expression is null ? [source.Expression] : new[] { source.Expression, expression };
-			var callExpression = Expression.Call(instance: null, method: operatorMethodInfo, arguments: arguments);
-			var result = source.Provider.Execute(callExpression);
+		var arguments = expression is null ? [source.Expression] : new[] { source.Expression, expression };
+		var callExpression = Expression.Call(instance: null, method: operatorMethodInfo, arguments: arguments);
+		var result = source.Provider.Execute(callExpression);
 
-			if (result is null)
-				return default;
+		if (result is null)
+			return default;
 
-			return (TResult)result;
-		}
-		catch (Exception ex)
-		{
-			throw ex;
-		}
+		return (TResult)result;
 	}
 
-	private static async Task<TResult?> Execute<TSource, TResult>(MethodInfo operatorMethodInfo, IQueryable<TSource> source, CancellationToken cancellationToken = default)
+	private static async Task<TResult?> Execute<TSource, TResult>(MethodInfo operatorMethodInfo, IQueryable<TSource> source)
 	{
 		return await Execute<TSource, TResult>(operatorMethodInfo, source, null);
 	}
@@ -246,7 +239,7 @@ public static class EntitiesExtensions
 			if (parameter.Name is null)
 				continue;
 
-			if (parameter.Name.StartsWith("@"))
+			if (parameter.Name.StartsWith('@'))
 			{
 				var guess = parameter.Name[1..];
 
@@ -277,7 +270,7 @@ public static class EntitiesExtensions
 	{
 		var variable = operation.ResolveVariable(criteria);
 
-		if (variable is null || !variable.Values.Any())
+		if (variable is null || variable.Values.Count == 0)
 			return default;
 
 		var firstNonNull = variable.Values.FirstOrDefault(f => f is not null);
@@ -323,7 +316,6 @@ public static class EntitiesExtensions
 		var interfaces = type.BaseType is null
 			? type.GetInterfaces()
 			: type.GetInterfaces().Except(type.BaseType.GetInterfaces());
-		var candidates = new List<Type>();
 
 		foreach (var i in interfaces)
 		{
@@ -345,10 +337,7 @@ public static class EntitiesExtensions
 		if (attribute is null)
 			return null;
 
-		var serializerInstance = attribute.Type.CreateInstance();
-
-		if (serializerInstance is null)
-			throw new NullReferenceException($"{Strings.ErrCreateInstanceNull} ('{attribute.Type}')");
+		var serializerInstance = attribute.Type.CreateInstance() ?? throw new NullReferenceException($"{Strings.ErrCreateInstanceNull} ('{attribute.Type}')");
 
 		serializer = serializerInstance as IEntityPropertySerializer;
 

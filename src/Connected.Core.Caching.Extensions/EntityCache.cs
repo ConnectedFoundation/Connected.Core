@@ -56,12 +56,12 @@ public abstract class EntityCache<TEntity, TPrimaryKey> : SynchronizedCache<TEnt
 		await Remove(id);
 	}
 
-	protected override void Set(TPrimaryKey id, TEntity instance)
+	public override void Set(TPrimaryKey id, TEntity instance)
 	{
 		Set(id, instance, TimeSpan.Zero);
 	}
 
-	protected override void Set(TPrimaryKey id, TEntity instance, TimeSpan duration)
+	public override void Set(TPrimaryKey id, TEntity instance, TimeSpan duration)
 	{
 		if (instance is IConcurrentEntity<TPrimaryKey> concurrent)
 		{

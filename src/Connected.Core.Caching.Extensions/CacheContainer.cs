@@ -8,7 +8,7 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 	protected CacheContainer(ICachingService cachingService, string key)
 	{
 		if (cachingService is null)
-			throw new ArgumentException(nameof(cachingService));
+			ArgumentNullException.ThrowIfNull(cachingService);
 
 		CachingService = cachingService;
 		Key = key;
@@ -21,7 +21,7 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 	public int Count => CachingService.Count(Key);
 	public string Key { get; }
 
-	protected async Task Remove(TKey id)
+	public async Task Remove(TKey id)
 	{
 		if (id is null)
 			throw new ArgumentNullException(nameof(id));
@@ -29,17 +29,17 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 		await CachingService.Remove(Key, id);
 	}
 
-	protected async Task Remove(Func<TEntry, bool> predicate)
+	public async Task Remove(Func<TEntry, bool> predicate)
 	{
 		await CachingService.Remove(Key, predicate);
 	}
 
-	protected virtual Task<ImmutableList<TEntry>?> All()
+	public virtual Task<ImmutableList<TEntry>?> All()
 	{
 		return Task.FromResult(CachingService.All<TEntry>(Key));
 	}
 
-	protected virtual async Task<TEntry?> Get(TKey id, Func<IEntryOptions, Task<TEntry?>>? retrieve)
+	public virtual async Task<TEntry?> Get(TKey id, Func<IEntryOptions, Task<TEntry?>>? retrieve)
 	{
 		if (id is null)
 			throw new ArgumentNullException(nameof(id));
@@ -47,7 +47,7 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 		return await CachingService.Get(Key, id, retrieve);
 	}
 
-	protected virtual Task<TEntry?> Get(TKey id)
+	public virtual Task<TEntry?> Get(TKey id)
 	{
 		if (id is null)
 			throw new ArgumentNullException(nameof(id));
@@ -55,27 +55,27 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 		return Task.FromResult(CachingService.Get<TEntry>(Key, id));
 	}
 
-	protected virtual Task<TEntry?> First()
+	public virtual Task<TEntry?> First()
 	{
 		return Task.FromResult(CachingService.First<TEntry>(Key));
 	}
 
-	protected virtual async Task<TEntry?> Get(Func<TEntry, bool> predicate, Func<IEntryOptions, Task<TEntry?>>? retrieve)
+	public virtual async Task<TEntry?> Get(Func<TEntry, bool> predicate, Func<IEntryOptions, Task<TEntry?>>? retrieve)
 	{
 		return await CachingService.Get(Key, predicate, retrieve);
 	}
 
-	protected virtual async Task<TEntry?> Get(Func<TEntry, bool> predicate)
+	public virtual async Task<TEntry?> Get(Func<TEntry, bool> predicate)
 	{
 		return await CachingService.Get(Key, predicate, null);
 	}
 
-	protected virtual Task<ImmutableList<TEntry>?> Where(Func<TEntry, bool> predicate)
-	{
-		return Task.FromResult(CachingService.Where(Key, predicate));
-	}
+	//public virtual Task<ImmutableList<TEntry>?> Where(Func<TEntry, bool> predicate)
+	//{
+	//	return Task.FromResult(CachingService.Where(Key, predicate));
+	//}
 
-	protected virtual void Set(TKey id, TEntry instance)
+	public virtual void Set(TKey id, TEntry instance)
 	{
 		if (id is null)
 			throw new ArgumentNullException(nameof(id));
@@ -83,7 +83,7 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 		CachingService.Set(Key, id, instance);
 	}
 
-	protected virtual void Set(TKey id, TEntry instance, TimeSpan duration)
+	public virtual void Set(TKey id, TEntry instance, TimeSpan duration)
 	{
 		if (id is null)
 			throw new ArgumentNullException(nameof(id));
@@ -91,21 +91,13 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 		CachingService.Set(Key, id, instance, duration);
 	}
 
-	protected virtual void Set(TKey id, TEntry instance, TimeSpan duration, bool slidingExpiration)
+	public virtual void Set(TKey id, TEntry instance, TimeSpan duration, bool slidingExpiration)
 	{
 		if (id is null)
 			throw new ArgumentNullException(nameof(id));
 
 		CachingService.Set(Key, id, instance, duration, slidingExpiration);
 	}
-
-	// protected virtual void Set(TKey id, TEntry instance, TimeSpan duration, bool slidingExpiration, bool performSynchronization)
-	// {
-	// 	if (id is null)
-	// 		throw new ArgumentNullException(nameof(id));
-
-	// 	CachingService.Set(Key, id, instance, duration, slidingExpiration, performSynchronization);
-	// }
 
 	private void Dispose(bool disposing)
 	{
@@ -131,12 +123,7 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 
 	public virtual IEnumerator<TEntry> GetEnumerator()
 	{
-		var result = CachingService?.GetEnumerator<TEntry>(Key);
-
-		if (result is null)
-			throw new NullReferenceException("Cannot retrieve cache enumerator.");
-
-		return result;
+		return (CachingService?.GetEnumerator<TEntry>(Key)) ?? throw new NullReferenceException("Cannot retrieve cache enumerator.");
 	}
 
 	IEnumerator IEnumerable.GetEnumerator()

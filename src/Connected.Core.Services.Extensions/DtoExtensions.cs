@@ -58,4 +58,24 @@ public static class DtoExtensions
 
 		return result;
 	}
+
+	public static IHeadDto<T> CreateHead<T>(this IDto dto, T value)
+	{
+		var result = dto.Create<IHeadDto<T>>();
+
+		result.Head = value;
+
+		return result;
+	}
+
+	public static IPatchDto<TPrimaryKey> CreatePatch<TPrimaryKey>(this IDto dto, TPrimaryKey id, Dictionary<string, object?> properties)
+		where TPrimaryKey : notnull
+	{
+		var result = dto.Create<IPatchDto<TPrimaryKey>>();
+
+		result.Id = id;
+		result.Properties = properties;
+
+		return result;
+	}
 }

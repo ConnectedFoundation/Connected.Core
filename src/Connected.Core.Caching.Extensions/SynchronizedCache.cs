@@ -79,47 +79,47 @@ public abstract class SynchronizedCache<TEntry, TKey> : CacheContainer<TEntry, T
 		await Task.CompletedTask;
 	}
 
-	protected override async Task<ImmutableList<TEntry>?> All()
+	public override async Task<ImmutableList<TEntry>?> All()
 	{
 		await ((ICachingDataProvider)this).Initialize();
 
 		return base.All().Result;
 	}
 
-	protected override async Task<TEntry?> First()
+	public override async Task<TEntry?> First()
 	{
 		await ((ICachingDataProvider)this).Initialize();
 
 		return await base.First();
 	}
 
-	protected override async Task<TEntry?> Get(Func<TEntry, bool> predicate)
+	public override async Task<TEntry?> Get(Func<TEntry, bool> predicate)
 	{
 		await ((ICachingDataProvider)this).Initialize();
 
 		return await base.Get(predicate);
 	}
 
-	protected override async Task<TEntry?> Get(TKey id)
+	public override async Task<TEntry?> Get(TKey id)
 	{
 		await ((ICachingDataProvider)this).Initialize();
 
 		return await base.Get(id);
 	}
 
-	protected override async Task<TEntry?> Get(TKey id, Func<IEntryOptions, Task<TEntry?>>? retrieve)
+	public override async Task<TEntry?> Get(TKey id, Func<IEntryOptions, Task<TEntry?>>? retrieve)
 	{
 		await ((ICachingDataProvider)this).Initialize();
 
 		return await base.Get(id, retrieve);
 	}
 
-	protected override async Task<ImmutableList<TEntry>?> Where(Func<TEntry, bool> predicate)
-	{
-		await ((ICachingDataProvider)this).Initialize();
+	//public override async Task<ImmutableList<TEntry>?> Where(Func<TEntry, bool> predicate)
+	//{
+	//	await ((ICachingDataProvider)this).Initialize();
 
-		return await base.Where(predicate);
-	}
+	//	return await base.Where(predicate);
+	//}
 
 	protected override void OnDisposing()
 	{

@@ -23,7 +23,7 @@ internal sealed class QueueCache(ICachingService cache, IStorageProvider storage
 
 	public async Task<ImmutableList<QueueMessage>> Query(string queue)
 	{
-		return await Where(f => string.Equals(f.Queue, queue, StringComparison.OrdinalIgnoreCase)) ?? ImmutableList<QueueMessage>.Empty;
+		return await Task.FromResult(this.Where(f => string.Equals(f.Queue, queue, StringComparison.OrdinalIgnoreCase)).ToImmutableList());
 	}
 
 	public async Task<QueueMessage?> Select(Guid popReceipt)

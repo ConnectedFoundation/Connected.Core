@@ -1,8 +1,6 @@
-﻿using System.Collections.Generic;
-
-namespace Connected.Services;
+﻿namespace Connected.Services;
 
 public interface IPropertyProvider
 {
-	Dictionary<string, object?> Properties { get; }
+	Dictionary<string, object?> Properties { get; set; }
 }

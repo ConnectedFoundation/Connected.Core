@@ -10,7 +10,7 @@
 		<Title>Connected Runtime</Title>
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>
 		<Product>Connected</Product>
-		<PackageVersion>1.0.0-beta1</PackageVersion>
+		<PackageVersion>1.0.1-beta1</PackageVersion>
 		<FileVersion>1.0.0.0</FileVersion>
 		<Copyright>Connected Foundation</Copyright>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -43,6 +43,7 @@
 		<ProjectReference Include="..\Connected.Core.Caching\Connected.Core.Caching.csproj" />
 		<ProjectReference Include="..\Connected.Core.Collections.Extensions\Connected.Core.Collections.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Collections.Model\Connected.Core.Collections.Model.csproj" />
+		<ProjectReference Include="..\Connected.Core.Collections.Queues\Connected.Core.Collections.Queues.csproj" />
 		<ProjectReference Include="..\Connected.Core.Configuration.Extensions\Connected.Core.Configuration.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Configuration.Model\Connected.Core.Configuration.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Configuration.Settings\Connected.Core.Configuration.Settings.csproj" />
@@ -75,6 +76,7 @@
 		<ProjectReference Include="..\Connected.Core.Storage.Extensions\Connected.Core.Storage.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Storage.Model\Connected.Core.Storage.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Storage.Sharding.Nodes\Connected.Core.Storage.Sharding.Nodes.csproj" />
+		<ProjectReference Include="..\Connected.Core.Storage.Sharding\Connected.Core.Storage.Sharding.csproj" />
 		<ProjectReference Include="..\Connected.Sdk\Connected.Sdk.csproj" />
 	</ItemGroup>
 
