@@ -2,7 +2,7 @@
 
 namespace Connected.Notifications;
 
-public abstract class EventListener<TDto> : MiddlewareComponent, IEventListener<TDto>
+public abstract class EventListener<TDto> : Middleware, IEventListener<TDto>
 	where TDto : IDto
 {
 	protected TDto Dto { get; private set; } = default!;

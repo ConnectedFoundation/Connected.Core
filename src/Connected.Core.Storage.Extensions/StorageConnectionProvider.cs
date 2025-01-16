@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 
 namespace Connected.Storage;
 
-public abstract class StorageConnectionProvider : MiddlewareComponent, IStorageConnectionProvider
+public abstract class StorageConnectionProvider : Middleware, IStorageConnectionProvider
 {
 	protected IStorageContextDto Dto { get; private set; } = default!;
 

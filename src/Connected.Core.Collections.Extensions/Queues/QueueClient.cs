@@ -4,7 +4,7 @@ namespace Connected.Collections.Queues;
 /// <summary>
 /// The default implementation of the queue client.
 /// </summary>
-public abstract class QueueClient<TDto> : MiddlewareComponent, IQueueClient<TDto>
+public abstract class QueueClient<TDto> : Middleware, IQueueClient<TDto>
 	where TDto : IDto
 {
 	/// <summary>

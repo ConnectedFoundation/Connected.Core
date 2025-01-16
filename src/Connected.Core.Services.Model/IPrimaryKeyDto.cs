@@ -2,5 +2,5 @@
 
 public interface IPrimaryKeyDto<T> : IDto
 {
-	public T? Id { get; set; }
+	public T Id { get; set; }
 }

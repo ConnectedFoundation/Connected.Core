@@ -1,5 +1,3 @@
-using System;
-
 namespace Connected.Caching;
 
 public class CacheEntryOptions : IEntryOptions

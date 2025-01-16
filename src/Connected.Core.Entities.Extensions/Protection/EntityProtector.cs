@@ -1,6 +1,6 @@
 ﻿namespace Connected.Entities.Protection;
 
-public abstract class EntityProtector<TEntity> : MiddlewareComponent, IEntityProtector<TEntity>
+public abstract class EntityProtector<TEntity> : Middleware, IEntityProtector<TEntity>
 	where TEntity : IEntity
 {
 	protected TEntity Entity { get; private set; } = default!;

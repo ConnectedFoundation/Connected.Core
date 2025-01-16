@@ -2,7 +2,7 @@ using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Query;
 
-public abstract class QueryProvider : MiddlewareComponent, IQueryProvider
+public abstract class QueryProvider : Middleware, IQueryProvider
 {
 	public IQueryable CreateQuery(Expression expression)
 	{

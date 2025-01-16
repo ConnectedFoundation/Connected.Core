@@ -7,7 +7,7 @@ namespace Connected.Storage;
 /// <summary>
 /// A default implementation of the IShardingNodeProvider.
 /// </summary>
-public abstract class ShardingNodeProvider<TEntity> : MiddlewareComponent, IShardingNodeProvider<TEntity>
+public abstract class ShardingNodeProvider<TEntity> : Middleware, IShardingNodeProvider<TEntity>
 	where TEntity : IEntity
 {
 	/// <summary>

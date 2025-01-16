@@ -3,7 +3,7 @@ using Connected.Services.Validation;
 
 namespace Connected.Validation;
 
-public abstract class Validator<TDto> : MiddlewareComponent, IValidator<TDto> where TDto : IDto
+public abstract class Validator<TDto> : Middleware, IValidator<TDto> where TDto : IDto
 {
 	protected TDto Dto { get; private set; } = default!;
 	protected ICallerContext Caller { get; private set; } = default!;

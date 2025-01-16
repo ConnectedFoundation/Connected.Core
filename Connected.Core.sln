@@ -133,10 +133,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connected.Core.Collections.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connected.Core.Storage.Sharding", "src\Connected.Core.Storage.Sharding\Connected.Core.Storage.Sharding.csproj", "{9FD80257-F0E9-4C91-9F51-C5548E90DB39}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Temp", "Temp", "{7BA078C7-3B4E-4AC2-8261-3647484A7F83}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connected.Common.Types.MeasureUnits", "..\Common\src\Connected.Common.Types.MeasureUnits\Connected.Common.Types.MeasureUnits.csproj", "{774B3690-AB1F-4EE0-A314-39FDD1E84111}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -339,10 +335,6 @@ Global
 		{9FD80257-F0E9-4C91-9F51-C5548E90DB39}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9FD80257-F0E9-4C91-9F51-C5548E90DB39}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9FD80257-F0E9-4C91-9F51-C5548E90DB39}.Release|Any CPU.Build.0 = Release|Any CPU
-		{774B3690-AB1F-4EE0-A314-39FDD1E84111}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{774B3690-AB1F-4EE0-A314-39FDD1E84111}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{774B3690-AB1F-4EE0-A314-39FDD1E84111}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{774B3690-AB1F-4EE0-A314-39FDD1E84111}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -397,6 +389,5 @@ Global
 		{57C965B0-C9BB-47B6-AC8B-BD299DB74095} = {D5C2718E-CF0F-4029-B2A9-9008538D54F4}
 		{76BA1092-4A6D-4A5C-827F-EF73FA4CCAA7} = {BD16B0E9-5FEA-4625-BE26-E38875686C4B}
 		{9FD80257-F0E9-4C91-9F51-C5548E90DB39} = {E304E299-A11F-47C9-8409-15A4BF6F1DED}
-		{774B3690-AB1F-4EE0-A314-39FDD1E84111} = {7BA078C7-3B4E-4AC2-8261-3647484A7F83}
 	EndGlobalSection
 EndGlobal

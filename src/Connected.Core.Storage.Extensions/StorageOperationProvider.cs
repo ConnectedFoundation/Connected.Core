@@ -2,7 +2,7 @@
 
 namespace Connected.Storage;
 
-public abstract class StorageOperationProvider : MiddlewareComponent, IStorageOperationProvider
+public abstract class StorageOperationProvider : Middleware, IStorageOperationProvider
 {
 	public Task<IStorageOperation?> Invoke<TEntity>(TEntity entity)
 			where TEntity : IEntity

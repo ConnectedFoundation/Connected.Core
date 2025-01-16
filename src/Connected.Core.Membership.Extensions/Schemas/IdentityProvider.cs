@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 
 namespace Connected.Membership.Schemas;
 
-public abstract class IdentityProvider : MiddlewareComponent, IIdentityProvider
+public abstract class IdentityProvider : Middleware, IIdentityProvider
 {
 	public abstract string Name { get; }
 

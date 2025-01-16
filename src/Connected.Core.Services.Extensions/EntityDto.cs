@@ -2,11 +2,11 @@
 
 namespace Connected.Services;
 
-internal class EntityDto : Dto, IEntityDto
+public abstract class EntityDto : Dto, IEntityDto
 {
 	[Required, MaxLength(128)]
-	public string Entity { get; set; } = default!;
+	public required string Entity { get; set; }
 
 	[Required, MaxLength(128)]
-	public string EntityId { get; set; } = default!;
+	public required string EntityId { get; set; }
 }

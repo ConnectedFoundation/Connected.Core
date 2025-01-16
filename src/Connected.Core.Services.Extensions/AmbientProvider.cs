@@ -1,6 +1,6 @@
 ﻿namespace Connected.Services;
 
-public abstract class AmbientProvider<TDto> : MiddlewareComponent, IAmbientProvider<TDto>
+public abstract class AmbientProvider<TDto> : Connected.Middleware, IAmbientProvider<TDto>
 	where TDto : IDto
 {
 	protected TDto? Dto { get; private set; }

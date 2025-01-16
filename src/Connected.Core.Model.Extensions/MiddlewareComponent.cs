@@ -1,9 +1,6 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿namespace Connected;
 
-namespace Connected;
-
-public abstract class MiddlewareComponent : IMiddleware
+public abstract class Middleware : IMiddleware
 {
 	protected bool IsDisposed { get; private set; }
 

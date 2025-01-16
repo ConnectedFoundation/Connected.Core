@@ -2,7 +2,7 @@
 
 namespace Connected.Membership.Claims;
 
-public abstract class ClaimProvider : MiddlewareComponent, IClaimProvider
+public abstract class ClaimProvider : Middleware, IClaimProvider
 {
 	public async Task<ImmutableList<string>> Invoke()
 	{

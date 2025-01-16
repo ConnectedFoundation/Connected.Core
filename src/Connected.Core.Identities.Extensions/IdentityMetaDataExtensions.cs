@@ -7,7 +7,7 @@ public static class IdentityMetaDataExtensions
 {
 	public const string AvatarDirectoryName = "Avatars";
 	public const string AvatarFileNameExtension = "png";
-	public static async Task<string?> CreateDefaultAvatar(this IIdentityMetaDataService service, IIdentity identity)
+	public static Task<string?> CreateDefaultAvatar(this IIdentityMetaDataService service, IIdentity identity)
 	{
 		//TODO: move this extension method out of the core model since it requires a reference to the service model.
 		throw new NotImplementedException();

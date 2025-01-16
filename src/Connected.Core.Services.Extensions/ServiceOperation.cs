@@ -51,7 +51,7 @@ public abstract class ServiceOperation<TDto> : IServiceOperation<TDto>, ITransac
 		if (string.IsNullOrEmpty(key))
 			return default;
 
-		if (!State.TryGetValue(key, out object? result))
+		if (!State.TryGetValue(key, out object? result) || result is null)
 			return default;
 
 		return Types.Convert<TEntity>(result);

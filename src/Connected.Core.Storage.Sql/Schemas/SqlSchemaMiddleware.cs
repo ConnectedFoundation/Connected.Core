@@ -19,7 +19,7 @@ internal enum ConstraintNameType
 
 [Priority(0)]
 internal sealed class SqlSchemaMiddleware(IMiddlewareService middleware, IStorageProvider storage, IConfigurationService configuration)
-	: MiddlewareComponent, ISchemaMiddleware
+	: Middleware, ISchemaMiddleware
 {
 	private string? ConnectionString { get; } = configuration.Storage.Databases.DefaultConnectionString;
 

@@ -3,7 +3,7 @@ using Connected.Storage.Transactions;
 
 namespace Connected.Services.Middleware;
 
-public abstract class ServiceOperationMiddleware : MiddlewareComponent, IServiceOperationMiddleware, ITransactionClient
+public abstract class ServiceOperationMiddleware : Connected.Middleware, IServiceOperationMiddleware, ITransactionClient
 {
 	async Task ITransactionClient.Commit()
 	{

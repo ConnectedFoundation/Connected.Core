@@ -1,6 +1,6 @@
 ﻿namespace Connected.Storage;
 
-public abstract class StorageWriterProvider : MiddlewareComponent, IStorageWriterProvider
+public abstract class StorageWriterProvider : Middleware, IStorageWriterProvider
 {
 	protected IStorageOperation Operation { get; private set; } = default!;
 	protected IStorageConnection Connection { get; private set; } = default!;

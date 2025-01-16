@@ -1,10 +1,9 @@
-﻿using System.Threading.Tasks;
-namespace Connected.Services;
+﻿namespace Connected.Services;
 
-public abstract class DtoValuesProvider<TDto> : MiddlewareComponent, IDtoValuesProvider<TDto>
+public abstract class DtoValuesProvider<TDto> : Connected.Middleware, IDtoValuesProvider<TDto>
 	where TDto : IDto
 {
-	protected TDto? Dto { get; private set; }
+	protected TDto Dto { get; private set; } = default!;
 
 	public async Task Invoke(TDto dto)
 	{
@@ -13,8 +12,8 @@ public abstract class DtoValuesProvider<TDto> : MiddlewareComponent, IDtoValuesP
 		await OnInvoke();
 	}
 
-	protected virtual Task OnInvoke()
+	protected virtual async Task OnInvoke()
 	{
-		return Task.CompletedTask;
+		await Task.CompletedTask;
 	}
 }

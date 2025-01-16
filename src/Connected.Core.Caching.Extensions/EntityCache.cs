@@ -51,11 +51,6 @@ public abstract class EntityCache<TEntity, TPrimaryKey> : SynchronizedCache<TEnt
 		await ((ICachingDataProvider)this).Invalidate(id);
 	}
 
-	async Task IEntityCache<TEntity, TPrimaryKey>.Remove(TPrimaryKey id)
-	{
-		await Remove(id);
-	}
-
 	public override void Set(TPrimaryKey id, TEntity instance)
 	{
 		Set(id, instance, TimeSpan.Zero);

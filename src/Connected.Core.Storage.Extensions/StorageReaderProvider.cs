@@ -1,6 +1,6 @@
 ﻿namespace Connected.Storage;
 
-public abstract class StorageReaderProvider : MiddlewareComponent, IStorageReaderProvider
+public abstract class StorageReaderProvider : Middleware, IStorageReaderProvider
 {
 	protected IStorageOperation Operation { get; private set; } = default!;
 	protected IStorageConnection Connection { get; private set; } = default!;

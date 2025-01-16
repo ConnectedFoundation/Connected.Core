@@ -10,16 +10,23 @@
 		<Title>Connected SDK</Title>
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>
 		<Product>Connected Core</Product>
-		<PackageVersion>1.0.4-beta1</PackageVersion>
+		<PackageVersion>1.0.10-beta1</PackageVersion>
 		<FileVersion>1.0.0.0</FileVersion>
 		<Copyright>Connected Foundation</Copyright>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<RepositoryUrl>https://github.com/Tom-PIT/Connected.Core</RepositoryUrl>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
 		<PackageOutputPath>$(ProjectDir)..\..\packages\</PackageOutputPath>
+		<Description>Provides core tools and services for the Connected platform for building a modern service layer.</Description>
+		<Version>1.0.7-beta1</Version>
+		<PackageIcon>ConnectedLogo.png</PackageIcon>
 	</PropertyGroup>
 
 	<ItemGroup>
+		<None Include="..\..\ConnectedLogo.png">
+		  <Pack>True</Pack>
+		  <PackagePath>\</PackagePath>
+		</None>
 		<None Include="..\..\LICENSE.txt">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>

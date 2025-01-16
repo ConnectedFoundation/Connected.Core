@@ -7,7 +7,7 @@ using System.Data.Common;
 
 namespace Connected.Storage;
 
-public abstract class StorageConnection : MiddlewareComponent, IStorageConnection
+public abstract class StorageConnection : Middleware, IStorageConnection
 {
 	private readonly AsyncLocker<int> _lock = new();
 	private IDbConnection? _connection;

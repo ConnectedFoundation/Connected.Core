@@ -2,7 +2,7 @@
 /// <summary>
 /// A default implementation of the authentication provider.
 /// </summary>
-public abstract class AuthenticationProvider : MiddlewareComponent, IAuthenticationProvider
+public abstract class AuthenticationProvider : Middleware, IAuthenticationProvider
 {
 	protected IAuthenticateDto Dto { get; private set; } = default!;
 	/// <inheritdoc cref="IAuthenticationProvider.Invoke"/>>

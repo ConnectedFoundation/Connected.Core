@@ -15,7 +15,7 @@ public static class SettingUtils
 			var service = scope.ServiceProvider.GetRequiredService<ISettingService>();
 			var setting = await service.Select(Dto.Factory.CreateName(key));
 
-			if (setting is null)
+			if (setting is null || setting.Value is null)
 				return default;
 
 			return Types.Convert<TValue>(setting.Value);

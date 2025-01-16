@@ -10,7 +10,7 @@ using System.Collections.Immutable;
 
 namespace Connected.Storage;
 
-internal sealed class ConnectionProvider : MiddlewareComponent, IConnectionProvider, IAsyncDisposable, IDisposable
+internal sealed class ConnectionProvider : Middleware, IConnectionProvider, IAsyncDisposable, IDisposable
 {
 	public ConnectionProvider(IServiceProvider services, IMiddlewareService middleware, ITransactionContext transaction, IConfigurationService configuration)
 	{

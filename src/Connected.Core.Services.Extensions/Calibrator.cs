@@ -1,6 +1,6 @@
 ﻿namespace Connected.Services;
 
-public abstract class Calibrator<TDto> : MiddlewareComponent, ICalibrator<TDto>
+public abstract class Calibrator<TDto> : Connected.Middleware, ICalibrator<TDto>
 	where TDto : IDto
 {
 	protected TDto Dto { get; private set; } = default!;

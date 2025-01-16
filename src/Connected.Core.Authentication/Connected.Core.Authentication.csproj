@@ -9,16 +9,21 @@
 		<Title>Connected Authentication</Title>
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>
 		<Product>Connected Core</Product>
-		<PackageVersion>1.0.1-beta1</PackageVersion>
+		<PackageVersion>1.0.10-beta1</PackageVersion>
 		<FileVersion>1.0.0.0</FileVersion>
 		<Copyright>Connected Foundation</Copyright>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<RepositoryUrl>https://github.com/Tom-PIT/Connected.Core</RepositoryUrl>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
 		<PackageOutputPath>$(ProjectDir)..\..\packages\</PackageOutputPath>
+		<PackageIcon>ConnectedLogo.png</PackageIcon>
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <None Include="..\..\ConnectedLogo.png" Link="ConnectedLogo.png">
+	    <PackagePath>\</PackagePath>
+	    <Pack>True</Pack>
+	  </None>
 	  <None Include="..\..\LICENSE.txt" Link="LICENSE.txt">
 	    <PackagePath>\</PackagePath>
 	    <Pack>True</Pack>

@@ -19,6 +19,11 @@ public abstract record Entity<T> : Entity, IEntity<T>
 		Id = default!;
 	}
 
+	protected Entity(T id)
+	{
+		Id = id;
+	}
+
 	[PrimaryKey(true), CacheKey, ReturnValue, Ordinal(-10000)]
 	public virtual T Id { get; init; }
 }

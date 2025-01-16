@@ -3,7 +3,7 @@ using Connected.Services;
 
 namespace Connected.Authorization.Entities;
 
-public abstract class EntityAuthorization<TEntity> : MiddlewareComponent, IEntityAuthorization<TEntity>
+public abstract class EntityAuthorization<TEntity> : Middleware, IEntityAuthorization<TEntity>
 	where TEntity : IEntity
 {
 	protected IDto Dto { get; private set; } = default!;

@@ -2,7 +2,7 @@
 
 namespace Connected.Services.Middleware;
 
-public abstract class ServiceActionMiddleware<TDto> : MiddlewareComponent, IServiceActionMiddleware<TDto>
+public abstract class ServiceActionMiddleware<TDto> : Connected.Middleware, IServiceActionMiddleware<TDto>
 	where TDto : IDto
 {
 	protected TDto Dto { get; private set; } = default!;
