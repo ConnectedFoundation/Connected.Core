@@ -37,6 +37,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Grpc.AspNetCore" Version="2.67.0" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\Connected.Core.Authentication.Extensions\Connected.Core.Authentication.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Authentication.Model\Connected.Core.Authentication.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Authentication\Connected.Core.Authentication.csproj" />

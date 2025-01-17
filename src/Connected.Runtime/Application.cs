@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Net.Mime;
+using System.Reflection;
 using System.Text;
 
 namespace Connected;
@@ -112,29 +113,28 @@ public static class Application
 		app.Run();
 	}
 
-	public static void RegisterMicroService<TMicroService>()
-		where TMicroService : Runtime.IStartup
+	public static void RegisterMicroService(Assembly assembly)
 	{
-		MicroServices.Register<TMicroService>();
+		MicroServices.Register(assembly);
 	}
 
 	public static void RegisterCoreMicroServices()
 	{
-		MicroServices.Register<RuntimeStartup>();
-		MicroServices.Register<Authorization.AuthorizationStartup>();
-		MicroServices.Register<Services.ServiceExtensionsStartup>();
-		MicroServices.Register<Services.ServicesStartup>();
-		MicroServices.Register<Entities.EntitiesStartup>();
-		MicroServices.Register<Net.NetStartup>();
-		MicroServices.Register<Configuration.Settings.SettingsStartup>();
-		MicroServices.Register<Caching.CachingStartup>();
-		MicroServices.Register<Storage.StorageExtensionsStartup>();
-		MicroServices.Register<Configuration.ConfigurationStartup>();
-		MicroServices.Register<Notifications.NotificationsStartup>();
-		MicroServices.Register<Authentication.AuthenticationStartup>();
-		MicroServices.Register<Identities.Globalization.IdentitiesGlobalizationStartup>();
-		MicroServices.Register<Globalization.Languages.LanguagesStartup>();
-		MicroServices.Register<Net.NetExtensionsStartup>();
+		MicroServices.Register(typeof(RuntimeStartup).Assembly);
+		MicroServices.Register(typeof(Authorization.AuthorizationStartup).Assembly);
+		MicroServices.Register(typeof(Services.ServiceExtensionsStartup).Assembly);
+		MicroServices.Register(typeof(Services.ServicesStartup).Assembly);
+		MicroServices.Register(typeof(Entities.EntitiesStartup).Assembly);
+		MicroServices.Register(typeof(Net.NetStartup).Assembly);
+		MicroServices.Register(typeof(Configuration.Settings.SettingsStartup).Assembly);
+		MicroServices.Register(typeof(Caching.CachingStartup).Assembly);
+		MicroServices.Register(typeof(Storage.StorageExtensionsStartup).Assembly);
+		MicroServices.Register(typeof(Configuration.ConfigurationStartup).Assembly);
+		MicroServices.Register(typeof(Notifications.NotificationsStartup).Assembly);
+		MicroServices.Register(typeof(Authentication.AuthenticationStartup).Assembly);
+		MicroServices.Register(typeof(Identities.Globalization.IdentitiesGlobalizationStartup).Assembly);
+		MicroServices.Register(typeof(Globalization.Languages.LanguagesStartup).Assembly);
+		MicroServices.Register(typeof(Net.NetExtensionsStartup).Assembly);
 	}
 
 	public static async Task StartDefaultApplication(string[] args)
@@ -150,6 +150,7 @@ public static class Application
 
 			services.AddLogging(builder => builder.AddConsole());
 
+			builder.Services.AddGrpc();
 			builder.AddLocalization();
 			builder.AddHttpServices();
 			builder.AddCors();

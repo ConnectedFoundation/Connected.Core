@@ -55,11 +55,14 @@ public static class RuntimeExtensions
 			return;
 
 		var interfaces = type.GetInterfaces();
+		var implementsService = false;
 
 		foreach (var i in interfaces)
 		{
 			if (i.GetCustomAttribute<ServiceAttribute>() is ServiceAttribute att)
 			{
+				implementsService = true;
+
 				switch (att.Scope)
 				{
 					case ServiceRegistrationScope.Singleton:
@@ -74,6 +77,27 @@ public static class RuntimeExtensions
 					default:
 						throw new NotSupportedException();
 				}
+			}
+		}
+
+		if (implementsService)
+			return;
+
+		if (type.GetCustomAttribute<ServiceAttribute>() is ServiceAttribute att2)
+		{
+			switch (att2.Scope)
+			{
+				case ServiceRegistrationScope.Singleton:
+					services.Add(ServiceDescriptor.Singleton(type, type));
+					break;
+				case ServiceRegistrationScope.Scoped:
+					services.Add(ServiceDescriptor.Scoped(type, type));
+					break;
+				case ServiceRegistrationScope.Transient:
+					services.Add(ServiceDescriptor.Transient(type, type));
+					break;
+				default:
+					throw new NotSupportedException();
 			}
 		}
 	}
