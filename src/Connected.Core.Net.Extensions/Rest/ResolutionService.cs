@@ -1,4 +1,7 @@
 using Connected.Annotations;
+using Connected.Configuration;
+using Connected.Net.Routing;
+using Connected.Net.Routing.Dtos;
 using Connected.Reflection;
 using Connected.Runtime;
 using Connected.Services;
@@ -9,11 +12,12 @@ using System.Text;
 
 namespace Connected.Net.Rest;
 
-internal class ResolutionService(IRuntimeService runtimeService) : IResolutionService
+internal sealed class ResolutionService(IRuntimeService runtimeService, IRoutingService routing, IConfigurationService configuration)
+	: IResolutionService
 {
-	private bool IsInitialized { get; set; }
-	private Dictionary<string, List<InvokeDescriptor>> Methods { get; } = new(StringComparer.OrdinalIgnoreCase);
-	private Dictionary<string, List<DtoRestDescriptor>> Dtos { get; } = new(StringComparer.OrdinalIgnoreCase);
+	private static bool IsInitialized { get; set; }
+	private static Dictionary<string, List<InvokeDescriptor>> Methods { get; } = new(StringComparer.OrdinalIgnoreCase);
+	private static Dictionary<string, List<DtoRestDescriptor>> Dtos { get; } = new(StringComparer.OrdinalIgnoreCase);
 
 	/// <summary>
 	/// This method tries to resolve argument implementation type based on the parameter's type interface.
@@ -102,11 +106,11 @@ internal class ResolutionService(IRuntimeService runtimeService) : IResolutionSe
 
 		IsInitialized = true;
 
-		var startups = await runtimeService.QueryStartups();
+		var startups = await runtimeService.QueryMicroServices();
 
 		foreach (var startup in startups)
 		{
-			foreach (var type in startup.GetType().Assembly.GetTypes())
+			foreach (var type in startup.GetTypes())
 			{
 				if (type.IsAbstract)
 					continue;
@@ -114,13 +118,24 @@ internal class ResolutionService(IRuntimeService runtimeService) : IResolutionSe
 				if (type.ImplementsInterface<IDto>())
 					InitializeDto(type);
 
+				var hasServiceImplementation = false;
+
 				foreach (var itf in type.GetInterfaces())
 				{
 					if (itf.GetCustomAttribute<ServiceAttribute>() is not null)
 					{
-						InitializeService(type);
+						hasServiceImplementation = true;
+
+						await InitializeService(type);
+
 						break;
 					}
+				}
+
+				if (!hasServiceImplementation)
+				{
+					if (type.FindAttribute<ServiceAttribute>() is not null)
+						await InitializeService(type);
 				}
 			}
 		}
@@ -142,24 +157,56 @@ internal class ResolutionService(IRuntimeService runtimeService) : IResolutionSe
 		}
 	}
 
-	private void InitializeService(Type type)
+	private async Task InitializeService(Type type)
 	{
 		if (type.GetImplementedServices() is not List<Type> services || services.Count == 0)
+		{
+			await InitializeNonInterfaceService(type);
 			return;
+		}
 
 		foreach (var service in services)
+			await Initialize(service);
+	}
+
+	private async Task InitializeNonInterfaceService(Type type)
+	{
+		if (type.FindAttribute<ServiceAttribute>() is null)
+			return;
+
+		await Initialize(type);
+	}
+
+	private async Task Initialize(Type type)
+	{
+		var serviceUrl = ResolveServiceUrl(type);
+		var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
+		var visibility = type.FindAttribute<ServiceVisibilityAttribute>();
+
+		if (visibility is not null && visibility.Scope.HasFlag(ServiceVisibilityScope.InternalNetwork))
+			await RegisterRoute(type);
+
+		foreach (var method in methods)
 		{
-			var serviceUrl = ResolveServiceUrl(service);
-			var methods = service.GetMethods(BindingFlags.Public | BindingFlags.Instance);
+			if (method.GetCustomAttribute<ServiceOperationAttribute>() is not ServiceOperationAttribute attribute || attribute.Verbs == ServiceOperationVerbs.None)
+				continue;
 
-			foreach (var method in methods)
-			{
-				if (method.GetCustomAttribute<ServiceOperationAttribute>() is not ServiceOperationAttribute attribute || attribute.Verbs == ServiceOperationVerbs.None)
-					continue;
-
-				InitializeServiceMethod(serviceUrl, service, method, attribute.Verbs);
-			}
+			InitializeServiceMethod(serviceUrl, type, method, attribute.Verbs);
 		}
+	}
+
+	private async Task RegisterRoute(Type service)
+	{
+		if (service.FullName is null || configuration.Routing.BaseUrl is null)
+			return;
+
+		var dto = Dto.Factory.Create<IInsertRouteDto>();
+
+		dto.Protocol = RouteProtocol.Http;
+		dto.Service = service.FullName;
+		dto.Url = configuration.Routing.BaseUrl;
+
+		await routing.Insert(dto);
 	}
 
 	private void InitializeServiceMethod(string serviceUrl, Type serviceType, MethodInfo method, ServiceOperationVerbs verbs)

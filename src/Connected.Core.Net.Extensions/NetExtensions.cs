@@ -69,7 +69,9 @@ public static class NetExtensions
 
 	public static void ActivateRest(this IApplicationBuilder builder)
 	{
-		if (builder.ApplicationServices.GetService<IResolutionService>() is not IResolutionService resolution)
+		using var scope = builder.ApplicationServices.CreateScope();
+
+		if (scope.ServiceProvider.GetService<IResolutionService>() is not IResolutionService resolution)
 			return;
 
 		if (resolution.QueryRoutes().Result is not ImmutableList<Tuple<string, ServiceOperationVerbs>> routes || routes.IsEmpty)

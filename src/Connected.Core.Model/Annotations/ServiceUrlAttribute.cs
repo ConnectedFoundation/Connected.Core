@@ -8,7 +8,7 @@
 /// and they contain at least one valid verb. If the Service operation is decorated with this attribute,
 /// it's default url is replaced with the one specified in the attribute.
 /// </remarks>
-[AttributeUsage(AttributeTargets.Interface | AttributeTargets.Method | AttributeTargets.Event)]
+[AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Event)]
 public sealed class ServiceUrlAttribute : Attribute
 {
 	/// <summary>

@@ -1,6 +1,11 @@
-﻿using Connected.Authentication;
+﻿using Connected.Annotations;
+using Connected.Authentication;
+using Connected.Configuration;
 using Connected.Globalization;
 using Connected.Net;
+using Connected.Net.Routing;
+using Connected.Net.Routing.Dtos;
+using Connected.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -34,6 +39,8 @@ public static class Application
 
 		foreach (var microService in MicroServices.All)
 			builder.Services.AddMicroService(microService);
+
+		builder.Services.RegisterServices();
 	}
 
 	public static void ConfigureMicroServicesServices(this IHostApplicationBuilder builder)
@@ -48,13 +55,70 @@ public static class Application
 	{
 		var startups = MicroServices.Startups;
 
+		if (builder is WebApplication web)
+		{
+			foreach (var microService in MicroServices.All)
+				web.MapMicroService(microService);
+		}
+
 		foreach (var startup in startups)
 			startup.Configure(builder, environment);
+	}
+
+	private static async Task RegisterGrpcRoutes()
+	{
+		using var scope = Scope.Create();
+		var routing = scope.ServiceProvider.GetService<IRoutingService>();
+		var configuration = scope.ServiceProvider.GetService<IConfigurationService>();
+		var baseUrl = configuration?.Routing.BaseUrl;
+
+		if (routing is null || baseUrl is null)
+			return;
+
+		foreach (var type in RuntimeExtensions.GrpcServices)
+		{
+			var serviceName = ResolveGrpcProxyName(type);
+
+			if (serviceName is null)
+				continue;
+
+			var dto = Dto.Factory.Create<IInsertRouteDto>();
+
+			dto.Protocol = RouteProtocol.Grpc;
+			dto.Service = serviceName;
+			dto.Url = baseUrl;
+
+			await routing.Insert(dto);
+		}
+
+		await scope.Commit();
+	}
+
+	private static string? ResolveGrpcProxyName(Type type)
+	{
+		if (type.FullName is null)
+			return null;
+
+		string? serviceName = null;
+		var proxyType = typeof(ServiceProxyAttribute<>);
+
+		foreach (var att in type.GetCustomAttributes())
+		{
+			if (att.GetType().IsGenericType && att.GetType().GetGenericTypeDefinition() == proxyType)
+			{
+				serviceName = att.GetType().GetGenericArguments()[0].FullName;
+				break;
+			}
+		}
+
+		return serviceName;
 	}
 
 	public static async Task InitializeMicroServices(this IApplicationBuilder builder, IHost host)
 	{
 		var startups = MicroServices.Startups;
+
+		await RegisterGrpcRoutes();
 
 		foreach (var startup in startups)
 			await startup.Initialize(host);
@@ -118,23 +182,38 @@ public static class Application
 		MicroServices.Register(assembly);
 	}
 
+	public static void RegisterMicroService(string assemblyName)
+	{
+		var fileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, assemblyName);
+		var name = AssemblyName.GetAssemblyName(fileName);
+
+		MicroServices.Register(AppDomain.CurrentDomain.Load(name));
+	}
+
 	public static void RegisterCoreMicroServices()
 	{
-		MicroServices.Register(typeof(RuntimeStartup).Assembly);
-		MicroServices.Register(typeof(Authorization.AuthorizationStartup).Assembly);
-		MicroServices.Register(typeof(Services.ServiceExtensionsStartup).Assembly);
-		MicroServices.Register(typeof(Services.ServicesStartup).Assembly);
-		MicroServices.Register(typeof(Entities.EntitiesStartup).Assembly);
-		MicroServices.Register(typeof(Net.NetStartup).Assembly);
-		MicroServices.Register(typeof(Configuration.Settings.SettingsStartup).Assembly);
-		MicroServices.Register(typeof(Caching.CachingStartup).Assembly);
-		MicroServices.Register(typeof(Storage.StorageExtensionsStartup).Assembly);
-		MicroServices.Register(typeof(Configuration.ConfigurationStartup).Assembly);
-		MicroServices.Register(typeof(Notifications.NotificationsStartup).Assembly);
-		MicroServices.Register(typeof(Authentication.AuthenticationStartup).Assembly);
-		MicroServices.Register(typeof(Identities.Globalization.IdentitiesGlobalizationStartup).Assembly);
-		MicroServices.Register(typeof(Globalization.Languages.LanguagesStartup).Assembly);
-		MicroServices.Register(typeof(Net.NetExtensionsStartup).Assembly);
+		var entry = Assembly.GetEntryAssembly();
+
+		if (entry is not null)
+			RegisterMicroService(entry);
+
+		RegisterMicroService(typeof(RuntimeStartup).Assembly);
+		RegisterMicroService(typeof(Authorization.AuthorizationStartup).Assembly);
+		RegisterMicroService(typeof(Services.ServiceExtensionsStartup).Assembly);
+		RegisterMicroService(typeof(Services.ServicesStartup).Assembly);
+		RegisterMicroService(typeof(Entities.EntitiesStartup).Assembly);
+		RegisterMicroService(typeof(Net.NetStartup).Assembly);
+		RegisterMicroService(typeof(Configuration.Settings.SettingsStartup).Assembly);
+		RegisterMicroService(typeof(Caching.CachingStartup).Assembly);
+		RegisterMicroService(typeof(Storage.StorageExtensionsStartup).Assembly);
+		RegisterMicroService(typeof(Configuration.ConfigurationStartup).Assembly);
+		RegisterMicroService(typeof(Notifications.NotificationsStartup).Assembly);
+		RegisterMicroService(typeof(Authentication.AuthenticationStartup).Assembly);
+		RegisterMicroService(typeof(Identities.Globalization.IdentitiesGlobalizationStartup).Assembly);
+		RegisterMicroService(typeof(Globalization.Languages.LanguagesStartup).Assembly);
+		RegisterMicroService(typeof(Net.NetExtensionsStartup).Assembly);
+		RegisterMicroService(typeof(Connected.Storage.Sql.SqlStartup).Assembly);
+		RegisterMicroService("Connected.Core.Net.Routing.dll");
 	}
 
 	public static async Task StartDefaultApplication(string[] args)

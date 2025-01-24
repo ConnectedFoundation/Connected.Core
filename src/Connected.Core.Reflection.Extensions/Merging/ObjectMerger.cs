@@ -40,7 +40,14 @@ internal sealed class ObjectMerger : Merger
 			if (source is null)
 				property.SetValue(destination, null);
 			else if (source.GetType() is Type propertyType && PropertyResolver.Resolve(propertyType, property.Name) is PropertyInfo propertyInfo)
-				property.SetValue(destination, propertyInfo.GetValue(source));
+			{
+				var value = propertyInfo.GetValue(source);
+
+				if (value is null)
+					property.SetValue(destination, null);
+				else
+					property.SetValue(destination, TypeConversion.Convert(value, property.PropertyType));
+			}
 			else
 			{
 				var converted = Types.Convert(source, property.PropertyType);
@@ -137,7 +144,7 @@ internal sealed class ObjectMerger : Merger
 	private static void MergeObject(object destination, Dictionary<string, object?> source, PropertyInfo property)
 	{
 		if (!property.CanWrite)
-			throw new NotImplementedException("Deep merge is not implemented.");
+			return;
 
 		if (!source.TryGetValue(property.Name, out object? value) || value is null)
 			return;

@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace Connected.Net.Rest;
 
-[Service(ServiceRegistrationScope.Singleton)]
+[Service]
 internal interface IResolutionService
 {
 	Task<InvokeDescriptor?> SelectMethod(HttpContext context);

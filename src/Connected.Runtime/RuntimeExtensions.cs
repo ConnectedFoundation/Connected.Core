@@ -2,14 +2,46 @@
 using Connected.Caching;
 using Connected.Collections.Concurrent;
 using Connected.Membership.Claims;
+using Connected.Reflection;
+using Connected.Runtime;
 using Connected.Services;
+using Grpc.Core;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using System.Reflection;
 
 namespace Connected;
 
 public static class RuntimeExtensions
 {
+	internal static List<Type> GrpcServices { get; } = [];
+	internal static Dictionary<Type, List<ServiceRegistrationDescriptor>> Services { get; } = [];
+	public static void RegisterServices(this IServiceCollection services)
+	{
+		foreach (var service in Services)
+		{
+			var target = service.Value.OrderByDescending(f => f.Priority).FirstOrDefault();
+
+			if (target is null)
+				continue;
+
+			switch (target.Scope)
+			{
+				case ServiceRegistrationScope.Singleton:
+					services.AddSingleton(service.Key, target.Type);
+					break;
+				case ServiceRegistrationScope.Scoped:
+					services.AddScoped(service.Key, target.Type);
+					break;
+				case ServiceRegistrationScope.Transient:
+					services.AddTransient(service.Key, target.Type);
+					break;
+			}
+		}
+
+		Services.Clear();
+	}
 	public static IServiceCollection AddMicroService(this IServiceCollection services, Assembly assembly)
 	{
 		foreach (var type in assembly.GetTypes())
@@ -28,9 +60,36 @@ public static class RuntimeExtensions
 			AddClaimProvider(type, services, false);
 			AddMiddleware(type, services, false, typeRef);
 			AddDto(type, services, false);
+			AddHostedService(type, services, false);
 		}
 
 		return services;
+	}
+
+	public static void MapMicroService(this WebApplication app, Assembly assembly)
+	{
+		foreach (var type in assembly.GetTypes())
+		{
+			if (type.IsAbstract || !type.IsClass)
+				continue;
+
+			MapGrpcService(type, app, false);
+		}
+	}
+
+	private static void MapGrpcService(Type type, WebApplication app, bool manual)
+	{
+		if (!CanRegister(type, manual))
+			return;
+
+		if (type.BaseType?.FindAttribute<BindServiceMethodAttribute>() is null)
+			return;
+
+		var method = typeof(RuntimeExtensions).GetMethod(nameof(RegisterGrpcService), BindingFlags.Static | BindingFlags.NonPublic)?.MakeGenericMethod(type);
+
+		method?.Invoke(null, [app]);
+
+		GrpcServices.Add(type);
 	}
 
 	public static void AddServiceOperation(Type type, IServiceCollection services)
@@ -62,17 +121,18 @@ public static class RuntimeExtensions
 			if (i.GetCustomAttribute<ServiceAttribute>() is ServiceAttribute att)
 			{
 				implementsService = true;
+				var priority = type.FindAttribute<PriorityAttribute>()?.Priority ?? 0;
 
 				switch (att.Scope)
 				{
 					case ServiceRegistrationScope.Singleton:
-						services.Add(ServiceDescriptor.Singleton(i, type));
+						EnqueueService(i, type, ServiceRegistrationScope.Singleton, priority);
 						break;
 					case ServiceRegistrationScope.Scoped:
-						services.Add(ServiceDescriptor.Scoped(i, type));
+						EnqueueService(i, type, ServiceRegistrationScope.Scoped, priority);
 						break;
 					case ServiceRegistrationScope.Transient:
-						services.Add(ServiceDescriptor.Transient(i, type));
+						EnqueueService(i, type, ServiceRegistrationScope.Transient, priority);
 						break;
 					default:
 						throw new NotSupportedException();
@@ -85,21 +145,56 @@ public static class RuntimeExtensions
 
 		if (type.GetCustomAttribute<ServiceAttribute>() is ServiceAttribute att2)
 		{
+			var priority = type.FindAttribute<PriorityAttribute>()?.Priority ?? 0;
+
 			switch (att2.Scope)
 			{
 				case ServiceRegistrationScope.Singleton:
-					services.Add(ServiceDescriptor.Singleton(type, type));
+					EnqueueService(type, type, ServiceRegistrationScope.Singleton, priority);
 					break;
 				case ServiceRegistrationScope.Scoped:
-					services.Add(ServiceDescriptor.Scoped(type, type));
+					EnqueueService(type, type, ServiceRegistrationScope.Scoped, priority);
 					break;
 				case ServiceRegistrationScope.Transient:
-					services.Add(ServiceDescriptor.Transient(type, type));
+					EnqueueService(type, type, ServiceRegistrationScope.Transient, priority);
 					break;
 				default:
 					throw new NotSupportedException();
 			}
 		}
+	}
+
+	private static void EnqueueService(Type interfaceType, Type implementationType, ServiceRegistrationScope scope, int priority)
+	{
+		if (Services.TryGetValue(interfaceType, out var existing))
+			existing.Add(new ServiceRegistrationDescriptor(scope, priority, implementationType));
+		else
+			Services.Add(interfaceType, [new ServiceRegistrationDescriptor(scope, priority, implementationType)]);
+	}
+
+	private static void AddHostedService(Type type, IServiceCollection services, bool manual)
+	{
+		if (!CanRegister(type, manual))
+			return;
+
+		if (!type.ImplementsInterface<IWorker>())
+			return;
+
+		var method = typeof(RuntimeExtensions).GetMethod(nameof(RuntimeExtensions.RegisterHostedService), BindingFlags.Static | BindingFlags.NonPublic)?.MakeGenericMethod(type);
+
+		method?.Invoke(null, [services]);
+	}
+
+	private static void RegisterHostedService<TService>(IServiceCollection services)
+		where TService : class, IHostedService
+	{
+		services.AddHostedService<TService>();
+	}
+
+	private static void RegisterGrpcService<TService>(WebApplication app)
+		where TService : class
+	{
+		app.MapGrpcService<TService>();
 	}
 
 	public static void AddMiddleware(Type type, IServiceCollection services)

@@ -23,7 +23,12 @@ internal class TransactionContext : ITransactionContext
 			return;
 
 		State = state;
-		StateChanged?.Invoke(this, EventArgs.Empty);
+
+		try
+		{
+			StateChanged?.Invoke(this, EventArgs.Empty);
+		}
+		catch { }
 	}
 
 	public void Register(ITransactionClient client)
@@ -45,8 +50,14 @@ internal class TransactionContext : ITransactionContext
 		{
 			if (Operations.TryPop(out ITransactionClient? op))
 			{
-				if (op is not null)
+				if (op is null)
+					continue;
+
+				try
+				{
 					await op.Commit();
+				}
+				catch { }
 			}
 		}
 
@@ -64,8 +75,14 @@ internal class TransactionContext : ITransactionContext
 		{
 			if (Operations.TryPop(out ITransactionClient? op))
 			{
-				if (op is not null)
+				if (op is null)
+					continue;
+
+				try
+				{
 					await op.Rollback();
+				}
+				catch { }
 			}
 		}
 

@@ -20,7 +20,7 @@ public enum ServiceRegistrationScope
 /// <summary>
 /// Specifies that a component should be treated as a service.	
 /// </summary>
-[AttributeUsage(AttributeTargets.Interface)]
+[AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class)]
 public sealed class ServiceAttribute : Attribute
 {
 	/// <summary>

@@ -10,37 +10,44 @@ using System.Collections.Immutable;
 
 namespace Connected.Storage;
 
-internal sealed class ConnectionProvider : Middleware, IConnectionProvider, IAsyncDisposable, IDisposable
+internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareService middleware, ITransactionContext transactions, IConfigurationService configuration)
+	: IConnectionProvider, IAsyncDisposable, IDisposable
 {
-	public ConnectionProvider(IServiceProvider services, IMiddlewareService middleware, ITransactionContext transaction, IConfigurationService configuration)
-	{
-		Services = services;
-		Middleware = middleware;
-		TransactionService = transaction;
-		ConnectionString = configuration.Storage.Databases.DefaultConnectionString;
-		TransactionService.StateChanged += OnTransactionStateChanged;
-
-		Connections = [];
-	}
-
-	private List<IStorageConnection> Connections { get; }
-	private ITransactionContext TransactionService { get; }
-	private string? ConnectionString { get; }
-	private IServiceProvider Services { get; }
-	private IMiddlewareService Middleware { get; }
+	private List<IStorageConnection> Connections { get; } = [];
+	private string? ConnectionString { get; set; }
+	private bool Initialized { get; set; }
 	public StorageConnectionMode Mode { get; set; } = StorageConnectionMode.Shared;
 
 	public async Task<ImmutableList<IStorageConnection>> Invoke<TEntity>(IStorageContextDto dto)
 		where TEntity : IEntity
 	{
+		Configure();
 		/*
 		 * Isolated transactions are enabled once transaction context is in completion stage
 		 */
-		if (TransactionService.State != MiddlewareTransactionState.Active)
+		if (transactions.State != MiddlewareTransactionState.Active)
 			Mode = StorageConnectionMode.Isolated;
 
-		return dto is ISchemaSynchronizationContext context ? await ResolveSingle<TEntity>(context) : await ResolveMultiple<TEntity>(dto);
+		return dto is ISchemaSynchronizationContext context && context.ConnectionType is not null ? await ResolveSingle<TEntity>(context) : await ResolveMultiple<TEntity>(dto);
 	}
+
+	private void Configure()
+	{
+		if (Initialized)
+			return;
+
+		lock (this)
+		{
+			if (Initialized)
+				return;
+
+			Initialized = true;
+			ConnectionString = configuration.Storage.Databases.DefaultConnectionString;
+
+			transactions.StateChanged += OnTransactionStateChanged;
+		}
+	}
+
 	/// <summary>
 	/// This method is called if the supplied arguments already provided connection type on which they will perform operations.
 	/// </summary>
@@ -53,8 +60,8 @@ internal sealed class ConnectionProvider : Middleware, IConnectionProvider, IAsy
 	/// <exception cref="NullReferenceException">If the storage connection couldn't be retrieved from the DI container.</exception>
 	private async Task<ImmutableList<IStorageConnection>> ResolveSingle<TEntity>(ISchemaSynchronizationContext context)
 	{
-		var connection = Services.GetRequiredService(context.ConnectionType) as IStorageConnection ?? throw new NullReferenceException($"{SR.ErrConnectionNull} '{context.ConnectionType}'");
-		var dto = Services.GetRequiredService<IStorageConnectionDto>();
+		var connection = services.GetRequiredService(context.ConnectionType) as IStorageConnection ?? throw new NullReferenceException($"{SR.ErrConnectionNull} '{context.ConnectionType}'");
+		var dto = services.GetRequiredService<IStorageConnectionDto>();
 
 		dto.Mode = Mode;
 		dto.ConnectionString = context.ConnectionString;
@@ -77,7 +84,7 @@ internal sealed class ConnectionProvider : Middleware, IConnectionProvider, IAsy
 		/*
 		 * We need middlewares which provides storage connections.
 		 */
-		var middlewares = await Middleware.Query<IStorageConnectionProvider>();
+		var middlewares = await middleware.Query<IStorageConnectionProvider>();
 		/*
 		 * First we'll prepare a list of default connections. Note thay won't get initialized
 		 * just retrieved from the DI container to get information about what connection type
@@ -90,7 +97,7 @@ internal sealed class ConnectionProvider : Middleware, IConnectionProvider, IAsy
 		 * The default connection dto which uses a default connection string provided
 		 * by a system configuration.
 		 */
-		var connectionDto = Services.GetRequiredService<IStorageConnectionDto>();
+		var connectionDto = services.GetRequiredService<IStorageConnectionDto>();
 
 		connectionDto.Mode = Mode == StorageConnectionMode.Isolated ? Mode : dto.ConnectionMode;
 		connectionDto.ConnectionString = ConnectionString;
@@ -136,7 +143,7 @@ internal sealed class ConnectionProvider : Middleware, IConnectionProvider, IAsy
 		if (entityType is not null)
 		{
 			var middlewareType = typeof(IShardingNodeProvider<>).MakeGenericType(entityType);
-			var shardingProviders = await Middleware.Query(middlewareType);
+			var shardingProviders = await middleware.Query(middlewareType);
 			var method = Methods.ResolveMethod(middlewareType, nameof(IShardingNodeProvider<IEntity>.Invoke), null, [typeof(IStorageOperation)]) ?? throw new NullReferenceException($"{Strings.ErrMethodNotFound} ('{nameof(IShardingNodeProvider<IEntity>.Invoke)}')");
 			var defaultNodeUsed = false;
 
@@ -145,13 +152,10 @@ internal sealed class ConnectionProvider : Middleware, IConnectionProvider, IAsy
 				/*
 				 * Sharding query works a little different since they could be theoretically more than one
 				 * provider in the DI handling the same Entity.
-				 */
-				var nodes = await Methods.InvokeAsync(method, provider, [dto.Operation]) as ImmutableList<IShardingNode>;
-				/*
 				 * Provider should always return at least one node even if the data is stored in the default
 				 * storage.
 				 */
-				if (nodes is null || nodes.IsEmpty)
+				if (await Methods.InvokeAsync(method, provider, [dto.Operation]) is not ImmutableList<IShardingNode> nodes || nodes.IsEmpty)
 					throw new NullReferenceException($"{SR.ErrNoShardingNodes} ('{provider.GetType().Name}')");
 				/*
 				 * We have a sharding nodes returned by provider. The rest of the process is simple, we just
@@ -174,10 +178,10 @@ internal sealed class ConnectionProvider : Middleware, IConnectionProvider, IAsy
 
 					var cs = node.Id == 0 ? ConnectionString : node.ConnectionString;
 
-					if (Services.GetRequiredService(referenceType) is not IStorageConnection connection)
+					if (services.GetRequiredService(referenceType) is not IStorageConnection connection)
 						throw new NullReferenceException($"{SR.ErrShardingConnectionNull} '{referenceType}'");
 
-					var shardingConnectionDto = Services.GetRequiredService<IStorageConnectionDto>();
+					var shardingConnectionDto = services.GetRequiredService<IStorageConnectionDto>();
 
 					shardingConnectionDto.Mode = Mode == StorageConnectionMode.Isolated ? Mode : dto.ConnectionMode;
 					shardingConnectionDto.ConnectionString = cs;
@@ -219,39 +223,62 @@ internal sealed class ConnectionProvider : Middleware, IConnectionProvider, IAsy
 
 	private async void OnTransactionStateChanged(object? sender, EventArgs e)
 	{
-		if (TransactionService.State == MiddlewareTransactionState.Committing)
+		if (transactions.State == MiddlewareTransactionState.Committing)
 			await Commit();
-		else if (TransactionService.State == MiddlewareTransactionState.Reverting)
+		else if (transactions.State == MiddlewareTransactionState.Reverting)
 			await Rollback();
 	}
 
 	private async Task Commit()
 	{
 		foreach (var connection in Connections)
-			await connection.Commit();
+		{
+			try
+			{
+				await connection.Commit();
+			}
+			catch { }
+		}
 	}
 
 	private async Task Rollback()
 	{
 		foreach (var connection in Connections)
-			await connection.Rollback();
+		{
+			try
+			{
+				await connection.Rollback();
+			}
+			catch { }
+		}
+	}
+
+	public void Dispose()
+	{
+		OnDisposing(true);
 	}
 
 	public async ValueTask DisposeAsync()
 	{
+		if (transactions?.State == MiddlewareTransactionState.Active)
+			await transactions.Rollback();
+
 		foreach (var connection in Connections)
 			await connection.DisposeAsync();
 
 		Connections.Clear();
 
-		Dispose(false);
+		OnDisposing(false);
 		GC.SuppressFinalize(this);
 	}
 
-	protected override void OnDisposing(bool disposing)
+	private void OnDisposing(bool disposing)
 	{
 		if (!disposing)
 			return;
+
+		if (transactions?.State == MiddlewareTransactionState.Active)
+			transactions.Rollback().Wait();
 
 		foreach (var connection in Connections)
 			connection.Dispose();

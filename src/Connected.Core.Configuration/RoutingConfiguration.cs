@@ -6,10 +6,10 @@ internal sealed class RoutingConfiguration : IRoutingConfiguration
 {
 	public RoutingConfiguration(IConfiguration configuration)
 	{
-		BaseUrl = string.Empty;
-
 		configuration.Bind(this);
 	}
 
-	public string BaseUrl { get; }
+	public string? BaseUrl { get; init; }
+
+	public string? RoutingServerUrl { get; init; }
 }

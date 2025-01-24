@@ -2,5 +2,6 @@
 
 public interface IRoutingConfiguration
 {
-	string BaseUrl { get; }
+	string? BaseUrl { get; }
+	string? RoutingServerUrl { get; }
 }

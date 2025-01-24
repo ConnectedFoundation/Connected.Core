@@ -10,7 +10,7 @@
 		<Title>Connected Net Model</Title>
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>
 		<Product>Connected Core</Product>
-		<PackageVersion>1.0.10-beta1</PackageVersion>
+		<PackageVersion>1.0.11-beta1</PackageVersion>
 		<FileVersion>1.0.0.0</FileVersion>
 		<Copyright>Connected Foundation</Copyright>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -21,9 +21,13 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<None Remove="Routing\Routing.proto" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<None Include="..\..\ConnectedLogo.png" Link="ConnectedLogo.png">
-		  <PackagePath>\</PackagePath>
-		  <Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+			<Pack>True</Pack>
 		</None>
 		<None Include="..\..\LICENSE.txt">
 			<Pack>True</Pack>
@@ -36,6 +40,26 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Grpc.AspNetCore" Version="2.67.0" />
+		<PackageReference Include="Grpc.Tools" Version="2.69.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ApplicationDefinition Include="Routing\Routing.proto">
+			<Access>Internal</Access>
+			<GrpcServices>Server</GrpcServices>
+		</ApplicationDefinition>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Protobuf Include="Routing\Routing.proto" ProtoCompile="False" GrpcServices="None" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Connected.Core.Entities.Model\Connected.Core.Entities.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Model.Extensions\Connected.Core.Model.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Model\Connected.Core.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Reflection.Extensions\Connected.Core.Reflection.Extensions.csproj" />

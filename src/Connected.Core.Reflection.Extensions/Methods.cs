@@ -100,7 +100,7 @@ public static class Methods
 		{
 			method.Invoke(component, parameters);
 
-			return Task.FromResult<object?>(null);
+			return await Task.FromResult<object?>(null);
 		}
 		else
 		{
@@ -133,10 +133,10 @@ public static class Methods
 				if (method.ReturnType == typeof(void))
 					method.Invoke(component, parameters);
 				else
-					return Task.FromResult(method.Invoke(component, parameters));
+					return method.Invoke(component, parameters);
 			}
 		}
 
-		return Task.FromResult<object?>(null);
+		return null;
 	}
 }

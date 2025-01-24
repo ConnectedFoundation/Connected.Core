@@ -56,4 +56,11 @@ public static class Serializer
 
 		return destination;
 	}
+
+	public static T Merge<T>(params object?[] sources)
+	{
+		var instance = Activator.CreateInstance<T>();
+
+		return Merge(instance, sources);
+	}
 }

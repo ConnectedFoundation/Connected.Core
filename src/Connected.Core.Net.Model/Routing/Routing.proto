@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package Connected.Net.Grpc;
+
+enum RouteProtocol
+{
+	NotSet = 0;
+	Http = 1;
+	Grpc = 2;
+}
+
+service RoutingService {
+	rpc Select (SelectRouteRequest) returns (RouteResponse);
+	rpc Insert(InsertRouteRequest) returns (IdResponse);
+	rpc Update(IdRequest) returns (VoidResponse);
+	rpc Delete(IdRequest) returns (VoidResponse);
+}
+
+message VoidResponse {
+
+}
+
+message IdRequest {
+	string id = 1;
+}
+
+message IdResponse {
+	string id = 1;
+}
+
+message SelectRouteRequest {
+	string service = 1;
+	RouteProtocol protocol = 2;
+}
+
+message InsertRouteRequest {
+	string service = 1;
+	RouteProtocol protocol = 2;
+	string url = 3;
+}
+
+message RouteResponse {
+	string service = 1;
+	RouteProtocol protocol = 2;
+	string url = 3;
+	string id = 4;
+}
