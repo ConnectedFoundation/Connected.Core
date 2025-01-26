@@ -11,7 +11,7 @@
 		<Title>Connected Core Model</Title>
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>
 		<Product>Connected Core</Product>
-		<PackageVersion>1.0.10-beta1</PackageVersion>
+		<PackageVersion>1.0.20-beta1</PackageVersion>
 		<FileVersion>1.0.0.0</FileVersion>
 		<Copyright>Connected Foundation</Copyright>
 		<PackageReadmeFile>README.md</PackageReadmeFile>

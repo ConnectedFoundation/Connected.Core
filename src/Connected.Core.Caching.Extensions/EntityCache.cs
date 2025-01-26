@@ -27,7 +27,7 @@ public abstract class EntityCache<TEntity, TPrimaryKey> : SynchronizedCache<TEnt
 
 	protected virtual async Task<ImmutableList<TEntity>?> OnInitializingEntities()
 	{
-		return await (from dc in Storage.Open<TEntity>(StorageConnectionMode.Isolated)
+		return await (from dc in Storage.Open<TEntity>()
 						  select dc).AsEntities();
 	}
 
@@ -41,7 +41,7 @@ public abstract class EntityCache<TEntity, TPrimaryKey> : SynchronizedCache<TEnt
 
 	protected virtual async Task<TEntity?> OnInvalidating(TPrimaryKey id)
 	{
-		return await (from dc in Storage.Open<TEntity>(StorageConnectionMode.Isolated)
+		return await (from dc in Storage.Open<TEntity>()
 						  where TypeComparer.Compare(dc.Id, id)
 						  select dc).AsEntity();
 	}
