@@ -50,6 +50,16 @@ public static class DtoExtensions
 		return result;
 	}
 
+	public static IEntityDto CreateEntity(this IDto dto, string entity, string entityId)
+	{
+		var result = dto.Create<IEntityDto>();
+
+		result.Entity = entity;
+		result.EntityId = entityId;
+
+		return result;
+	}
+
 	public static IValueDto<T> CreateValue<T>(this IDto dto, T value)
 	{
 		var result = dto.Create<IValueDto<T>>();

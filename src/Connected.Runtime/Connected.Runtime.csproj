@@ -10,7 +10,7 @@
 		<Title>Connected Runtime</Title>
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>
 		<Product>Connected</Product>
-		<PackageVersion>1.0.20-beta1</PackageVersion>
+		<PackageVersion>1.0.21-beta1</PackageVersion>
 		<FileVersion>1.0.0.0</FileVersion>
 		<Copyright>Connected Foundation</Copyright>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -57,6 +57,7 @@
 		<ProjectReference Include="..\Connected.Core.Configuration.Model\Connected.Core.Configuration.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Configuration.Settings\Connected.Core.Configuration.Settings.csproj" />
 		<ProjectReference Include="..\Connected.Core.Configuration\Connected.Core.Configuration.csproj" />
+		<ProjectReference Include="..\Connected.Core.Data.AuditTrail\Connected.Core.Data.AuditTrail.csproj" />
 		<ProjectReference Include="..\Connected.Core.Data.Extensions\Connected.Core.Data.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Data.Model\Connected.Core.Data.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Entities.Extensions\Connected.Core.Entities.Extensions.csproj" />

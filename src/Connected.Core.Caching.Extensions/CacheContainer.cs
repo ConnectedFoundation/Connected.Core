@@ -12,8 +12,11 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 
 		CachingService = cachingService;
 		Key = key;
+
+		Context = cachingService.CreateContext();
 	}
 
+	private ICacheContext Context { get; }
 	protected bool IsDisposed { get; set; }
 	protected ICachingService CachingService { get; }
 	protected virtual ICollection<string>? Keys => CachingService.Ids(Key);
@@ -69,11 +72,6 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 	{
 		return await CachingService.Get(Key, predicate, null);
 	}
-
-	//public virtual Task<ImmutableList<TEntry>?> Where(Func<TEntry, bool> predicate)
-	//{
-	//	return Task.FromResult(CachingService.Where(Key, predicate));
-	//}
 
 	public virtual void Set(TKey id, TEntry instance)
 	{

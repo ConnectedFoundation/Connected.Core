@@ -5,217 +5,397 @@ using System.Reflection;
 
 namespace Connected.Caching;
 
-internal class CacheContext : Cache, ICacheContext
+internal class CacheContext : ICacheContext
 {
-	public CacheContext(ICachingService cachingService, ITransactionContext transactionContext)
+	private readonly CacheScope _scope = new();
+	private readonly Dictionary<string, HashSet<object?>> _removeList = [];
+	public CacheContext(ICachingService cache, ITransactionContext transactions)
 	{
-		CachingService = cachingService;
-		TransactionContext = transactionContext;
+		Cache = cache;
+		Transactions = transactions;
 
-		TransactionContext.StateChanged += OnTransactionContextStateChanged;
+		Transactions.StateChanged += OnTransactionContextStateChanged;
 	}
 
-	private ICachingService CachingService { get; }
-	private ITransactionContext TransactionContext { get; }
-
+	private ICachingService Cache { get; }
+	private ITransactionContext Transactions { get; }
 	private void OnTransactionContextStateChanged(object? sender, EventArgs e)
 	{
-		if (TransactionContext.State == MiddlewareTransactionState.Committing)
+		if (Transactions.State == MiddlewareTransactionState.Completed)
 			Flush();
 	}
 
-	public override bool Exists(string key)
+	public bool Exists(string key)
 	{
-		return base.Exists(key) || CachingService is not null && CachingService.Exists(key);
+		return _scope.Exists(key) || Cache.Exists(key);
 	}
 
-	public override bool IsEmpty(string key)
+	public bool IsEmpty(string key)
 	{
-		return base.IsEmpty(key) || CachingService is not null && CachingService.IsEmpty(key);
-	}
+		if (!_scope.IsEmpty(key))
+			return false;
 
-	public override ImmutableList<T>? All<T>(string key)
-	{
-		return Merge(base.All<T>(key), CachingService?.All<T>(key));
-	}
+		if (_removeList.Count == 0)
+			return Cache.IsEmpty(key);
 
-	public override async Task<T?> Get<T>(string key, object id, Func<IEntryOptions, Task<T?>>? retrieve) where T : default
-	{
-		if (!TransactionContext.IsDirty)
+		var items = Cache.All<object>(key);
+
+		if (items is null || items.Count == 0)
+			return true;
+
+		foreach (var item in items)
 		{
-			if (retrieve is null)
-				return default;
+			var id = ResolveId(item);
 
-			return await CachingService.Get(key, id, retrieve);
+			if (!IsRemoved(key, id))
+				return false;
 		}
 
-		return await base.Get(key, id, (f) =>
+		return true;
+	}
+
+	public ImmutableList<T>? All<T>(string key)
+	{
+		return Merge(_scope.All<T>(key), Cache?.All<T>(key));
+	}
+
+	public async Task<T?> Get<T>(string key, object id, Func<IEntryOptions, Task<T?>>? retrieve)
+	{
+		if (_scope.Get(key, id) is T scoped)
+			return scoped;
+
+		if (!IsRemoved(key, id))
 		{
-			var shared = CachingService.Get<T>(key, id);
+			if (Cache.Get(key, id) is T shared)
+				return shared;
+		}
 
-			if (shared is not null || retrieve is null)
-				return Task.FromResult(shared);
+		return await _scope.Get(key, id, async (f) =>
+		{
+			if (retrieve is not null)
+				return await retrieve(f);
 
-			return retrieve(f);
+			return default;
 		});
 	}
 
-	public override async Task<T?> Get<T>(string key, Func<T, bool> predicate, Func<IEntryOptions, Task<T?>>? retrieve) where T : default
+	public async Task<T?> Get<T>(string key, Func<T, bool> predicate, Func<IEntryOptions, Task<T?>>? retrieve)
 	{
-		if (!TransactionContext.IsDirty)
-		{
-			if (retrieve is null)
-				return default;
+		if (_scope.Get(key, predicate) is T scoped)
+			return scoped;
 
-			return await CachingService.Get(key, predicate, retrieve);
+		if (Cache.Get(key, predicate) is T shared)
+		{
+			if (!IsItemRemoved(key, shared))
+				return shared;
 		}
 
-		return await base.Get(key, predicate, (f) =>
+		return await _scope.Get(key, predicate, async (f) =>
 		{
-			var shared = CachingService.Get(key, predicate);
+			if (retrieve is not null)
+				return await retrieve(f);
 
-			if (shared is not null || retrieve is null)
-				return Task.FromResult(shared);
-
-			return retrieve(f);
+			return default;
 		});
 	}
 
-	public override T? Get<T>(string key, object id) where T : default
+	public T? Get<T>(string key, object id)
 	{
-		var contextItem = base.Get<T>(key, id);
+		if (_scope.Get<T>(key, id) is T scoped)
+			return scoped;
 
-		if (contextItem is not null)
-			return contextItem;
+		if (!IsRemoved(key, id))
+			return Cache.Get<T>(key, id);
 
-		return CachingService.Get<T>(key, id);
+		return default;
 	}
 
-	public override T? Get<T>(string key, Func<T, bool> predicate) where T : default
+	public T? Get<T>(string key, Func<T, bool> predicate)
 	{
-		var contextItem = base.Get(key, predicate);
+		if (_scope.Get(key, predicate) is T scoped)
+			return scoped;
 
-		if (contextItem is not null)
-			return contextItem;
+		var result = Cache.Get(key, predicate);
 
-		return CachingService.Get(key, predicate);
-	}
-
-	public override async Task Clear(string key)
-	{
-		await base.Clear(key);
-		await CachingService.Clear(key);
-	}
-
-	public override T? First<T>(string key) where T : default
-	{
-		if (base.First<T>(key) is T result)
+		if (result is null)
 			return result;
 
-		return CachingService.First<T>(key);
+		if (!IsItemRemoved(key, result))
+			return result;
+
+		return default;
 	}
 
-	public override ImmutableList<T>? Where<T>(string key, Func<T, bool> predicate)
+	public async Task Clear(string key)
 	{
-		return Merge(base.Where(key, predicate), CachingService.Where(key, predicate));
+		await _scope.Clear(key);
+		//TODO: this should be optimized because we should perform clear on commit only.
+		await Cache.Clear(key);
 	}
 
-	public override T? Set<T>(string key, object id, T? instance) where T : default
+	public T? First<T>(string key)
 	{
-		if (!TransactionContext.IsDirty)
-			return CachingService.Set(key, id, instance);
+		if (_scope.First<T>(key) is T result)
+			return result;
 
-		return base.Set(key, id, instance);
-	}
+		var shared = Cache.First<T>(key);
 
-	public override T? Set<T>(string key, object id, T? instance, TimeSpan duration) where T : default
-	{
-		if (!TransactionContext.IsDirty)
-			return CachingService.Set(key, id, instance, duration);
+		if (shared is null)
+			return shared;
 
-		return base.Set(key, id, instance, duration);
-	}
+		if (!IsItemRemoved(key, shared))
+			return shared;
 
-	public override T? Set<T>(string key, object id, T? instance, TimeSpan duration, bool slidingExpiration) where T : default
-	{
-		if (!TransactionContext.IsDirty)
-			return CachingService.Set(key, id, instance, duration, slidingExpiration);
+		var items = Cache.All<T>(key);
 
-		return base.Set(key, id, instance, duration, slidingExpiration);
-	}
-
-	public override async Task Remove(string key, object id)
-	{
-		await base.Remove(key, id);
-		await CachingService.Remove(key, id);
-	}
-
-	public override async Task<ImmutableList<string>?> Remove<T>(string key, Func<T, bool> predicate)
-	{
-		var local = await base.Remove(key, predicate);
-		var shared = await CachingService.Remove(key, predicate);
-
-		if (local is not null && shared is not null)
-			return local.AddRange(shared);
-
-		return local is not null ? local : shared;
-	}
-
-	public void Flush()
-	{
-		CachingService.Merge(this);
-	}
-
-	private static ImmutableList<T>? Merge<T>(ImmutableList<T>? contextItems, ImmutableList<T>? sharedItems)
-	{
-		if (contextItems is null)
-			return sharedItems;
-
-		if (sharedItems is null)
-			return default;
-
-		var result = new List<T>(contextItems);
-
-		foreach (var sharedItem in sharedItems)
-		{
-			if (sharedItem is null)
-				continue;
-
-			if (CachingUtils.GetCacheKeyProperty(sharedItem) is not PropertyInfo cacheProperty)
-			{
-				//Q: should we compare every property and add only if not matched?
-				contextItems.Add(sharedItem);
-				continue;
-			}
-
-			if (FindExisting(cacheProperty.GetValue(sharedItems), contextItems) is null)
-				result.Add(sharedItem);
-		}
-
-		return [.. result];
-	}
-
-	private static T? FindExisting<T>(object? value, ImmutableList<T> items)
-	{
-		if (items is null || items.IsEmpty)
-			return default;
-
-		var instance = items[0];
-
-		if (instance is null)
-			return default;
-
-		if (CachingUtils.GetCacheKeyProperty(instance) is not PropertyInfo cacheProperty)
+		if (items is null || items.Count == 0)
 			return default;
 
 		foreach (var item in items)
 		{
-			var id = cacheProperty.GetValue(item);
+			if (IsItemRemoved(key, item))
+				continue;
+
+			return item;
+		}
+
+		return default;
+	}
+
+	public ImmutableList<T>? Where<T>(string key, Func<T, bool> predicate)
+	{
+		return Merge(_scope.Where(key, predicate), Cache.Where(key, predicate));
+	}
+
+	public T? Set<T>(string key, object id, T? instance)
+	{
+		RemoveFromRemoveList(key, id);
+
+		return _scope.Set(key, id, instance);
+	}
+
+	public T? Set<T>(string key, object id, T? instance, TimeSpan duration)
+	{
+		RemoveFromRemoveList(key, id);
+
+		return _scope.Set(key, id, instance, duration);
+	}
+
+	public T? Set<T>(string key, object id, T? instance, TimeSpan duration, bool slidingExpiration)
+	{
+		RemoveFromRemoveList(key, id);
+
+		return _scope.Set(key, id, instance, duration, slidingExpiration);
+	}
+
+	public async Task Remove(string key, object id)
+	{
+		await _scope.Remove(key, id);
+
+		AddToRemoveList(key, id);
+	}
+
+	public async Task<ImmutableList<string>?> Remove<T>(string key, Func<T, bool> predicate)
+	{
+		var items = await _scope.Remove(key, predicate);
+
+		if (items is not null)
+		{
+			foreach (var item in items)
+			{
+				var id = ResolveId(item);
+
+				if (id is not null)
+					AddToRemoveList(key, id);
+			}
+		}
+
+		return items;
+	}
+
+	public void Flush()
+	{
+		foreach (var item in _removeList)
+		{
+			foreach (var entry in item.Value)
+			{
+				if (entry is null)
+					continue;
+
+				Cache.Remove(item.Key, entry).Wait();
+			}
+		}
+
+		Cache.Merge(this);
+	}
+
+	private static ImmutableList<T>? Merge<T>(ImmutableList<T>? scope, ImmutableList<T>? shared)
+	{
+		if (scope is null)
+			return shared;
+
+		if (shared is null)
+			return default;
+
+		foreach (var sharedItem in shared)
+		{
+			if (sharedItem is null)
+				continue;
+
+			if (FindExisting(sharedItem, scope) is not T existing)
+				scope = scope.Add(sharedItem);
+		}
+
+		return [.. scope];
+	}
+
+	private static T? FindExisting<T>(object? value, ImmutableList<T> items)
+	{
+		if (items.IsEmpty)
+			return default;
+
+		foreach (var item in items)
+		{
+			var id = ResolveId(item);
 
 			if (TypeComparer.Compare(id, value))
 				return item;
 		}
 
 		return default;
+	}
+
+	private static object? ResolveId(object? value)
+	{
+		if (value is null)
+			return default;
+
+		if (CachingUtils.GetCacheKeyProperty(value) is not PropertyInfo cacheProperty)
+			return default;
+
+		return cacheProperty.GetValue(value);
+	}
+
+	public IEntry? Get(string key, object id)
+	{
+		if (_scope.Get(key, id) is IEntry scoped)
+			return scoped;
+
+		if (IsRemoved(key, id))
+			return default;
+
+		return Cache.Get(key, id);
+	}
+
+	public IEnumerator<T>? GetEnumerator<T>(string key)
+	{
+		throw new NotImplementedException();
+	}
+
+	public int Count(string key)
+	{
+		var merged = Merge(_scope.All<object>(key), Cache.All<object>(key));
+
+		if (merged is null)
+			return 0;
+
+		return merged.Count;
+	}
+
+	public void CopyTo(string key, object id, IEntry entry)
+	{
+		_scope.CopyTo(key, id, entry);
+	}
+
+	public ImmutableList<string>? Ids(string key)
+	{
+		var scoped = _scope.Ids(key) ?? [];
+		var shared = Cache.Ids(key) ?? [];
+
+		if (shared.IsEmpty)
+			return scoped;
+
+		if (_removeList.Count == 0)
+			return [.. scoped.AddRange(shared).Distinct()];
+
+		_removeList.TryGetValue(key, out HashSet<object?>? removeSet);
+
+		foreach (var item in shared)
+		{
+			if (removeSet is not null)
+			{
+				if (removeSet.Any(f => f is not null && string.Equals(f.ToString(), item, StringComparison.Ordinal)))
+					continue;
+			}
+
+			scoped = scoped.Add(item);
+		}
+
+		return scoped;
+	}
+
+	public ImmutableList<string>? Keys()
+	{
+		var scoped = _scope.Keys();
+		var shared = Cache.Keys();
+
+		return [.. scoped.AddRange(shared ?? []).Distinct()];
+	}
+
+	public void Dispose()
+	{
+		_scope.Dispose();
+	}
+
+	private bool IsItemRemoved(string key, object? item)
+	{
+		if (item is null)
+			return false;
+
+		if (!_removeList.ContainsKey(key))
+			return false;
+
+		return IsRemoved(key, ResolveId(key));
+	}
+
+	private bool IsRemoved(string key, object? id)
+	{
+		if (!_removeList.ContainsKey(key))
+			return false;
+
+		if (_removeList.TryGetValue(key, out HashSet<object?>? items))
+			return items.Contains(id);
+
+		return false;
+	}
+
+	private void RemoveFromRemoveList(string key, object id)
+	{
+		if (_removeList.TryGetValue(key, out HashSet<object?>? existing))
+			existing.Remove(id);
+	}
+
+	private void AddToRemoveList(string key, object id)
+	{
+		if (_removeList.TryGetValue(key, out HashSet<object?>? existing))
+		{
+			if (existing.Contains(id))
+				return;
+
+			existing.Add(id);
+		}
+
+		lock (_removeList)
+		{
+			if (_removeList.TryGetValue(key, out HashSet<object?>? locked))
+			{
+				if (locked.Contains(id))
+					return;
+
+				locked.Add(id);
+			}
+			else
+				_removeList.Add(key, [id]);
+		}
 	}
 }

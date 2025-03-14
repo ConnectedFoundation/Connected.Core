@@ -4,7 +4,7 @@ namespace Connected.Caching;
 /// <summary>
 /// Represents the service providing caching capabillities.
 /// <summary>
-[Service(ServiceRegistrationScope.Singleton)]
+[Service]
 public interface ICachingService : ICache
 {
 	/// <summary>
@@ -14,4 +14,6 @@ public interface ICachingService : ICache
 	/// This method is called from the context cache once the commit is performed.
 	/// </remarks>
 	void Merge(ICache cache);
+
+	ICacheContext CreateContext();
 }

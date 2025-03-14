@@ -4,9 +4,9 @@ namespace Connected.Services;
 
 public abstract class EntityDto : Dto, IEntityDto
 {
-	[Required, MaxLength(128)]
-	public required string Entity { get; set; }
+	[Required, MaxLength(1024)]
+	public required virtual string Entity { get; set; }
 
 	[Required, MaxLength(128)]
-	public required string EntityId { get; set; }
+	public required virtual string EntityId { get; set; }
 }
