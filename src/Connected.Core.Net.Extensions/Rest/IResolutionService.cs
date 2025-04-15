@@ -10,5 +10,5 @@ internal interface IResolutionService
 {
 	Task<InvokeDescriptor?> SelectMethod(HttpContext context);
 	Task<Type?> SelectDto(ParameterInfo parameter);
-	Task<ImmutableList<Tuple<string, ServiceOperationVerbs>>> QueryRoutes();
+	Task<IImmutableList<Tuple<string, ServiceOperationVerbs>>> QueryRoutes();
 }

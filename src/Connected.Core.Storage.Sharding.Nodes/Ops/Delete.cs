@@ -12,7 +12,7 @@ internal sealed class Delete(IShardingNodeCache cache, IStorageProvider storage,
 		if (SetState(await nodes.Select(Dto)) is not ShardingNode existing)
 			throw new NullReferenceException($"{Strings.ErrEntityExpected} ('{typeof(IShardingNode).Name}')");
 
-		await storage.Open<ShardingNode>().Update(Dto.AsEntity<ShardingNode>(State.Deleted));
+		await storage.Open<ShardingNode>().Update(Dto.AsEntity<ShardingNode>(State.Delete));
 		await cache.Remove(existing.Id);
 		await events.Deleted(this, nodes, existing.Id);
 	}

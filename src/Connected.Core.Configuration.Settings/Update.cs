@@ -12,7 +12,7 @@ internal sealed class Update(ISettingCache cache, IStorageProvider storage, IEve
 	{
 		if (SetState(await service.Select(Dto.AsDto<INameDto>())) is not Setting existing)
 		{
-			var entity = await storage.Open<Setting>().Update(Dto.AsEntity<Setting>(State.New)) ?? throw new NullReferenceException();
+			var entity = await storage.Open<Setting>().Update(Dto.AsEntity<Setting>(State.Add)) ?? throw new NullReferenceException();
 
 			await cache.Refresh(entity.Id);
 			await events.Inserted(this, service, entity.Id);

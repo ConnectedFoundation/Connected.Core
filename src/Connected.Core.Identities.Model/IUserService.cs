@@ -8,7 +8,7 @@ namespace Connected.Identities;
 public interface IUserService
 {
 	[ServiceOperation(ServiceOperationVerbs.Post | ServiceOperationVerbs.Get)]
-	Task<ImmutableList<IUser>> Query(IQueryDto? dto);
+	Task<IImmutableList<IUser>> Query(IQueryDto? dto);
 
 	Task<IUser?> Select(IPrimaryKeyDto<long> dto);
 	Task<IUser?> Select(ISelectUserDto dto);

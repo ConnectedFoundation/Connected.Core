@@ -229,7 +229,7 @@ internal sealed class ResolutionService(IRuntimeService runtimeService, IRouting
 			Methods.Add(methodUrl, [descriptor]);
 	}
 
-	public async Task<ImmutableList<Tuple<string, ServiceOperationVerbs>>> QueryRoutes()
+	public async Task<IImmutableList<Tuple<string, ServiceOperationVerbs>>> QueryRoutes()
 	{
 		await Initialize();
 

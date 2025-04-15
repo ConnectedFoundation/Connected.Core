@@ -17,7 +17,7 @@ public interface IIdentityMetaDataService
 	Task Delete(IPrimaryKeyDto<string> dto);
 
 	[ServiceOperation(ServiceOperationVerbs.Post | ServiceOperationVerbs.Get)]
-	Task<ImmutableList<IIdentityMetaData>> Query(IQueryDto? dto);
+	Task<IImmutableList<IIdentityMetaData>> Query(IQueryDto? dto);
 
 	[ServiceOperation(ServiceOperationVerbs.Post | ServiceOperationVerbs.Get)]
 	Task<IIdentityMetaData?> Select(IPrimaryKeyDto<string> dto);

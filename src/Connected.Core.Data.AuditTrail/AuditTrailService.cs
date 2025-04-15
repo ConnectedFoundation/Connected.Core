@@ -19,7 +19,7 @@ internal sealed class AuditTrailService(IServiceProvider services)
 		return await Invoke(GetOperation<Insert>(), dto);
 	}
 
-	public async Task<ImmutableList<IAuditTrail>> Query(IEntityDto dto)
+	public async Task<IImmutableList<IAuditTrail>> Query(IEntityDto dto)
 	{
 		return await Invoke(GetOperation<Query>(), dto);
 	}

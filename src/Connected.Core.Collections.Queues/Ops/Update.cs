@@ -13,7 +13,7 @@ internal sealed class Update(IQueueCache cache, IStorageProvider storage)
 		var modified = existing with
 		{
 			NextVisible = DateTime.UtcNow.Add(Dto.NextVisible),
-			State = State.Default
+			State = State.Update
 		};
 
 		await storage.Open<QueueMessage>(StorageConnectionMode.Isolated).Update(modified, Dto, async () =>
@@ -26,7 +26,7 @@ internal sealed class Update(IQueueCache cache, IStorageProvider storage)
 			return Task.FromResult(entity with
 			{
 				NextVisible = DateTime.UtcNow.Add(Dto.NextVisible),
-				State = State.Default
+				State = State.Update
 			});
 		});
 

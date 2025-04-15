@@ -12,7 +12,7 @@ internal sealed class Update(IStorageProvider storage, IEventService events, ILa
 		if (SetState(await mappings.Select(Dto.AsDto<IPrimaryKeyDto<int>>())) is not LanguageMapping mapping)
 			throw new NullReferenceException(Strings.ErrEntityExpected);
 
-		await storage.Open<LanguageMapping>().Update(mapping.Merge(Dto, State.Default), Dto, async () =>
+		await storage.Open<LanguageMapping>().Update(mapping.Merge(Dto, State.Update), Dto, async () =>
 		{
 			await cache.Refresh(Dto.Id);
 

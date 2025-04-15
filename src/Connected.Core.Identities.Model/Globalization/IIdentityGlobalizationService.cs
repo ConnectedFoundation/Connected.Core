@@ -17,7 +17,7 @@ public interface IIdentityGlobalizationService
 	Task Delete(IPrimaryKeyDto<string> dto);
 
 	[ServiceOperation(ServiceOperationVerbs.Get | ServiceOperationVerbs.Post)]
-	Task<ImmutableList<IIdentityGlobalization>> Query(IQueryDto? dto);
+	Task<IImmutableList<IIdentityGlobalization>> Query(IQueryDto? dto);
 
 	[ServiceOperation(ServiceOperationVerbs.Get | ServiceOperationVerbs.Post)]
 	Task<IIdentityGlobalization?> Select(IPrimaryKeyDto<string> dto);

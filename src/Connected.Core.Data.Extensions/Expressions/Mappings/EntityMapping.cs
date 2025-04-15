@@ -28,7 +28,7 @@ internal sealed class EntityMapping
 	public string Name { get; private set; } = default!;
 	public string Schema { get; private set; } = default!;
 	private Type EntityType { get; }
-	public ImmutableList<MemberMapping> Members => [.. _members];
+	public IImmutableList<MemberMapping> Members => [.. _members];
 
 	private void InitializeSchema()
 	{

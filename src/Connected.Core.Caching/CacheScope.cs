@@ -62,7 +62,7 @@ internal sealed class CacheScope : ICache, IDisposable
 		return new List<T>().GetEnumerator();
 	}
 
-	public ImmutableList<T>? All<T>(string key)
+	public IImmutableList<T>? All<T>(string key)
 	{
 		if (Items.TryGetValue(key, out Entries? value))
 			return value.All<T>();
@@ -198,7 +198,7 @@ internal sealed class CacheScope : ICache, IDisposable
 		return default;
 	}
 
-	public ImmutableList<T>? Where<T>(string key, Func<T, bool> predicate)
+	public IImmutableList<T>? Where<T>(string key, Func<T, bool> predicate)
 	{
 		if (Items.TryGetValue(key, out Entries? value))
 			return value.Where(predicate);
@@ -252,15 +252,15 @@ internal sealed class CacheScope : ICache, IDisposable
 		await Task.CompletedTask;
 	}
 
-	public async Task<ImmutableList<string>?> Remove<T>(string key, Func<T, bool> predicate)
+	public async Task<IImmutableList<string>?> Remove<T>(string key, Func<T, bool> predicate)
 	{
 		if (Items.TryGetValue(key, out Entries? value))
 			return value.Remove(predicate);
 
-		return await Task.FromResult<ImmutableList<string>?>(null);
+		return await Task.FromResult<IImmutableList<string>?>(null);
 	}
 
-	public ImmutableList<string>? Ids(string key)
+	public IImmutableList<string>? Ids(string key)
 	{
 		if (Items.TryGetValue(key, out Entries? value))
 			return value.Keys;
@@ -268,7 +268,7 @@ internal sealed class CacheScope : ICache, IDisposable
 		return default;
 	}
 
-	public ImmutableList<string> Keys()
+	public IImmutableList<string> Keys()
 	{
 		return [.. Items.Keys];
 	}

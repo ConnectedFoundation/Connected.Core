@@ -24,7 +24,7 @@ internal sealed class ClientMessages<TDto> : IClientMessages<TDto>
 		}
 	}
 
-	public ImmutableList<IMessage<TDto>> Dequeue()
+	public IImmutableList<IMessage<TDto>> Dequeue()
 	{
 		var result = new List<IMessage<TDto>>();
 
@@ -32,7 +32,7 @@ internal sealed class ClientMessages<TDto> : IClientMessages<TDto>
 		{
 			var items = client.Value.Dequeue();
 
-			if (!items.IsEmpty)
+			if (items.Count != 0)
 				result.AddRange(items);
 		}
 

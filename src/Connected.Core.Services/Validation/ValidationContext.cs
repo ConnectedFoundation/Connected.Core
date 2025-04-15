@@ -27,7 +27,7 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 		if (middleware is null)
 			return;
 
-		if (await middleware.Query<IValidator<TDto>>(context) is not ImmutableList<IValidator<TDto>> middlewares)
+		if (await middleware.Query<IValidator<TDto>>(context) is not IImmutableList<IValidator<TDto>> middlewares)
 			return;
 
 		foreach (var m in middlewares)

@@ -60,7 +60,7 @@ public abstract class Server<THub, TDto>(IHubContext<THub> hub) : IServer<TDto>
 		}
 	}
 
-	private ImmutableList<IClient> SelectConnections(ISendContextDto context)
+	private IImmutableList<IClient> SelectConnections(ISendContextDto context)
 	{
 		if (context.Filter == SendFilterFlags.None)
 			return Clients.Query();

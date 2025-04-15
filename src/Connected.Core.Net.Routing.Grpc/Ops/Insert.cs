@@ -22,7 +22,7 @@ internal sealed class Insert(IRouteCache cache, IConfigurationService configurat
 			Url = Dto.Url
 		});
 
-		var entity = Dto.AsEntity<Route>(State.Default, new
+		var entity = Dto.AsEntity<Route>(State.Update, new
 		{
 			Id = Guid.Parse(id.Id)
 		});

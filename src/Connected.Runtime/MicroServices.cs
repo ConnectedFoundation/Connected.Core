@@ -38,6 +38,6 @@ internal static class MicroServices
 		_startups = [];
 	}
 
-	public static ImmutableList<Assembly> All => [.. _all];
-	public static ImmutableList<Runtime.IStartup> Startups => [.. _startups];
+	public static IImmutableList<Assembly> All => [.. _all];
+	public static IImmutableList<Runtime.IStartup> Startups => [.. _startups];
 }

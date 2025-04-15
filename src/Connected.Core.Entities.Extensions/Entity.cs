@@ -7,8 +7,8 @@ namespace Connected.Entities;
 
 public abstract record Entity : IEntity
 {
-	[DefaultValue(State.Default), JsonIgnore, Persistence(PersistenceMode.InMemory)]
-	public State State { get; init; }
+	[DefaultValue(State.Update), JsonIgnore, Persistence(PersistenceMode.InMemory)]
+	public State State { get; init; } = State.Update;
 }
 
 public abstract record Entity<T> : Entity, IEntity<T>

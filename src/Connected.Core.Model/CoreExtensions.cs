@@ -17,7 +17,7 @@ public static class CoreExtensions
 		services.AddTransient(type);
 	}
 
-	public static ImmutableList<Type> QueryMiddlewares(this IConfiguration configuration)
+	public static IImmutableList<Type> QueryMiddlewares(this IConfiguration configuration)
 	{
 		return [.. Middlewares];
 	}

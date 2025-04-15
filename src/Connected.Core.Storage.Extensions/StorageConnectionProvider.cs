@@ -7,7 +7,7 @@ public abstract class StorageConnectionProvider : Middleware, IStorageConnection
 {
 	protected IStorageContextDto Dto { get; private set; } = default!;
 
-	public Task<ImmutableList<IStorageConnection>> Invoke<TEntity>(IStorageContextDto dto)
+	public Task<IImmutableList<IStorageConnection>> Invoke<TEntity>(IStorageContextDto dto)
 		where TEntity : IEntity
 	{
 		Dto = dto;
@@ -15,8 +15,8 @@ public abstract class StorageConnectionProvider : Middleware, IStorageConnection
 		return OnInvoke<TEntity>();
 	}
 
-	protected virtual Task<ImmutableList<IStorageConnection>> OnInvoke<TEntity>()
+	protected virtual Task<IImmutableList<IStorageConnection>> OnInvoke<TEntity>()
 	{
-		return Task.FromResult(ImmutableList<IStorageConnection>.Empty);
+		return Task.FromResult<IImmutableList<IStorageConnection>>(ImmutableList<IStorageConnection>.Empty);
 	}
 }

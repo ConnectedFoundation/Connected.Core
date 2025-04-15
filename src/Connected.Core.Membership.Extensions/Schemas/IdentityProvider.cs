@@ -7,7 +7,7 @@ public abstract class IdentityProvider : Middleware, IIdentityProvider
 {
 	public abstract string Name { get; }
 
-	public async Task<ImmutableList<IIdentity>> Query()
+	public async Task<IImmutableList<IIdentity>> Query()
 	{
 		return await OnQuery();
 	}
@@ -17,14 +17,14 @@ public abstract class IdentityProvider : Middleware, IIdentityProvider
 		return await OnSelect(key);
 	}
 
-	public async Task<ImmutableList<IIdentity>> QueryDependencies(string key)
+	public async Task<IImmutableList<IIdentity>> QueryDependencies(string key)
 	{
 		return await OnQueryDependencies(key);
 	}
 
-	protected virtual Task<ImmutableList<IIdentity>> OnQuery()
+	protected virtual Task<IImmutableList<IIdentity>> OnQuery()
 	{
-		return Task.FromResult(ImmutableList<IIdentity>.Empty);
+		return Task.FromResult<IImmutableList<IIdentity>>(ImmutableList<IIdentity>.Empty);
 	}
 
 	protected virtual Task<IIdentity?> OnSelect(string key)
@@ -32,8 +32,8 @@ public abstract class IdentityProvider : Middleware, IIdentityProvider
 		return Task.FromResult<IIdentity?>(null);
 	}
 
-	protected virtual Task<ImmutableList<IIdentity>> OnQueryDependencies(string key)
+	protected virtual Task<IImmutableList<IIdentity>> OnQueryDependencies(string key)
 	{
-		return Task.FromResult(ImmutableList<IIdentity>.Empty);
+		return Task.FromResult<IImmutableList<IIdentity>>(ImmutableList<IIdentity>.Empty);
 	}
 }

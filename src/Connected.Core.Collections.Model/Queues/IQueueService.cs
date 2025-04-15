@@ -33,7 +33,7 @@ public interface IQueueService
 	/// </summary>
 	/// <param name="dto">The dto containing information about dequeue criteria.</param>
 	/// <returns>A list of valid queue messages that can be immediatelly processed.</returns>
-	Task<ImmutableList<IQueueMessage>> Query(IQueryDto dto);
+	Task<IImmutableList<IQueueMessage>> Query(IQueryDto dto);
 	/// <summary>
 	/// Updates the existing queue message with the specified pop receipt.
 	/// </summary>

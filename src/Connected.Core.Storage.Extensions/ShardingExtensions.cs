@@ -16,7 +16,7 @@ public static class ShardingExtensions
 	/// <param name="shards">The list of existing Shards. The list should contain only
 	/// one Entity set.</param>
 	/// <param name="nodes">The list of all available Sharding Nodes.</param>
-	public static IShardingNode? ChooseNodeCandidate(this ImmutableList<IShard> shards, ImmutableList<IShardingNode> nodes)
+	public static IShardingNode? ChooseNodeCandidate(this IImmutableList<IShard> shards, IImmutableList<IShardingNode> nodes)
 	{
 		/*
        * First, group by nodes
@@ -54,7 +54,7 @@ public static class ShardingExtensions
 	/// <param name="nodes">The nodes service providing collection of existing nodes.</param>
 	/// <param name="operation">The storage operation which will be executed on returned nodes.</param>
 	/// <param name="propertyName">The property name that will be matched with parameters and variables.</param>
-	public static async Task<ImmutableList<IShardingNode>> ResolveNode<TEntity>(this IShardingService sharding, IShardingNodeService nodes, IStorageOperation operation, string propertyName)
+	public static async Task<IImmutableList<IShardingNode>> ResolveNode<TEntity>(this IShardingService sharding, IShardingNodeService nodes, IStorageOperation operation, string propertyName)
 		where TEntity : IEntity
 	{
 		var entityName = typeof(TEntity).FullName;
@@ -133,7 +133,7 @@ public static class ShardingExtensions
 	/// Use this method when you want to perform a storage operation in the default storage as part of 
 	/// the execution process.
 	/// </remarks>
-	public static ImmutableList<IShardingNode> WithDefaultNode(this ImmutableList<IShardingNode> existing)
+	public static IImmutableList<IShardingNode> WithDefaultNode(this IImmutableList<IShardingNode> existing)
 	{
 		var result = new List<IShardingNode>(existing.ToArray());
 

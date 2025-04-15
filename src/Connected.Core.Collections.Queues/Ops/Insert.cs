@@ -29,7 +29,7 @@ internal sealed class Insert<TClient, TDto>(IQueueCache cache, IStorageProvider 
 			Priority = Options.Priority,
 			Expire = Options.Expire,
 			Queue = Options.Queue,
-			State = State.New,
+			State = State.Add,
 			MaxDequeueCount = Options.MaxDequeueCount
 		};
 

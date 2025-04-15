@@ -9,7 +9,7 @@ public interface ICache : IDisposable
 	/// <summary>
 	/// Returns all non expired items for the specified key.
 	/// </summary>
-	ImmutableList<T>? All<T>(string key);
+	IImmutableList<T>? All<T>(string key);
 	/// <summary>
 	/// Returns an item from the container if exists, otherwise null.
 	/// </summary>
@@ -74,7 +74,7 @@ public interface ICache : IDisposable
 	/// <param name="predicate">The criteria used to search for entries.</param>
 	/// <typeparam name="T">The type of the entry which will be returned.</typeparam>
 	/// <returns>A list of T instances which matches the criteria.</returns>
-	ImmutableList<T>? Where<T>(string key, Func<T, bool> predicate);
+	IImmutableList<T>? Where<T>(string key, Func<T, bool> predicate);
 	/// <summary>
 	/// Checks wether the specified container exists in the cache.
 	/// </summary>
@@ -135,7 +135,7 @@ public interface ICache : IDisposable
 	/// <param name="key">The container from which entries will be removed.</param>
 	/// <param name="predicate">The criteria for removing entries.</param>
 	/// <returns>The list of removed items.</returns>
-	Task<ImmutableList<string>?> Remove<T>(string key, Func<T, bool> predicate);
+	Task<IImmutableList<string>?> Remove<T>(string key, Func<T, bool> predicate);
 	/// <summary>
 	/// Removes the entry from the specified container for the specified id.
 	/// </summary>
@@ -147,10 +147,10 @@ public interface ICache : IDisposable
 	/// </summary>
 	/// <param name="key">The container from which ids will be returned.</param>
 	/// <returns>The list of ids for the specified container.</returns>
-	ImmutableList<string>? Ids(string key);
+	IImmutableList<string>? Ids(string key);
 	/// <summary>
 	/// Returns keys of all containers in the cache.
 	/// </summary>
 	/// <returns>The list of keys containers.</returns>
-	ImmutableList<string>? Keys();
+	IImmutableList<string>? Keys();
 }

@@ -8,7 +8,7 @@ namespace Connected.Membership.Claims;
 public interface IClaimService
 {
 	[ServiceOperation(ServiceOperationVerbs.Get | ServiceOperationVerbs.Post)]
-	Task<ImmutableList<IClaim>> Query(IQueryClaimDto dto);
+	Task<IImmutableList<IClaim>> Query(IQueryClaimDto dto);
 
 	Task<bool> Request(IRequestClaimDto dto);
 

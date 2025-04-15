@@ -18,7 +18,7 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 	private bool Initialized { get; set; }
 	public StorageConnectionMode Mode { get; set; } = StorageConnectionMode.Shared;
 
-	public async Task<ImmutableList<IStorageConnection>> Invoke<TEntity>(IStorageContextDto dto)
+	public async Task<IImmutableList<IStorageConnection>> Invoke<TEntity>(IStorageContextDto dto)
 		where TEntity : IEntity
 	{
 		Configure();
@@ -58,7 +58,7 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 	/// <param name="context">The context containing information about the connection type and connection string.</param>
 	/// <returns>A list of storage connections which should contain only one storage connection.</returns>
 	/// <exception cref="NullReferenceException">If the storage connection couldn't be retrieved from the DI container.</exception>
-	private async Task<ImmutableList<IStorageConnection>> ResolveSingle<TEntity>(ISchemaSynchronizationContext context)
+	private async Task<IImmutableList<IStorageConnection>> ResolveSingle<TEntity>(ISchemaSynchronizationContext context)
 	{
 		var connection = services.GetRequiredService(context.ConnectionType) as IStorageConnection ?? throw new NullReferenceException($"{SR.ErrConnectionNull} '{context.ConnectionType}'");
 		var dto = services.GetRequiredService<IStorageConnectionDto>();
@@ -77,7 +77,7 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 	/// </remarks>
 	/// <returns>A list of storage connections on which the same storage operation should be performed.</returns>
 	/// <exception cref="NullReferenceException">If none storage connections couldn't be resolved either from the sharding provider or a default DI container.</exception>
-	private async Task<ImmutableList<IStorageConnection>> ResolveMultiple<TEntity>(IStorageContextDto dto)
+	private async Task<IImmutableList<IStorageConnection>> ResolveMultiple<TEntity>(IStorageContextDto dto)
 		where TEntity : IEntity
 	{
 		var result = new List<IStorageConnection>();
@@ -110,7 +110,7 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 		{
 			var connections = await middleware.Invoke<TEntity>(dto);
 
-			if (!connections.IsEmpty)
+			if (connections.Count != 0)
 			{
 				/*
 				 * Middleware provided connection(s). We are happy with that so we
@@ -155,7 +155,7 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 				 * Provider should always return at least one node even if the data is stored in the default
 				 * storage.
 				 */
-				if (await Methods.InvokeAsync(method, provider, [dto.Operation]) is not ImmutableList<IShardingNode> nodes || nodes.IsEmpty)
+				if (await Methods.InvokeAsync(method, provider, [dto.Operation]) is not IImmutableList<IShardingNode> nodes || nodes.Count == 0)
 					throw new NullReferenceException($"{SR.ErrNoShardingNodes} ('{provider.GetType().Name}')");
 				/*
 				 * We have a sharding nodes returned by provider. The rest of the process is simple, we just

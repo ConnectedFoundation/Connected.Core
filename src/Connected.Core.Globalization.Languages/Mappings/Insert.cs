@@ -9,7 +9,7 @@ internal sealed class Insert(IStorageProvider storage, ILanguageMappingCache cac
 {
 	protected override async Task<int> OnInvoke()
 	{
-		if (await storage.Open<LanguageMapping>().Update(Dto.AsEntity<LanguageMapping>(State.New)) is not LanguageMapping entity)
+		if (await storage.Open<LanguageMapping>().Update(Dto.AsEntity<LanguageMapping>(State.Add)) is not LanguageMapping entity)
 			throw new NullReferenceException(Strings.ErrEntityExpected);
 
 		await cache.Refresh(entity.Id);

@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 
 namespace Connected.Net.Messaging;
 
@@ -9,7 +8,7 @@ public interface IClients
 	void Clean();
 	void Remove(string connectionId);
 
-	ImmutableList<IClient> Query();
+	IImmutableList<IClient> Query();
 	IClient? Select(string id);
 	IClient? SelectByConnection(string connection);
 }

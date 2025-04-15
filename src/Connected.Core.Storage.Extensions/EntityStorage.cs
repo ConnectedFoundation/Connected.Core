@@ -247,7 +247,7 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
              * We must perform validation again since the state of the entities has possibly changed. Note that
              * only middleware validation is performed not the argument (attribute based).
              */
-				if (await Middleware.Query<IValidator<TDto>>() is ImmutableList<IValidator<TDto>> items)
+				if (await Middleware.Query<IValidator<TDto>>() is IImmutableList<IValidator<TDto>> items)
 				{
 					foreach (var item in items)
 						await item.Invoke(caller, dto);
@@ -307,7 +307,7 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 	/// </remarks>
 	/// <param name="dto">The arguments containing data about operation to be performed.</param>
 	/// <returns>One or more <see cref="IStorageReader{T}"/>.</returns>
-	private async Task<ImmutableList<IStorageReader<TEntity>>> OpenEntityReaders(IStorageContextDto dto)
+	private async Task<IImmutableList<IStorageReader<TEntity>>> OpenEntityReaders(IStorageContextDto dto)
 	{
 		/*
 		 * Connection middleware will return one connection for every shard. If sharding is not supported only
@@ -326,7 +326,7 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 	/// </summary>
 	/// <param name="dto">The arguments containing data about operation to be performed.</param>
 	/// <returns>One or more <see cref="IDataReader{T}"/>.</returns>
-	public async Task<ImmutableList<IDataReader>> OpenReaders(IStorageContextDto dto)
+	public async Task<IImmutableList<IDataReader>> OpenReaders(IStorageContextDto dto)
 	{
 		/*
 		 * Connection middleware will return one connection for every shard. If sharding is not supported only
@@ -462,7 +462,7 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 			{
 				tasks.Add(Task.Run(async () =>
 				{
-					if (await reader.Query() is ImmutableList<TEntity> r && !r.IsEmpty)
+					if (await reader.Query() is IImmutableList<TEntity> r && r.Count != 0)
 					{
 						lock (results)
 							results.AddRange(r);
@@ -547,7 +547,7 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 		 */
 		var middlewares = await Middleware.Query<IQueryMiddleware>();
 
-		if (middlewares.IsEmpty)
+		if (middlewares.Count == 0)
 			throw new NullReferenceException(nameof(IQueryMiddleware));
 
 		foreach (var middleware in middlewares)

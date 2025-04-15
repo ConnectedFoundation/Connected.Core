@@ -56,7 +56,7 @@ internal sealed class SqlSchemaMiddleware(IMiddlewareService middleware, IStorag
 			await new TableSynchronize().Execute(args);
 	}
 
-	private async Task<ImmutableList<IShardingNode>> ResolveShardingMiddleware(Type entityType)
+	private async Task<IImmutableList<IShardingNode>> ResolveShardingMiddleware(Type entityType)
 	{
 		var entity = EntitiesExtensions.GetUnderlyingEntity(entityType);
 
@@ -73,7 +73,7 @@ internal sealed class SqlSchemaMiddleware(IMiddlewareService middleware, IStorag
 		{
 			var nodes = await method.InvokeAsync(provider, [null]);
 
-			if (nodes is ImmutableList<IShardingNode> items && !items.IsEmpty)
+			if (nodes is IImmutableList<IShardingNode> items && items.Count != 0)
 				return items;
 		}
 

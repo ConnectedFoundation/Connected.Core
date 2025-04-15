@@ -4,9 +4,9 @@ namespace Connected.Entities;
 
 public enum State : byte
 {
-	Default = 0,
-	New = 1,
-	Deleted = 2
+	Add = 0,
+	Update = 1,
+	Delete = 2
 }
 
 public interface IEntity

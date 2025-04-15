@@ -22,6 +22,6 @@ internal class DatabaseConfiguration : IDatabaseConfiguration
 
 	public string? DefaultConnectionString { get; init; }
 
-	public ImmutableList<string> Shards => [.. _shards];
-	public ImmutableDictionary<string, string> Connections => _connections.ToImmutableDictionary();
+	public IImmutableList<string> Shards => [.. _shards];
+	public IImmutableDictionary<string, string> Connections => _connections.ToImmutableDictionary();
 }

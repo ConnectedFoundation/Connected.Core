@@ -74,7 +74,7 @@ public static class NetExtensions
 		if (scope.ServiceProvider.GetService<IResolutionService>() is not IResolutionService resolution)
 			return;
 
-		if (resolution.QueryRoutes().Result is not ImmutableList<Tuple<string, ServiceOperationVerbs>> routes || routes.IsEmpty)
+		if (resolution.QueryRoutes().Result is not IImmutableList<Tuple<string, ServiceOperationVerbs>> routes || routes.Count == 0)
 			return;
 
 		builder.UseEndpoints(config =>

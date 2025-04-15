@@ -12,7 +12,7 @@ internal class PrimaryKeyListDto<T> : Dto, IPrimaryKeyListDto<T>
 	{
 		return new PrimaryKeyListDto<T>
 		{
-			Items = value.ToList()
+			Items = [.. value]
 		};
 	}
 
@@ -20,7 +20,7 @@ internal class PrimaryKeyListDto<T> : Dto, IPrimaryKeyListDto<T>
 	{
 		return new PrimaryKeyListDto<T>
 		{
-			Items = value ?? new()
+			Items = value ?? []
 		};
 	}
 }

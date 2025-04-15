@@ -43,7 +43,7 @@ public static class CollectionExtensions
 			return items.ToImmutableArray();
 	}
 
-	public static ImmutableList<TSource> ToImmutableList<TSource>(this IEnumerable<TSource> items, bool performLock)
+	public static IImmutableList<TSource> ToImmutableList<TSource>(this IEnumerable<TSource> items, bool performLock)
 	{
 		if (!performLock)
 			return items.ToImmutableList();

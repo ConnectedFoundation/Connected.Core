@@ -11,7 +11,7 @@ internal sealed class Insert(IStorageProvider storage, IAuditTrailService auditT
 {
 	protected override async Task<long> OnInvoke()
 	{
-		var result = await storage.Open<AuditTrailEntry>().Update(Dto.AsEntity<AuditTrailEntry>(Entities.State.New, ambient)) ?? throw new NullReferenceException(Strings.ErrEntityExpected);
+		var result = await storage.Open<AuditTrailEntry>().Update(Dto.AsEntity<AuditTrailEntry>(Entities.State.Add, ambient)) ?? throw new NullReferenceException(Strings.ErrEntityExpected);
 
 		await events.Inserted(this, auditTrail, result.Id);
 

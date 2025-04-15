@@ -79,7 +79,7 @@ public abstract class SynchronizedCache<TEntry, TKey> : CacheContainer<TEntry, T
 		await Task.CompletedTask;
 	}
 
-	public override async Task<ImmutableList<TEntry>?> All()
+	public override async Task<IImmutableList<TEntry>?> All()
 	{
 		await ((ICachingDataProvider)this).Initialize();
 
@@ -113,13 +113,6 @@ public abstract class SynchronizedCache<TEntry, TKey> : CacheContainer<TEntry, T
 
 		return await base.Get(id, retrieve);
 	}
-
-	//public override async Task<ImmutableList<TEntry>?> Where(Func<TEntry, bool> predicate)
-	//{
-	//	await ((ICachingDataProvider)this).Initialize();
-
-	//	return await base.Where(predicate);
-	//}
 
 	protected override void OnDisposing()
 	{

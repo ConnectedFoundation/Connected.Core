@@ -25,7 +25,7 @@ public interface IStorage<TEntity> : IQueryable<TEntity>, IQueryable, IEnumerabl
 	Task<TEntity?> Update<TDto>(TEntity? entity, TDto dto, Func<Task<TEntity?>>? concurrencyRetrying, ICallerContext caller, Func<TEntity, Task<TEntity>>? merging)
 		where TDto : IDto;
 
-	Task<ImmutableList<IDataReader>> OpenReaders(IStorageContextDto dto);
+	Task<IImmutableList<IDataReader>> OpenReaders(IStorageContextDto dto);
 	Task<int> Execute(IStorageContextDto dto);
 	Task<IEnumerable<TEntity>> Query(IStorageContextDto dto);
 	Task<TEntity?> Select(IStorageContextDto dto);

@@ -18,7 +18,7 @@ internal sealed class QueueService(IServiceProvider services)
 		await Invoke(op, dto);
 	}
 
-	public async Task<ImmutableList<IQueueMessage>> Query(IQueryDto dto)
+	public async Task<IImmutableList<IQueueMessage>> Query(IQueryDto dto)
 	{
 		return await Invoke(GetOperation<Query>(), dto);
 	}

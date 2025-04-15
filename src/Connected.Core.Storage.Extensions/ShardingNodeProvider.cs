@@ -15,7 +15,7 @@ public abstract class ShardingNodeProvider<TEntity> : Middleware, IShardingNodeP
 	/// <summary>
 	protected IStorageOperation? Operation { get; private set; }
 	/// <inheritdoc cref="IShardingNodeProvider{TEntity}.Invoke"/>>
-	public async Task<ImmutableList<IShardingNode>> Invoke(IStorageOperation? operation)
+	public async Task<IImmutableList<IShardingNode>> Invoke(IStorageOperation? operation)
 	{
 		Operation = operation;
 
@@ -24,5 +24,5 @@ public abstract class ShardingNodeProvider<TEntity> : Middleware, IShardingNodeP
 	/// <summary>
 	/// This method should return at least one <c>IShardingNode</c> for the specified Operation.
 	/// </summary>
-	protected abstract Task<ImmutableList<IShardingNode>> OnInvoke();
+	protected abstract Task<IImmutableList<IShardingNode>> OnInvoke();
 }

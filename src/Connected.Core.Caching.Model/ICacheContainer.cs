@@ -17,7 +17,7 @@ public interface ICacheContainer<TEntry, TKey> : IEnumerable<TEntry>, IDisposabl
 
 	Task Remove(TKey id);
 	Task Remove(Func<TEntry, bool> predicate);
-	Task<ImmutableList<TEntry>?> All();
+	Task<IImmutableList<TEntry>?> All();
 	Task<TEntry?> Get(TKey id, Func<IEntryOptions, Task<TEntry?>>? retrieve);
 	Task<TEntry?> Get(TKey id);
 	Task<TEntry?> First();

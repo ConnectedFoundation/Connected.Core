@@ -12,7 +12,7 @@ internal sealed class Update(IStorageProvider storage, IEventService events, ILa
 		if (SetState(await languages.Select(Dto.AsDto<IPrimaryKeyDto<int>>())) is not Language language)
 			throw new NullReferenceException(Strings.ErrEntityExpected);
 
-		await storage.Open<Language>().Update(language.Merge(Dto, State.Default), Dto, async () =>
+		await storage.Open<Language>().Update(language.Merge(Dto, State.Update), Dto, async () =>
 		{
 			await cache.Refresh(Dto.Id);
 

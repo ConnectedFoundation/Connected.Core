@@ -17,7 +17,7 @@ public interface IIdentityAuthenticationTokenService
 	Task Delete(IPrimaryKeyDto<long> dto);
 
 	[ServiceOperation(ServiceOperationVerbs.Post | ServiceOperationVerbs.Get)]
-	Task<ImmutableList<IIdentityAuthenticationToken>> Query(IQueryIdentityAuthenticationTokensDto dto);
+	Task<IImmutableList<IIdentityAuthenticationToken>> Query(IQueryIdentityAuthenticationTokensDto dto);
 
 	[ServiceOperation(ServiceOperationVerbs.Post | ServiceOperationVerbs.Get)]
 	Task<IIdentityAuthenticationToken?> Select(IPrimaryKeyDto<long> dto);

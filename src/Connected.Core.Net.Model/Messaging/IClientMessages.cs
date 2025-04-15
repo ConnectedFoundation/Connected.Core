@@ -4,7 +4,7 @@ namespace Connected.Net.Messaging;
 
 public interface IClientMessages<TDto>
 {
-	ImmutableList<IMessage<TDto>> Dequeue();
+	IImmutableList<IMessage<TDto>> Dequeue();
 
 	void Clean();
 	void Remove(string connectionId);

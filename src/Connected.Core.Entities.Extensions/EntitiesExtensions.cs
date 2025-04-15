@@ -27,7 +27,7 @@ public static class EntitiesExtensions
 		return Serializer.Merge(newEntity, existing);
 	}
 
-	public static async Task<ImmutableList<TSource>> AsEntities<TSource>(this IQueryable<TSource> source, CancellationToken cancellationToken = default)
+	public static async Task<IImmutableList<TSource>> AsEntities<TSource>(this IQueryable<TSource> source, CancellationToken cancellationToken = default)
 	{
 		if (source is null)
 			return [];
@@ -44,7 +44,7 @@ public static class EntitiesExtensions
 	 * This method is actually not asynchronous but to avoid future refactorings its signature is 
 	 * marked as async.
 	 */
-	public static async Task<ImmutableList<TSource>> AsEntities<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate)
+	public static async Task<IImmutableList<TSource>> AsEntities<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate)
 	{
 		if (source is null)
 			return [];
@@ -54,7 +54,7 @@ public static class EntitiesExtensions
 		return source.Where(predicate).ToImmutableList();
 	}
 
-	public static async Task<ImmutableList<TSource>> AsEntities<TSource>(this IEnumerable<TSource> source)
+	public static async Task<IImmutableList<TSource>> AsEntities<TSource>(this IEnumerable<TSource> source)
 	{
 		if (source is null)
 			return [];
@@ -64,13 +64,13 @@ public static class EntitiesExtensions
 		return source.ToImmutableList();
 	}
 
-	public static Task<ImmutableList<TDestination>> AsEntities<TSource, TDestination>(this IEnumerable<TSource> source)
+	public static Task<IImmutableList<TDestination>> AsEntities<TSource, TDestination>(this IEnumerable<TSource> source)
 		where TSource : TDestination
 	{
 		if (source is null)
-			return Task.FromResult(ImmutableList<TDestination>.Empty);
+			return Task.FromResult<IImmutableList<TDestination>>(ImmutableList<TDestination>.Empty);
 
-		return Task.FromResult(source.Cast<TDestination>().ToImmutableList());
+		return Task.FromResult<IImmutableList<TDestination>>(source.Cast<TDestination>().ToImmutableList());
 	}
 
 	public static async Task<TSource?> AsEntity<TSource>(this IQueryable<TSource> source, CancellationToken cancellationToken = default)

@@ -6,12 +6,12 @@ internal class InProcessCache : Cache, IInProcessCache
 {
 	public void Merge(ICache cache)
 	{
-		if (cache.Keys() is not ImmutableList<string> keys)
+		if (cache.Keys() is not IImmutableList<string> keys)
 			return;
 
 		foreach (var key in keys)
 		{
-			if (cache.Ids(key) is not ImmutableList<string> entryKeys)
+			if (cache.Ids(key) is not IImmutableList<string> entryKeys)
 				continue;
 
 			foreach (var entryKey in entryKeys)

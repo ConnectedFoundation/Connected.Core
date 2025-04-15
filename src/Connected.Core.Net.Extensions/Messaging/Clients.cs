@@ -1,6 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System;
-using System.Linq;
 using System.Collections.Immutable;
 
 namespace Connected.Net.Messaging;
@@ -45,7 +43,7 @@ internal sealed class Clients : IClients
 		client.RetentionDeadline = DateTime.UtcNow.AddMinutes(5);
 	}
 
-	public ImmutableList<IClient> Query()
+	public IImmutableList<IClient> Query()
 	{
 		return Items.Values.ToImmutableList();
 	}

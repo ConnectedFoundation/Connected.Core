@@ -14,7 +14,7 @@ namespace Connected.Storage.Sharding.Nodes;
 [Service]
 public interface IShardingNodeService
 {
-	Task<ImmutableList<IShardingNode>> Query(IQueryDto? dto);
+	Task<IImmutableList<IShardingNode>> Query(IQueryDto? dto);
 	Task<IShardingNode?> Select(IPrimaryKeyDto<int> dto);
 
 	Task<int> Insert(IInsertShardingNodeDto dto);

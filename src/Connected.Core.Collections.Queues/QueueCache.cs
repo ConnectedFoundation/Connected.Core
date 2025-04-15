@@ -21,7 +21,7 @@ internal sealed class QueueCache(ICachingService cache, IStorageProvider storage
 		return !(existing.NextVisible > DateTimeOffset.UtcNow);
 	}
 
-	public async Task<ImmutableList<QueueMessage>> Query(string queue)
+	public async Task<IImmutableList<QueueMessage>> Query(string queue)
 	{
 		return await Task.FromResult(this.Where(f => string.Equals(f.Queue, queue, StringComparison.OrdinalIgnoreCase)).ToImmutableList());
 	}

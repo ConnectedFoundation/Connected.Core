@@ -11,7 +11,7 @@ internal sealed class Delete(IStorageProvider storage, ILanguageCache cache, IEv
 	{
 		SetState(await languages.Select(Dto));
 
-		await storage.Open<Language>().Update(Dto.AsEntity<Language>(State.Deleted));
+		await storage.Open<Language>().Update(Dto.AsEntity<Language>(State.Delete));
 		await cache.Remove(Dto.Id);
 		await events.Deleted(this, languages, Dto.Id);
 	}

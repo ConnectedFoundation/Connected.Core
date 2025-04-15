@@ -9,7 +9,7 @@ internal class DatabaseReader<T> : DatabaseCommand, IStorageReader<T>
 	{
 	}
 
-	public async Task<ImmutableList<T>> Query()
+	public async Task<IImmutableList<T>> Query()
 	{
 		if (Connection is null)
 			return ImmutableList<T>.Empty;

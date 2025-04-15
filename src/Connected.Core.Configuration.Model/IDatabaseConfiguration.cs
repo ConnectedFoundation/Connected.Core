@@ -6,6 +6,6 @@ public interface IDatabaseConfiguration
 {
 	string? DefaultConnectionString { get; }
 
-	ImmutableList<string> Shards { get; }
-	ImmutableDictionary<string, string> Connections { get; }
+	IImmutableList<string> Shards { get; }
+	IImmutableDictionary<string, string> Connections { get; }
 }

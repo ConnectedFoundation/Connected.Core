@@ -18,7 +18,7 @@ public interface IShardingService
 	/// </summary>
 	/// <param name="dto">A dto containing the entity for which shards will be returned.</param>
 	/// <returns>All shards for the specified entity.</returns>
-	Task<ImmutableList<IShard>> Query(IQueryShardsDto dto);
+	Task<IImmutableList<IShard>> Query(IQueryShardsDto dto);
 	/// <summary>
 	/// Returns a shard for the specified entity and its primary key if exists, or null otherwise.
 	/// </summary>

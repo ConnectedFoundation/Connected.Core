@@ -36,17 +36,17 @@ internal class MiddlewareService : IMiddlewareService
 	private IServiceProvider Services { get; }
 	private IRuntimeService Runtime { get; }
 
-	public async Task<ImmutableList<TEndpoint>> Query<TEndpoint>() where TEndpoint : IMiddleware
+	public async Task<IImmutableList<TEndpoint>> Query<TEndpoint>() where TEndpoint : IMiddleware
 	{
 		return await Query<TEndpoint>(null);
 	}
 
-	public async Task<ImmutableList<IMiddleware>> Query(Type type)
+	public async Task<IImmutableList<IMiddleware>> Query(Type type)
 	{
 		return await Query(type, null);
 	}
 
-	public async Task<ImmutableList<TEndpoint>> Query<TEndpoint>(ICallerContext? context) where TEndpoint : IMiddleware
+	public async Task<IImmutableList<TEndpoint>> Query<TEndpoint>(ICallerContext? context) where TEndpoint : IMiddleware
 	{
 		var key = typeof(TEndpoint).FullName;
 
@@ -79,7 +79,7 @@ internal class MiddlewareService : IMiddlewareService
 		return await Task.FromResult(result.ToImmutableList());
 	}
 
-	public async Task<ImmutableList<IMiddleware>> Query(Type type, ICallerContext? context)
+	public async Task<IImmutableList<IMiddleware>> Query(Type type, ICallerContext? context)
 	{
 		var key = type.FullName;
 

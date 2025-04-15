@@ -4,9 +4,9 @@ using System.Collections.Immutable;
 
 namespace Connected.Configuration.Settings;
 
-internal sealed class Query(ISettingCache cache) : ServiceFunction<IQueryDto, ImmutableList<ISetting>>
+internal sealed class Query(ISettingCache cache) : ServiceFunction<IQueryDto, IImmutableList<ISetting>>
 {
-	protected override Task<ImmutableList<ISetting>> OnInvoke()
+	protected override Task<IImmutableList<ISetting>> OnInvoke()
 	{
 		return cache.AsEntities<ISetting>();
 	}

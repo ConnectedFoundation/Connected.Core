@@ -16,7 +16,7 @@ public interface ISettingService
 	Task<ISetting?> Select(INameDto dto);
 
 	[ServiceOperation(ServiceOperationVerbs.Get)]
-	Task<ImmutableList<ISetting>> Query(IQueryDto? dto);
+	Task<IImmutableList<ISetting>> Query(IQueryDto? dto);
 
 	[ServiceOperation(ServiceOperationVerbs.Post | ServiceOperationVerbs.Patch)]
 	Task Update(IUpdateSettingDto dto);

@@ -14,7 +14,7 @@ internal sealed class LanguageMappingService(IServiceProvider services) : Servic
 		return await Invoke(GetOperation<Insert>(), dto);
 	}
 
-	public async Task<ImmutableList<ILanguageMapping>> Query(IQueryLanguageMappingsDto dto)
+	public async Task<IImmutableList<ILanguageMapping>> Query(IQueryLanguageMappingsDto dto)
 	{
 		return await Invoke(GetOperation<Query>(), dto);
 	}

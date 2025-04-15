@@ -24,7 +24,7 @@ public static class IdentityAuthenticationTokenExtensions
 		{
 			var tokens = await tokenService.Query(dto);
 
-			if (tokens.IsEmpty)
+			if (tokens.Count == 0)
 				return null;
 
 			var target = tokens.FirstOrDefault(f => f.IsValid());

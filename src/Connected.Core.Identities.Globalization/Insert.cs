@@ -10,7 +10,7 @@ internal sealed class Insert(IIdentityGlobalizationCache cache, IStorageProvider
 {
 	protected override async Task OnInvoke()
 	{
-		await storage.Open<IdentityGlobalization>().Update(Dto.AsEntity<IdentityGlobalization>(State.New));
+		await storage.Open<IdentityGlobalization>().Update(Dto.AsEntity<IdentityGlobalization>(State.Add));
 		await cache.Refresh(Dto.Id);
 		await events.Inserted(this, globalization, Dto.Id);
 	}

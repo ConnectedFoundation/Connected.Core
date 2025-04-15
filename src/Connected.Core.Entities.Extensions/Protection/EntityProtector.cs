@@ -4,7 +4,7 @@ public abstract class EntityProtector<TEntity> : Middleware, IEntityProtector<TE
 	where TEntity : IEntity
 {
 	protected TEntity Entity { get; private set; } = default!;
-	protected State State { get; private set; } = State.Default;
+	protected State State { get; private set; } = State.Update;
 
 	public async Task Invoke(IEntityProtectionDto<TEntity> dto)
 	{

@@ -9,7 +9,7 @@ internal class EntityProtectionService(IMiddlewareService middlewares) : IEntity
 	{
 		var items = await middlewares.Query<IEntityProtector<TEntity>>();
 
-		if (items.IsEmpty)
+		if (items.Count == 0)
 			return;
 
 		foreach (var middleware in items)

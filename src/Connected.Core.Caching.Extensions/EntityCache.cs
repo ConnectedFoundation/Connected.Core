@@ -18,14 +18,14 @@ public abstract class EntityCache<TEntity, TPrimaryKey> : SynchronizedCache<TEnt
 
 	protected override sealed async Task OnInitializing()
 	{
-		if (await OnInitializingEntities() is not ImmutableList<TEntity> ds)
+		if (await OnInitializingEntities() is not IImmutableList<TEntity> ds)
 			return;
 
 		foreach (var r in ds)
 			Set(r.Id, r, TimeSpan.Zero);
 	}
 
-	protected virtual async Task<ImmutableList<TEntity>?> OnInitializingEntities()
+	protected virtual async Task<IImmutableList<TEntity>?> OnInitializingEntities()
 	{
 		return await (from dc in Storage.Open<TEntity>()
 						  select dc).AsEntities();

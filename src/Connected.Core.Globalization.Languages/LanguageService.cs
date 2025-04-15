@@ -14,7 +14,7 @@ internal sealed class LanguageService(IServiceProvider services) : Service(servi
 		return await Invoke(GetOperation<Insert>(), dto);
 	}
 
-	public async Task<ImmutableList<ILanguage>> Query(IQueryDto? dto)
+	public async Task<IImmutableList<ILanguage>> Query(IQueryDto? dto)
 	{
 		return await Invoke(GetOperation<Query>(), dto ?? QueryDto.NoPaging);
 	}

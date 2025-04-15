@@ -169,9 +169,9 @@ public static class ServicesExtensions
 		where TEntity : IEntity
 	{
 		if (entity is null)
-			return dto.AsEntity<TEntity>(State.Default).AsDto<TDto>(dto);
+			return dto.AsEntity<TEntity>(State.Update).AsDto<TDto>(dto);
 
-		return Merge(entity, dto, State.Default, sources).AsDto<TDto>();
+		return Merge(entity, dto, State.Update, sources).AsDto<TDto>();
 	}
 
 	public static TDto AsDto<TDto>(this IEntity entity, params object[] sources) where TDto : IDto

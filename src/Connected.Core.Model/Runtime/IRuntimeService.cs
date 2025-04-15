@@ -40,12 +40,12 @@ public enum Optimization
 [Service(ServiceRegistrationScope.Singleton)]
 public interface IRuntimeService
 {
-	Task<ImmutableList<Assembly>> QueryMicroServices();
-	Task<ImmutableList<IStartup>> QueryStartups();
-	Task<ImmutableList<Assembly>> QueryUpdatedMicroServices();
+	Task<IImmutableList<Assembly>> QueryMicroServices();
+	Task<IImmutableList<IStartup>> QueryStartups();
+	Task<IImmutableList<Assembly>> QueryUpdatedMicroServices();
 	Task<StartOptions> SelectStartOptions();
 	Task<Platform> SelectPlatform();
 	Task<Connectivity> SelectConnectivity();
 	Task<Optimization> SelectOptimization();
-	Task<ImmutableList<Type>> QueryMiddlewares();
+	Task<IImmutableList<Type>> QueryMiddlewares();
 }

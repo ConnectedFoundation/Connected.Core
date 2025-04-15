@@ -7,7 +7,7 @@ public interface IIdentityProvider : IMiddleware
 {
 	string Name { get; }
 
-	Task<ImmutableList<IIdentity>> Query();
+	Task<IImmutableList<IIdentity>> Query();
 	Task<IIdentity?> Select(string key);
-	Task<ImmutableList<IIdentity>> QueryDependencies(string key);
+	Task<IImmutableList<IIdentity>> QueryDependencies(string key);
 }

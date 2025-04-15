@@ -23,5 +23,5 @@ public interface IShardingNodeProvider<TEntity> : IMiddleware
 	/// <param name="operation">A storage operation which will be executed on all returned nodes. Operation is null
 	/// in the startup when schema synchronization is executed. If the operation is null all shards (except the default)
 	/// should be returned.</param>
-	Task<ImmutableList<IShardingNode>> Invoke(IStorageOperation? operation);
+	Task<IImmutableList<IShardingNode>> Invoke(IStorageOperation? operation);
 }

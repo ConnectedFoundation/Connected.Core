@@ -21,7 +21,7 @@ internal sealed class Delete(IQueueCache cache, IStorageProvider storage, ILogge
 
 		await storage.Open<QueueMessage>().Update(new QueueMessage
 		{
-			State = State.Deleted,
+			State = State.Delete,
 			Id = item.Id
 		});
 

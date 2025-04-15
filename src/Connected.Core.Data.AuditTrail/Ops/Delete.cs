@@ -13,7 +13,7 @@ internal sealed class Delete(IStorageProvider storage, IAuditTrailService auditT
 
 		foreach (var item in items)
 		{
-			await storage.Open<AuditTrailEntry>().Update(new AuditTrailEntry { Id = item.Id, State = Entities.State.Deleted });
+			await storage.Open<AuditTrailEntry>().Update(new AuditTrailEntry { Id = item.Id, State = Entities.State.Delete });
 			await events.Deleted(this, auditTrail, item.Id);
 		}
 	}

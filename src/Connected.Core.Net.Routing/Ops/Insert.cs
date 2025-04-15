@@ -9,7 +9,7 @@ internal sealed class Insert(IRouteCache cache, IInsertRouteAmbient ambient)
 {
 	protected override async Task<Guid> OnInvoke()
 	{
-		var entity = Dto.AsEntity<Route>(State.Default, new
+		var entity = Dto.AsEntity<Route>(State.Update, new
 		{
 			Id = Guid.NewGuid()
 		});

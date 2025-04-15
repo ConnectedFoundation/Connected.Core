@@ -22,6 +22,6 @@ public interface IConnectionProvider
 	/// <param name="dto">The arguments describing what operation is about to be performed.</param>
 	/// <returns>One or more storage connections. One connection if entity does not supports sharding, more if
 	/// it supports it and the operation requires data from more than one shard.</returns>
-	Task<ImmutableList<IStorageConnection>> Invoke<TEntity>(IStorageContextDto dto)
+	Task<IImmutableList<IStorageConnection>> Invoke<TEntity>(IStorageContextDto dto)
 		where TEntity : IEntity;
 }

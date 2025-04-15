@@ -24,5 +24,5 @@ public interface ILanguageService
 	Task<ILanguage?> Select(ISelectLanguageDto dto);
 
 	[ServiceOperation(ServiceOperationVerbs.Post | ServiceOperationVerbs.Get)]
-	Task<ImmutableList<ILanguage>> Query(IQueryDto? dto);
+	Task<IImmutableList<ILanguage>> Query(IQueryDto? dto);
 }

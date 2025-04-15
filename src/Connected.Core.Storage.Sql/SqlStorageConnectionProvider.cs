@@ -12,8 +12,8 @@ internal sealed class SqlStorageConnectionProvider : StorageConnectionProvider
 
 	private ICancellationContext Cancel { get; }
 
-	protected override Task<ImmutableList<IStorageConnection>> OnInvoke<TEntity>()
+	protected override async Task<IImmutableList<IStorageConnection>> OnInvoke<TEntity>()
 	{
-		return Task.FromResult(new List<IStorageConnection> { new SqlDataConnection(Cancel) }.ToImmutableList());
+		return await Task.FromResult(new List<IStorageConnection> { new SqlDataConnection(Cancel) }.ToImmutableList());
 	}
 }

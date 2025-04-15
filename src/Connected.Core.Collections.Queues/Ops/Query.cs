@@ -6,9 +6,9 @@ using System.Collections.Immutable;
 namespace Connected.Collections.Queues.Ops;
 
 internal sealed class Query(IQueueCache cache, IStorageProvider storage, IQueueService queue)
-	: ServiceFunction<IQueryDto, ImmutableList<IQueueMessage>>
+	: ServiceFunction<IQueryDto, IImmutableList<IQueueMessage>>
 {
-	protected override async Task<ImmutableList<IQueueMessage>> OnInvoke()
+	protected override async Task<IImmutableList<IQueueMessage>> OnInvoke()
 	{
 		/*
 		 * First, retrieve candidates.
@@ -30,7 +30,7 @@ internal sealed class Query(IQueueCache cache, IStorageProvider storage, IQueueS
 				DequeueTimestamp = DateTimeOffset.UtcNow,
 				DequeueCount = target.DequeueCount + 1,
 				PopReceipt = Guid.NewGuid(),
-				State = State.Default
+				State = State.Update
 			};
 			/*
 			 * Queues use isolated storages which means they are not part of the shared transaction context.
@@ -51,7 +51,7 @@ internal sealed class Query(IQueueCache cache, IStorageProvider storage, IQueueS
 				return Task.FromResult(entity with
 				{
 					NextVisible = DateTime.UtcNow.Add(Dto.NextVisible),
-					State = State.Default
+					State = State.Update
 				});
 			});
 			/*
@@ -90,7 +90,7 @@ internal sealed class Query(IQueueCache cache, IStorageProvider storage, IQueueS
 				/*
 				 * It's invalid. Delete it.
 				 */
-				await storage.Open<QueueMessage>().Update(new QueueMessage { Id = i.Id, State = State.Deleted });
+				await storage.Open<QueueMessage>().Update(new QueueMessage { Id = i.Id, State = State.Delete });
 				await cache.Delete(i.Id);
 
 				continue;

@@ -5,7 +5,7 @@ namespace Connected.Storage;
 
 public interface IStorageReader<T> : IStorageCommand
 {
-	Task<ImmutableList<T>> Query();
+	Task<IImmutableList<T>> Query();
 	Task<T?> Select();
 	Task<IDataReader?> OpenReader();
 }

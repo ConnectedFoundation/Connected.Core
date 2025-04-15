@@ -23,7 +23,7 @@ public interface IStorageConnection : IMiddleware, IAsyncDisposable, IDisposable
 
 	Task<int> Execute(IStorageCommand command);
 
-	Task<ImmutableList<T>> Query<T>(IStorageCommand command);
+	Task<IImmutableList<T>> Query<T>(IStorageCommand command);
 
 	Task<T?> Select<T>(IStorageCommand command);
 

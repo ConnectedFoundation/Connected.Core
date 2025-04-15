@@ -5,9 +5,9 @@ using System.Collections.Immutable;
 namespace Connected.Storage.Sharding.Ops;
 
 internal sealed class Query(IShardingCache cache)
-	: ServiceFunction<IQueryShardsDto, ImmutableList<IShard>>
+	: ServiceFunction<IQueryShardsDto, IImmutableList<IShard>>
 {
-	protected override async Task<ImmutableList<IShard>> OnInvoke()
+	protected override async Task<IImmutableList<IShard>> OnInvoke()
 	{
 		return await cache.AsEntities<IShard>(f => string.Equals(f.Entity, Dto.Entity, StringComparison.OrdinalIgnoreCase));
 	}

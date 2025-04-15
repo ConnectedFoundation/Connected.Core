@@ -7,7 +7,7 @@ namespace Connected.Storage.Sharding.Nodes;
 internal sealed class ShardingNodeService(IServiceProvider services)
 	: Service(services), IShardingNodeService
 {
-	public async Task<ImmutableList<IShardingNode>> Query(IQueryDto? dto)
+	public async Task<IImmutableList<IShardingNode>> Query(IQueryDto? dto)
 	{
 		return await Invoke(GetOperation<Query>(), dto ?? QueryDto.NoPaging);
 	}

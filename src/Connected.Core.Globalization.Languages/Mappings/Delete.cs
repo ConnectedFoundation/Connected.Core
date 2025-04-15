@@ -12,7 +12,7 @@ internal sealed class Delete(IStorageProvider storage, ILanguageMappingService m
 		if (SetState(await mappings.Select(Dto)) is not LanguageMapping entity)
 			throw new NullReferenceException(Strings.ErrEntityExpected);
 
-		await storage.Open<LanguageMapping>().Update(entity.Merge(Dto, Entities.State.Deleted));
+		await storage.Open<LanguageMapping>().Update(entity.Merge(Dto, Entities.State.Delete));
 		await cache.Refresh(Dto.Id);
 		await events.Deleted(this, mappings, Dto.Id);
 	}

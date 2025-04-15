@@ -88,7 +88,7 @@ public abstract class QueueHost : ScheduledWorker
 		return await Task.FromResult(true);
 	}
 
-	protected virtual async Task OnDequeued(ImmutableList<IQueueMessage> messages)
+	protected virtual async Task OnDequeued(IImmutableList<IQueueMessage> messages)
 	{
 		await Task.CompletedTask;
 	}

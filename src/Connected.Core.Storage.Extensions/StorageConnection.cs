@@ -241,7 +241,7 @@ public abstract class StorageConnection : Middleware, IStorageConnection
 			return cmd.ExecuteNonQuery();
 	}
 
-	public virtual async Task<ImmutableList<R>> Query<R>(IStorageCommand command)
+	public virtual async Task<IImmutableList<R>> Query<R>(IStorageCommand command)
 	{
 		await EnsureOpen(false);
 

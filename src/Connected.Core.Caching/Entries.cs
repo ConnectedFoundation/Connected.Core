@@ -14,7 +14,7 @@ internal class Entries
 
 	private ConcurrentDictionary<string, IEntry> Items { get; }
 	private ConcurrentQueue<object?> HitList { get; }
-	public ImmutableList<string> Keys => [.. Items.Keys];
+	public IImmutableList<string> Keys => [.. Items.Keys];
 	public int Count => Items.Count;
 
 	public bool Any()
@@ -52,7 +52,7 @@ internal class Entries
 			Remove(i);
 	}
 
-	public ImmutableList<T> All<T>()
+	public IImmutableList<T> All<T>()
 	{
 		var r = new List<T>();
 		var instances = Items.Select(f => f.Value.Instance);
@@ -105,9 +105,9 @@ internal class Entries
 		return Find(predicate);
 	}
 
-	public ImmutableList<string>? Remove<T>(Func<T, bool> predicate)
+	public IImmutableList<string>? Remove<T>(Func<T, bool> predicate)
 	{
-		if (Where(predicate) is not ImmutableList<T> ds || ds.IsEmpty)
+		if (Where(predicate) is not IImmutableList<T> ds || ds.Count == 0)
 			return default;
 
 		var result = new HashSet<string>();
@@ -124,7 +124,7 @@ internal class Entries
 		return [.. result];
 	}
 
-	public ImmutableList<T>? Where<T>(Func<T, bool> predicate)
+	public IImmutableList<T>? Where<T>(Func<T, bool> predicate)
 	{
 		var values = Items.Select(f => f.Value.Instance).Cast<T>();
 

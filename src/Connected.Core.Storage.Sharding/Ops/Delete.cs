@@ -14,7 +14,7 @@ internal sealed class Delete(IShardingCache cache, IStorageProvider storage, IEv
 		if (existing is null)
 			throw new NullReferenceException($"{Strings.ErrEntityExpected} ('{typeof(IShard).Name}')");
 
-		await storage.Open<Shard>().Update(Dto.AsEntity<Shard>(State.Deleted));
+		await storage.Open<Shard>().Update(Dto.AsEntity<Shard>(State.Delete));
 
 		await cache.Remove(existing.Id);
 		await events.Deleted(this, shards, existing.Id);

@@ -12,7 +12,7 @@ internal sealed class Delete(ISettingCache cache, IStorageProvider storage, IEve
 	{
 		var existing = SetState(await Select()) ?? throw new NullReferenceException(nameof(ISetting));
 
-		await storage.Open<Setting>().Update(Dto.AsEntity<Setting>(State.Deleted));
+		await storage.Open<Setting>().Update(Dto.AsEntity<Setting>(State.Delete));
 	}
 
 	private async Task<Setting?> Select()

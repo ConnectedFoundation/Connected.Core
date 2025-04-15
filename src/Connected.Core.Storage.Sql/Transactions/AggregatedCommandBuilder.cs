@@ -12,11 +12,11 @@ internal class AggregatedCommandBuilder<TEntity>
 
 		switch (ie.State)
 		{
-			case State.New:
+			case State.Add:
 				return await BuildInsert(ie, cancel);
-			case State.Default:
+			case State.Update:
 				return await BuildUpdate(ie, cancel);
-			case State.Deleted:
+			case State.Delete:
 				return await BuildDelete(ie, cancel);
 			default:
 				throw new NotSupportedException();

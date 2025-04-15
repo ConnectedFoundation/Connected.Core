@@ -7,7 +7,7 @@ namespace Connected.Storage.Sharding;
 internal sealed class ShardingService(IServiceProvider services)
 	: Service(services), IShardingService
 {
-	public async Task<ImmutableList<IShard>> Query(IQueryShardsDto dto)
+	public async Task<IImmutableList<IShard>> Query(IQueryShardsDto dto)
 	{
 		return await Invoke(GetOperation<Query>(), dto);
 	}

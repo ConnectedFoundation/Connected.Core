@@ -15,7 +15,7 @@ internal sealed class SettingService(IServiceProvider services) : Service(servic
 		return await Invoke(GetOperation<SelectByName>(), dto);
 	}
 
-	public async Task<ImmutableList<ISetting>> Query(IQueryDto? dto)
+	public async Task<IImmutableList<ISetting>> Query(IQueryDto? dto)
 	{
 		return await Invoke(GetOperation<Query>(), dto ?? QueryDto.Default);
 	}

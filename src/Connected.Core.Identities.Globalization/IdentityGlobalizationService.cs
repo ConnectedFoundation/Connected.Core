@@ -20,7 +20,7 @@ internal sealed class IdentityGlobalizationService(IServiceProvider services) : 
 		await Invoke(GetOperation<Delete>(), dto);
 	}
 
-	public async Task<ImmutableList<IIdentityGlobalization>> Query(IQueryDto? dto)
+	public async Task<IImmutableList<IIdentityGlobalization>> Query(IQueryDto? dto)
 	{
 		return await Invoke(GetOperation<Query>(), dto ?? QueryDto.NoPaging);
 	}

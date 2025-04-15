@@ -20,5 +20,5 @@ public interface ILanguageMappingService
 	Task<ILanguageMapping?> Select(IPrimaryKeyDto<int> dto);
 
 	[ServiceOperation(ServiceOperationVerbs.Post | ServiceOperationVerbs.Get)]
-	Task<ImmutableList<ILanguageMapping>> Query(IQueryLanguageMappingsDto dto);
+	Task<IImmutableList<ILanguageMapping>> Query(IQueryLanguageMappingsDto dto);
 }

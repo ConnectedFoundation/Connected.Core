@@ -9,7 +9,7 @@ internal sealed class Insert(IShardingNodeCache cache, IStorageProvider storage,
 {
 	protected override async Task<int> OnInvoke()
 	{
-		var result = await storage.Open<ShardingNode>().Update(Dto.AsEntity<ShardingNode>(State.New)) ?? throw new NullReferenceException($"{Strings.ErrEntityExpected} ('{typeof(IShardingNode).Name}')");
+		var result = await storage.Open<ShardingNode>().Update(Dto.AsEntity<ShardingNode>(State.Add)) ?? throw new NullReferenceException($"{Strings.ErrEntityExpected} ('{typeof(IShardingNode).Name}')");
 
 		await cache.Refresh(Result);
 		await events.Inserted(this, nodes, result.Id);

@@ -29,7 +29,7 @@ public abstract class Service : IService, IDisposable
 
 		var middleware = await Middleware.Query<IServiceFunctionMiddleware<TDto, TReturnValue>>(ctx);
 
-		if (!middleware.IsEmpty)
+		if (middleware.Count != 0)
 		{
 			foreach (var m in middleware)
 			{
@@ -57,7 +57,7 @@ public abstract class Service : IService, IDisposable
 
 		var middleware = await Middleware.Query<IServiceActionMiddleware<TDto>>(ctx);
 
-		if (!middleware.IsEmpty)
+		if (middleware.Count != 0)
 		{
 			foreach (var m in middleware)
 			{
@@ -142,7 +142,7 @@ public abstract class Service : IService, IDisposable
 	private async Task ProvideDtoValues<TDto>(TDto dto)
 		where TDto : IDto
 	{
-		if (await Middleware.Query<IDtoValuesProvider<TDto>>() is not ImmutableList<IDtoValuesProvider<TDto>> middleware || middleware.IsEmpty)
+		if (await Middleware.Query<IDtoValuesProvider<TDto>>() is not IImmutableList<IDtoValuesProvider<TDto>> middleware || middleware.Count == 0)
 			return;
 
 		foreach (var m in middleware)
@@ -152,7 +152,7 @@ public abstract class Service : IService, IDisposable
 	private async Task InitializeAmbient<TDto>(TDto dto)
 		where TDto : IDto
 	{
-		if (await Middleware.Query<IAmbientProvider<TDto>>() is not ImmutableList<IAmbientProvider<TDto>> middleware || middleware.IsEmpty)
+		if (await Middleware.Query<IAmbientProvider<TDto>>() is not IImmutableList<IAmbientProvider<TDto>> middleware || middleware.Count == 0)
 			return;
 
 		foreach (var m in middleware)

@@ -70,7 +70,7 @@ internal sealed class AuthorizationContext(IAuthorizationService authorization, 
 				break;
 		}
 
-		return !middlewares.IsEmpty;
+		return middlewares.Count != 0;
 	}
 
 	private async Task<bool> AuthorizeServiceOperation<TDto>(ICallerContext context, TDto dto) where TDto : IDto
@@ -89,7 +89,7 @@ internal sealed class AuthorizationContext(IAuthorizationService authorization, 
 				break;
 		}
 
-		return !middlewares.IsEmpty;
+		return middlewares.Count != 0;
 	}
 	/// <summary>
 	/// Results are always authorized, event if <see cref="State"/> is <see cref="AuthorizationContextState.Granted"/>.

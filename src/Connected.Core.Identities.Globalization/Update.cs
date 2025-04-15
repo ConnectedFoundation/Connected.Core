@@ -13,7 +13,7 @@ internal sealed class Update(IIdentityGlobalizationCache cache, IStorageProvider
 		if (SetState(await globalization.Select(Dto.CreatePrimaryKey(Dto.Id))) is not IdentityGlobalization existing)
 			return;
 
-		await storage.Open<IdentityGlobalization>().Update(Dto.AsEntity<IdentityGlobalization>(State.Default), Dto, async () =>
+		await storage.Open<IdentityGlobalization>().Update(Dto.AsEntity<IdentityGlobalization>(State.Update), Dto, async () =>
 		{
 			await cache.Refresh(Dto.Id);
 

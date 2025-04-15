@@ -12,7 +12,7 @@ internal sealed class Messages<TArgs>
 
 	private List<IMessage<TArgs>> Items { get; }
 	public bool IsEmpty => !Items.Any();
-	public ImmutableList<IMessage<TArgs>> All() => Items.ToImmutableList(true);
+	public IImmutableList<IMessage<TArgs>> All() => Items.ToImmutableList(true);
 
 	public void Scave()
 	{
@@ -22,7 +22,7 @@ internal sealed class Messages<TArgs>
 			Items.Remove(item);
 	}
 
-	public ImmutableList<IMessage<TArgs>> Dequeue()
+	public IImmutableList<IMessage<TArgs>> Dequeue()
 	{
 		var items = All().Where(f => f.NextVisible <= DateTime.UtcNow).ToImmutableList(true);
 
