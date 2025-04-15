@@ -82,14 +82,12 @@
 		<ProjectReference Include="..\Connected.Core.Notifications.Model\Connected.Core.Notifications.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Notifications\Connected.Core.Notifications.csproj" />
 		<ProjectReference Include="..\Connected.Core.Reflection.Extensions\Connected.Core.Reflection.Extensions.csproj" />
-		<ProjectReference Include="..\Connected.Core.Services.Extensions\Connected.Core.Services.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Services.Model\Connected.Core.Services.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Services\Connected.Core.Services.csproj" />
 		<ProjectReference Include="..\Connected.Core.Storage.Extensions\Connected.Core.Storage.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Storage.Model\Connected.Core.Storage.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Storage.Sharding.Nodes\Connected.Core.Storage.Sharding.Nodes.csproj" />
 		<ProjectReference Include="..\Connected.Core.Storage.Sharding\Connected.Core.Storage.Sharding.csproj" />
-		<ProjectReference Include="..\Connected.Core.Storage.Sql\Connected.Core.Storage.Sql.csproj" />
 		<ProjectReference Include="..\Connected.Sdk\Connected.Sdk.csproj" />
 	</ItemGroup>
 

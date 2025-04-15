@@ -65,7 +65,6 @@
 		<ProjectReference Include="..\Connected.Core.Notifications.Extensions\Connected.Core.Notifications.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Notifications.Model\Connected.Core.Notifications.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Reflection.Extensions\Connected.Core.Reflection.Extensions.csproj" />
-		<ProjectReference Include="..\Connected.Core.Services.Extensions\Connected.Core.Services.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Services.Model\Connected.Core.Services.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Storage.Extensions\Connected.Core.Storage.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Storage.Model\Connected.Core.Storage.Model.csproj" />

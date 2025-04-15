@@ -212,7 +212,7 @@ public static class Application
 		RegisterMicroService(typeof(Identities.Globalization.IdentitiesGlobalizationStartup).Assembly);
 		RegisterMicroService(typeof(Globalization.Languages.LanguagesStartup).Assembly);
 		RegisterMicroService(typeof(Net.NetExtensionsStartup).Assembly);
-		RegisterMicroService(typeof(Connected.Storage.Sql.SqlStartup).Assembly);
+		RegisterMicroService("Connected.Core.Storage.Sql.dll");
 		RegisterMicroService("Connected.Core.Net.Routing.dll");
 	}
 
