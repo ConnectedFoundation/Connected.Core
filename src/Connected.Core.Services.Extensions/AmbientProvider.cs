@@ -3,7 +3,7 @@
 public abstract class AmbientProvider<TDto> : Connected.Middleware, IAmbientProvider<TDto>
 	where TDto : IDto
 {
-	protected TDto? Dto { get; private set; }
+	protected TDto Dto { get; private set; } = default!;
 
 	public async Task Invoke(TDto dto)
 	{
