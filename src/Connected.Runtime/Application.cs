@@ -9,6 +9,7 @@ using Connected.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -208,12 +209,17 @@ public static class Application
 		RegisterMicroService(typeof(Storage.StorageExtensionsStartup).Assembly);
 		RegisterMicroService(typeof(Configuration.ConfigurationStartup).Assembly);
 		RegisterMicroService(typeof(Notifications.NotificationsStartup).Assembly);
-		RegisterMicroService(typeof(Authentication.AuthenticationStartup).Assembly);
 		RegisterMicroService(typeof(Identities.Globalization.IdentitiesGlobalizationStartup).Assembly);
 		RegisterMicroService(typeof(Globalization.Languages.LanguagesStartup).Assembly);
 		RegisterMicroService(typeof(Net.NetExtensionsStartup).Assembly);
-		RegisterMicroService("Connected.Core.Storage.Sql.dll");
-		RegisterMicroService("Connected.Core.Net.Routing.dll");
+		RegisterCoreMicroService("Authentication");
+		RegisterCoreMicroService("Storage.Sql");
+		RegisterCoreMicroService("Net.Routing");
+	}
+
+	private static void RegisterCoreMicroService(string name)
+	{
+		RegisterMicroService($"Connected.Core.{name}.dll");
 	}
 
 	public static async Task StartDefaultApplication(string[] args)
@@ -225,6 +231,10 @@ public static class Application
 			AddAutoRestart();
 
 			var builder = WebApplication.CreateBuilder(args);
+
+			builder.Configuration.AddUserSecrets(Assembly.GetEntryAssembly(), true);
+			builder.Configuration.AddEnvironmentVariables();
+
 			var services = builder.Services;
 
 			services.AddLogging(builder => builder.AddConsole());

@@ -92,7 +92,7 @@ public static class WebString
 		return sb.ToString().Trim().Trim('-').ToLowerInvariant();
 	}
 
-	public static string Create(string text, IEnumerable<string> existing)
+	public static string Create(string text, IEnumerable<string?> existing)
 	{
 		var prepared = Create(text);
 
