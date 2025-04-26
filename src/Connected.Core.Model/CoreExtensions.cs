@@ -17,6 +17,11 @@ public static class CoreExtensions
 		services.AddTransient(type);
 	}
 
+	public static void AddMiddleware(Type type)
+	{
+		Middlewares.Add(type);
+	}
+
 	public static IImmutableList<Type> QueryMiddlewares(this IConfiguration configuration)
 	{
 		return [.. Middlewares];

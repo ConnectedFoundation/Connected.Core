@@ -293,6 +293,8 @@ public static class RuntimeExtensions
 			{
 				services.Add(ServiceDescriptor.Scoped(i, type));
 
+				CoreExtensions.AddMiddleware(type);
+
 				typeRef?.Add(type);
 			}
 		}

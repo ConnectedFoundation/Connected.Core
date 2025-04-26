@@ -1,4 +1,5 @@
 ﻿using Connected.Authorization;
+using Connected.Reflection;
 using Connected.Services.Middlewares;
 using Connected.Services.Validation;
 using Connected.Storage.Transactions;
@@ -152,11 +153,21 @@ public abstract class Service : IService, IDisposable
 	private async Task InitializeAmbient<TDto>(TDto dto)
 		where TDto : IDto
 	{
-		if (await Middleware.Query<IAmbientProvider<TDto>>() is not IImmutableList<IAmbientProvider<TDto>> middleware || middleware.Count == 0)
-			return;
+		var implemented = dto.GetType().GetImplementedDtos();
 
-		foreach (var m in middleware)
-			await m.Invoke(dto);
+		foreach (var implementation in implemented)
+		{
+			var type = typeof(IAmbientProvider<>).MakeGenericType(implementation);
+			var middlewares = await Middleware.Query(type);
+
+			foreach (var m in middlewares)
+			{
+				var method = m.GetType().ResolveMethod(nameof(IAmbientProvider<IDto>.Invoke), null, [implementation]);
+
+				if (method is not null)
+					await method.InvokeAsync(m, [dto]);
+			}
+		}
 	}
 
 	private void Dispose(bool disposing)
