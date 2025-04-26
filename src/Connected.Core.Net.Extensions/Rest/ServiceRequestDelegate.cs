@@ -5,6 +5,7 @@ using Connected.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using System.ComponentModel.DataAnnotations;
+using System.Net;
 using System.Reflection;
 
 namespace Connected.Net.Rest;
@@ -57,6 +58,7 @@ internal sealed class ServiceRequestDelegate : IDisposable
 		}
 
 		Formatter.Context = HttpContext;
+		Formatter.Scope = Scope;
 	}
 	/// <summary>
 	/// This method invokes the Api Service method with the request parameters.
@@ -76,11 +78,10 @@ internal sealed class ServiceRequestDelegate : IDisposable
 			 */
 			await RenderResult(result);
 		}
-		catch
+		catch (Exception ex)
 		{
 			await Scope.Rollback();
-
-			throw;
+			await HandleException(ex);
 		}
 	}
 
@@ -135,32 +136,32 @@ internal sealed class ServiceRequestDelegate : IDisposable
 		if (string.Equals(HttpContext.Request.Method, HttpMethods.Get, StringComparison.OrdinalIgnoreCase))
 		{
 			if ((descriptor.Verbs & ServiceOperationVerbs.Get) != ServiceOperationVerbs.Get)
-				throw new InvalidOperationException();
+				throw new InvalidOperationException($"{SR.ErrNotAllowed} ({HttpContext.Request.Method})");
 		}
 		else if (string.Equals(HttpContext.Request.Method, HttpMethods.Post, StringComparison.OrdinalIgnoreCase))
 		{
 			if ((descriptor.Verbs & ServiceOperationVerbs.Post) != ServiceOperationVerbs.Post)
-				throw new InvalidOperationException();
+				throw new InvalidOperationException($"{SR.ErrNotAllowed} ({HttpContext.Request.Method})");
 		}
 		else if (string.Equals(HttpContext.Request.Method, HttpMethods.Put, StringComparison.OrdinalIgnoreCase))
 		{
 			if ((descriptor.Verbs & ServiceOperationVerbs.Put) != ServiceOperationVerbs.Put)
-				throw new InvalidOperationException();
+				throw new InvalidOperationException($"{SR.ErrNotAllowed} ({HttpContext.Request.Method})");
 		}
 		else if (string.Equals(HttpContext.Request.Method, HttpMethods.Delete, StringComparison.OrdinalIgnoreCase))
 		{
 			if ((descriptor.Verbs & ServiceOperationVerbs.Delete) != ServiceOperationVerbs.Delete)
-				throw new InvalidOperationException();
+				throw new InvalidOperationException($"{SR.ErrNotAllowed} ({HttpContext.Request.Method})");
 		}
 		else if (string.Equals(HttpContext.Request.Method, HttpMethods.Patch, StringComparison.OrdinalIgnoreCase))
 		{
 			if ((descriptor.Verbs & ServiceOperationVerbs.Patch) != ServiceOperationVerbs.Patch)
-				throw new InvalidOperationException();
+				throw new InvalidOperationException($"{SR.ErrNotAllowed} ({HttpContext.Request.Method})");
 		}
 		else if (string.Equals(HttpContext.Request.Method, HttpMethods.Options, StringComparison.OrdinalIgnoreCase))
 		{
 			if ((descriptor.Verbs & ServiceOperationVerbs.Options) != ServiceOperationVerbs.Options)
-				throw new InvalidOperationException();
+				throw new InvalidOperationException($"{SR.ErrNotAllowed} ({HttpContext.Request.Method})");
 		}
 	}
 	/// <summary>
@@ -309,6 +310,27 @@ internal sealed class ServiceRequestDelegate : IDisposable
 		}
 
 		return null;
+	}
+
+	private async Task HandleException(Exception ex)
+	{
+		if (HttpContext.Response.StatusCode != (int)HttpStatusCode.OK)
+			return;
+
+		if (ex is AccessViolationException)
+			HttpContext.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+		else if (ex is ValidationException)
+			HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+		else if (ex is ArgumentException)
+			HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+		else if (ex is NullReferenceException)
+			HttpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
+		else if (ex is InvalidOperationException)
+			HttpContext.Response.StatusCode = (int)HttpStatusCode.MethodNotAllowed;
+		else
+			HttpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+
+		await Formatter.RenderException(ex);
 	}
 
 	private void Dispose(bool disposing)

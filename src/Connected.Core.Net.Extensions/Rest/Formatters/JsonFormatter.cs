@@ -1,4 +1,6 @@
 using Connected.Reflection;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -8,6 +10,16 @@ namespace Connected.Net.Rest.Formatters;
 internal class JsonFormatter : Formatter
 {
 	public const string ContentType = "application/json";
+	private static readonly JsonSerializerOptions _options;
+
+	static JsonFormatter()
+	{
+		_options = new JsonSerializerOptions
+		{
+			PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+		};
+	}
+
 
 	protected override async Task<IDictionary<string, object?>?> OnParseArguments()
 	{
@@ -37,10 +49,7 @@ internal class JsonFormatter : Formatter
 			{
 				using var ms = new MemoryStream();
 
-				await JsonSerializer.SerializeAsync(ms, content, new JsonSerializerOptions
-				{
-					PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-				});
+				await JsonSerializer.SerializeAsync(ms, content, _options);
 
 				ms.Seek(0, SeekOrigin.Begin);
 
@@ -62,5 +71,48 @@ internal class JsonFormatter : Formatter
 		}
 
 		await Context.Response.CompleteAsync();
+	}
+
+	protected override async Task OnRenderError(Exception ex)
+	{
+		if (Context is null)
+			return;
+
+		if (!Context.Response.HasStarted)
+		{
+			using var ms = new MemoryStream();
+			using var writer = new Utf8JsonWriter(ms);
+
+			writer.WriteStartObject();
+
+			writer.WriteString("message", ex.Message);
+
+			if (IsDevelopment())
+			{
+				writer.WriteString("source", ex.Source);
+				writer.WriteString("stackTrace", ex.StackTrace);
+			}
+
+			writer.WriteEndObject();
+
+			await writer.FlushAsync();
+
+			ms.Seek(0, SeekOrigin.Begin);
+
+			Context.Response.ContentLength = ms.Length;
+			Context.Response.ContentType = "application/json";
+
+			await Context.Response.Body.WriteAsync(ms.ToArray());
+		}
+
+		await Context.Response.CompleteAsync();
+	}
+
+	private bool IsDevelopment()
+	{
+		if (Scope is null)
+			return false;
+
+		return Scope.Value.ServiceProvider.GetService<IHostEnvironment>() is IHostEnvironment env && env.IsDevelopment();
 	}
 }

@@ -8,6 +8,6 @@ internal sealed class DefaultHttpRequestAuthorization(IAuthenticationService aut
 	protected override async Task OnInvoke()
 	{
 		if (await authentication.SelectIdentity() is null)
-			throw new AccessViolationException();
+			throw new UnauthorizedAccessException();
 	}
 }
