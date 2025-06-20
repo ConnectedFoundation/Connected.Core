@@ -1,4 +1,6 @@
 ﻿using Connected.Annotations;
+using Connected.Collections.Queues;
+using Connected.Services;
 using System.Collections;
 using System.Collections.Immutable;
 using System.Reflection;
@@ -75,5 +77,24 @@ public static class CollectionExtensions
 			else
 				return -1;
 		});
+	}
+
+	public static IInsertOptionsDto CreateInsertOptions(this IDto dto, string queue, string? batch = null)
+	{
+		return CreateInsertOptions(dto, queue, 0, DateTimeOffset.UtcNow.AddHours(8), DateTimeOffset.UtcNow, batch, 10);
+	}
+
+	public static IInsertOptionsDto CreateInsertOptions(this IDto dto, string queue, int priority, DateTimeOffset expire, DateTimeOffset nextVisible, string? batch = null, int maxDequeueCount = 10)
+	{
+		var result = dto.Create<IInsertOptionsDto>();
+
+		result.Batch = batch;
+		result.Expire = expire;
+		result.Queue = queue;
+		result.MaxDequeueCount = maxDequeueCount;
+		result.NextVisible = nextVisible;
+		result.Priority = priority;
+
+		return result;
 	}
 }
