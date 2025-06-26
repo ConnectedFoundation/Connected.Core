@@ -17,7 +17,5 @@ public interface IUser : IEntity<long>, IIdentity
 
 	UserStatus Status { get; init; }
 
-	DateTimeOffset Created { get; init; }
-
 	string? Password { get; init; }
 }

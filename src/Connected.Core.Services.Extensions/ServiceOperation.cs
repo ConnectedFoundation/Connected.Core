@@ -31,6 +31,12 @@ public abstract class ServiceOperation<TDto> : IServiceOperation<TDto>, ITransac
 
 	public TEntity? SetState<TEntity>(TEntity? entity)
 	{
+		/*
+		 * Resolve implemented entity first and then save instance
+		 * by its interface because the implementation is not visible
+		 * outside the library and implementors cannot access the state
+		 * object this way
+		 */
 		var key = typeof(TEntity).FullName;
 
 		if (string.IsNullOrEmpty(key))

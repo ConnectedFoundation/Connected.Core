@@ -4,7 +4,7 @@ using Connected.Entities;
 
 namespace Connected.Identities.Globalization;
 
-[Table(Schema = IdentitiesMetaData.Schema)]
+[Table(Schema = SchemaAttribute.CoreSchema)]
 internal sealed record IdentityGlobalization : ConsistentEntity<string>, IIdentityGlobalization
 {
 	[Ordinal(0), Length(128), PrimaryKey(false)]

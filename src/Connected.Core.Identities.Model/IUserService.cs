@@ -1,22 +1,34 @@
 ﻿using Connected.Annotations;
+using Connected.Identities.Dtos;
 using Connected.Services;
 using System.Collections.Immutable;
 
 namespace Connected.Identities;
 
-[Service]
+[Service, ServiceUrl(IdentitiesUrls.Users)]
 public interface IUserService
 {
-	[ServiceOperation(ServiceOperationVerbs.Post | ServiceOperationVerbs.Get)]
+	[ServiceOperation(ServiceOperationVerbs.Get)]
 	Task<IImmutableList<IUser>> Query(IQueryDto? dto);
 
+	[ServiceOperation(ServiceOperationVerbs.Get)]
 	Task<IUser?> Select(IPrimaryKeyDto<long> dto);
-	Task<IUser?> Select(ISelectUserDto dto);
-	Task<IUser?> Select(IValueDto<string> dto);
-	Task<bool> HasValidPassword(IPrimaryKeyDto<long> dto);
 
+	[ServiceOperation(ServiceOperationVerbs.Get), ServiceUrl(IdentitiesUrls.SelectByCredentialsOperation)]
+	Task<IUser?> Select(ISelectUserDto dto);
+
+	[ServiceOperation(ServiceOperationVerbs.Get), ServiceUrl(IdentitiesUrls.ResolveOperation)]
+	Task<IUser?> Select(IValueDto<string> dto);
+
+	[ServiceOperation(ServiceOperationVerbs.Put)]
 	Task<long> Insert(IInsertUserDto dto);
+
+	[ServiceOperation(ServiceOperationVerbs.Patch)]
 	Task Update(IUpdateUserDto dto);
+
+	[ServiceOperation(ServiceOperationVerbs.Patch)]
 	Task UpdatePassword(IUpdatePasswordDto dto);
+
+	[ServiceOperation(ServiceOperationVerbs.Delete)]
 	Task Delete(IPrimaryKeyDto<long> dto);
 }

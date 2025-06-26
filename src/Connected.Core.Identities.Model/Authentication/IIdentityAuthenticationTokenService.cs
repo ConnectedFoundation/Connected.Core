@@ -1,4 +1,5 @@
 ﻿using Connected.Annotations;
+using Connected.Identities.Authentication.Dtos;
 using Connected.Services;
 using System.Collections.Immutable;
 

@@ -1,5 +1,6 @@
 ﻿using Connected.Identities;
 using Connected.Membership.Claims;
+using Connected.Membership.Claims.Dtos;
 using Connected.Services;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,7 +14,7 @@ public static class ClaimExtensions
 
 		var dto = Dto.Factory.Create<IRequestClaimDto>();
 
-		dto.Claims = ClaimUtils.FullControl;
+		dto.Values = ClaimUtils.FullControl;
 		dto.Identity = identity.Token;
 
 		return await claims.Request(dto);
@@ -29,7 +30,7 @@ public static class ClaimExtensions
 
 		var dto = Dto.Factory.Create<IRequestClaimDto>();
 
-		dto.Claims = ClaimUtils.ManageSystemSecurity;
+		dto.Values = ClaimUtils.ManageSystemSecurity;
 		dto.Identity = identity.Token;
 
 		return await claims.Request(dto);
@@ -43,7 +44,7 @@ public static class ClaimExtensions
 		var dto = scope.ServiceProvider.GetRequiredService<IRequestClaimDto>();
 
 		dto.Identity = identity.Token;
-		dto.Claims = claim;
+		dto.Values = claim;
 
 		var result = await claims.Request(dto);
 

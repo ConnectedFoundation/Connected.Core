@@ -20,6 +20,13 @@
 		<PackageIcon>ConnectedLogo.png</PackageIcon>
 	</PropertyGroup>
 
+	<ItemGroup>
+		<PackageReference Include="GitInfo" Version="3.5.0">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
 	 <Target Name="PopulateInfo" DependsOnTargets="GitVersion" BeforeTargets="GetAssemblyVersion;GenerateNuspec;GetPackageContents">
 		<PropertyGroup>
 			<GitVersion>false</GitVersion>
@@ -35,9 +42,6 @@
 			</PackageVersion>
 		</PropertyGroup>
 	</Target>
-	<ItemGroup>
-		<PackageReference Include="GitInfo" Version="3.5.0" />
-	</ItemGroup>
 	<ItemGroup>
 		<None Include="..\..\ConnectedLogo.png" Link="ConnectedLogo.png">
 			<PackagePath>\</PackagePath>
@@ -84,11 +88,6 @@
 		<ProjectReference Include="..\Connected.Core.Globalization.Extensions\Connected.Core.Globalization.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Globalization.Languages\Connected.Core.Globalization.Languages.csproj" />
 		<ProjectReference Include="..\Connected.Core.Globalization.Model\Connected.Core.Globalization.Model.csproj" />
-		<ProjectReference Include="..\Connected.Core.Identities.Extensions\Connected.Core.Identities.Extensions.csproj" />
-		<ProjectReference Include="..\Connected.Core.Identities.Globalization\Connected.Core.Identities.Globalization.csproj" />
-		<ProjectReference Include="..\Connected.Core.Identities.Model\Connected.Core.Identities.Model.csproj" />
-		<ProjectReference Include="..\Connected.Core.Membership.Extensions\Connected.Core.Membership.Extensions.csproj" />
-		<ProjectReference Include="..\Connected.Core.Membership.Model\Connected.Core.Membership.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Model.Extensions\Connected.Core.Model.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Model\Connected.Core.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Net.Extensions\Connected.Core.Net.Extensions.csproj" />

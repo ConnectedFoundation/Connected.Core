@@ -11,7 +11,7 @@ public enum ClaimStatus
 
 public interface IClaim : IEntity<long>
 {
-	string Claim { get; init; }
+	string Value { get; init; }
 	string? Schema { get; init; }
 	string? Identity { get; init; }
 	string? Type { get; init; }

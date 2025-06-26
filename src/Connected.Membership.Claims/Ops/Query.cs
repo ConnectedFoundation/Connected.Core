@@ -1,0 +1,18 @@
+﻿using Connected.Entities;
+using Connected.Services;
+using System.Collections.Immutable;
+
+namespace Connected.Membership.Claims.Ops;
+
+internal class Query(IClaimCache cache)
+  : ServiceFunction<IQueryClaimDto, IImmutableList<IClaim>>
+{
+	protected override async Task<IImmutableList<IClaim>> OnInvoke()
+	{
+		return await cache.AsEntities<IClaim>(f =>
+					(Dto.Identity is null || string.Equals(f.Identity, Dto.Identity, StringComparison.Ordinal))
+				&& (Dto.Schema is null || string.Equals(f.Schema, Dto.Schema, StringComparison.OrdinalIgnoreCase))
+				&& (Dto.Type is null || string.Equals(f.Type, Dto.Type, StringComparison.OrdinalIgnoreCase))
+				&& (Dto.PrimaryKey is null || string.Equals(f.PrimaryKey, Dto.PrimaryKey, StringComparison.OrdinalIgnoreCase)));
+	}
+}

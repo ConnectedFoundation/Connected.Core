@@ -1,20 +1,26 @@
 ﻿using Connected.Annotations;
+using Connected.Membership.Claims.Dtos;
+using Connected.Services;
 using System.Collections.Immutable;
 
 namespace Connected.Membership.Claims;
 
 [Service]
-[ServiceUrl(Urls.ClaimService)]
+[ServiceUrl(MembershipUrls.ClaimService)]
 public interface IClaimService
 {
-	[ServiceOperation(ServiceOperationVerbs.Get | ServiceOperationVerbs.Post)]
+	[ServiceOperation(ServiceOperationVerbs.Get)]
 	Task<IImmutableList<IClaim>> Query(IQueryClaimDto dto);
 
+	[ServiceOperation(ServiceOperationVerbs.Get)]
 	Task<bool> Request(IRequestClaimDto dto);
 
-	[ServiceOperation(ServiceOperationVerbs.Put | ServiceOperationVerbs.Post)]
-	Task Insert(IClaimDto dto);
+	[ServiceOperation(ServiceOperationVerbs.Get)]
+	Task<IClaim?> Select(IPrimaryKeyDto<long> dto);
 
-	[ServiceOperation(ServiceOperationVerbs.Delete | ServiceOperationVerbs.Post)]
-	Task Delete(IClaimDto dto);
+	[ServiceOperation(ServiceOperationVerbs.Put)]
+	Task<long> Insert(IInsertClaimDto dto);
+
+	[ServiceOperation(ServiceOperationVerbs.Delete)]
+	Task Delete(IPrimaryKeyDto<long> dto);
 }

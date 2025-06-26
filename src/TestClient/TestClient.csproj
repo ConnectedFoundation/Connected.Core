@@ -33,11 +33,7 @@
 		<ProjectReference Include="..\Connected.Core.Globalization.Extensions\Connected.Core.Globalization.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Globalization.Languages\Connected.Core.Globalization.Languages.csproj" />
 		<ProjectReference Include="..\Connected.Core.Globalization.Model\Connected.Core.Globalization.Model.csproj" />
-		<ProjectReference Include="..\Connected.Core.Identities.Extensions\Connected.Core.Identities.Extensions.csproj" />
-		<ProjectReference Include="..\Connected.Core.Identities.Globalization\Connected.Core.Identities.Globalization.csproj" />
-		<ProjectReference Include="..\Connected.Core.Identities.Model\Connected.Core.Identities.Model.csproj" />
-		<ProjectReference Include="..\Connected.Core.Membership.Extensions\Connected.Core.Membership.Extensions.csproj" />
-		<ProjectReference Include="..\Connected.Core.Membership.Model\Connected.Core.Membership.Model.csproj" />
+		<ProjectReference Include="..\Connected.Core.Identities.Runtime\Connected.Core.Identities.Runtime.csproj" />
 		<ProjectReference Include="..\Connected.Core.Model.Extensions\Connected.Core.Model.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Model\Connected.Core.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Net.Extensions\Connected.Core.Net.Extensions.csproj" />
@@ -57,6 +53,7 @@
 		<ProjectReference Include="..\Connected.Core.Storage.Sharding.Nodes\Connected.Core.Storage.Sharding.Nodes.csproj" />
 		<ProjectReference Include="..\Connected.Core.Storage.Sharding\Connected.Core.Storage.Sharding.csproj" />
 		<ProjectReference Include="..\Connected.Core.Storage.Sql\Connected.Core.Storage.Sql.csproj" />
+		<ProjectReference Include="..\Connected.Core.Tests\Connected.Core.Tests.csproj" />
 		<ProjectReference Include="..\Connected.Runtime\Connected.Runtime.csproj" />
 		<ProjectReference Include="..\Connected.Sdk\Connected.Sdk.csproj" />
 	</ItemGroup>

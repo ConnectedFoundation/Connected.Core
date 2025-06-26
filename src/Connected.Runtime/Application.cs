@@ -24,6 +24,7 @@ public static class Application
 	private static object _lastException = new();
 
 	public static bool IsErrorServerStarted { get; private set; }
+	public static bool HasStarted { get; private set; }
 	public static void AddOutOfMemoryExceptionHandler()
 	{
 		AppDomain.CurrentDomain.FirstChanceException += OnFirstChanceException;
@@ -198,7 +199,7 @@ public static class Application
 		if (entry is not null)
 			RegisterMicroService(entry);
 
-		RegisterMicroService(typeof(RuntimeStartup).Assembly);
+		RegisterMicroService(typeof(Application).Assembly);
 		RegisterMicroService(typeof(Authorization.AuthorizationStartup).Assembly);
 		RegisterMicroService(typeof(Services.ServiceExtensionsStartup).Assembly);
 		RegisterMicroService(typeof(Services.ServicesStartup).Assembly);
@@ -209,7 +210,6 @@ public static class Application
 		RegisterMicroService(typeof(Storage.StorageExtensionsStartup).Assembly);
 		RegisterMicroService(typeof(Configuration.ConfigurationStartup).Assembly);
 		RegisterMicroService(typeof(Notifications.NotificationsStartup).Assembly);
-		RegisterMicroService(typeof(Identities.Globalization.IdentitiesGlobalizationStartup).Assembly);
 		RegisterMicroService(typeof(Globalization.Languages.LanguagesStartup).Assembly);
 		RegisterMicroService(typeof(Net.NetExtensionsStartup).Assembly);
 		RegisterCoreMicroService("Authentication");
@@ -266,6 +266,9 @@ public static class Application
 
 			await webApp.InitializeMicroServices(webApp);
 			await webApp.StartMicroServices();
+
+			HasStarted = true;
+
 			await webApp.RunAsync();
 		}
 		finally

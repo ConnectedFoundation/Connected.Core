@@ -120,21 +120,24 @@ internal sealed class Select : ServiceFunction<ISelectSchemaDto, ISchema?>
 			ParseDefaultValue(column, property);
 
 			if (property.FindAttribute<ETagAttribute>() is not null)
+			{
 				column.IsVersion = true;
+				column.DataType = DbType.Binary;
+			}
 			else
 			{
 				var maxLength = property.FindAttribute<LengthAttribute>();
 
 				if (maxLength is not null)
 					column.MaxLength = maxLength.Value;
+
+				var nullable = property.FindAttribute<NullableAttribute>();
+
+				if (nullable is null)
+					column.IsNullable = property.IsNullable();
+				else
+					column.IsNullable = nullable.IsNullable;
 			}
-
-			var nullable = property.FindAttribute<NullableAttribute>();
-
-			if (nullable is null)
-				column.IsNullable = property.IsNullable();
-			else
-				column.IsNullable = nullable.IsNullable;
 
 			columns.Add(column);
 		}

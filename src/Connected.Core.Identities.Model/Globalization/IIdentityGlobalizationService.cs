@@ -1,10 +1,11 @@
 ﻿using Connected.Annotations;
+using Connected.Identities.Globalization.Dtos;
 using Connected.Services;
 using System.Collections.Immutable;
 
 namespace Connected.Identities.Globalization;
 
-[Service, ServiceUrl(Urls.GlobalizationService)]
+[Service, ServiceUrl(IdentitiesUrls.GlobalizationService)]
 public interface IIdentityGlobalizationService
 {
 	[ServiceOperation(ServiceOperationVerbs.Put | ServiceOperationVerbs.Post)]

@@ -1,4 +1,5 @@
 using Connected.Identities;
+using Connected.Identities.Dtos;
 using Connected.Services;
 using Microsoft.Extensions.DependencyInjection;
 
