@@ -346,4 +346,11 @@ public static class EntitiesExtensions
 
 		return serializer;
 	}
+
+	public static string GenerateKey<THead, TPrimaryKey>(this IDependentEntity<THead, TPrimaryKey> entity)
+		where THead : notnull
+		where TPrimaryKey : notnull
+	{
+		return $"{entity.Head}.{entity.Id}";
+	}
 }

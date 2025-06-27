@@ -8,7 +8,7 @@ namespace Connected.Identities.Globalization;
 internal sealed record IdentityGlobalization : ConsistentEntity<string>, IIdentityGlobalization
 {
 	[Ordinal(0), Length(128), PrimaryKey(false)]
-	public override string Id { get; init; } = default!;
+	public required override string Id { get; init; }
 
 	[Ordinal(1), Length(1024)]
 	public string? TimeZone { get; init; }

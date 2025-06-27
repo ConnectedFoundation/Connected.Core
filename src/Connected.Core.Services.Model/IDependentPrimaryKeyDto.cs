@@ -1,6 +1,6 @@
 ﻿namespace Connected.Services;
 
-public interface IDependencyPrimaryKeyDto<THead, TPrimaryKey> : IDto
+public interface IDependentPrimaryKeyDto<THead, TPrimaryKey> : IDto
 	where THead : notnull
 	where TPrimaryKey : notnull
 {

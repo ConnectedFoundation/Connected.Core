@@ -11,19 +11,14 @@ public abstract record Entity : IEntity
 	public State State { get; init; } = State.Update;
 }
 
-public abstract record Entity<T> : Entity, IEntity<T>
-	where T : notnull
+public abstract record Entity<TPrimaryKey> : Entity, IEntity<TPrimaryKey>
+	where TPrimaryKey : notnull
 {
 	protected Entity()
 	{
 		Id = default!;
 	}
 
-	protected Entity(T id)
-	{
-		Id = id;
-	}
-
 	[PrimaryKey(true), CacheKey, ReturnValue, Ordinal(-10000)]
-	public virtual T Id { get; init; }
+	public virtual TPrimaryKey Id { get; init; } = default!;
 }

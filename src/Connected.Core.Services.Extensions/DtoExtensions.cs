@@ -89,15 +89,35 @@ public static class DtoExtensions
 		return result;
 	}
 
-	public static IDependencyPrimaryKeyDto<THead, TPrimaryKey> CreateDependencyPrimaryKey<THead, TPrimaryKey>(this IDto dto, THead head, TPrimaryKey id)
+	public static IDependentPatchDto<THead, TPrimaryKey> CreateDependentPatch<THead, TPrimaryKey>(this IDto dto, THead head, TPrimaryKey id, Dictionary<string, object?> properties)
 		where THead : notnull
 		where TPrimaryKey : notnull
 	{
-		var result = dto.Create<IDependencyPrimaryKeyDto<THead, TPrimaryKey>>();
+		var result = dto.Create<IDependentPatchDto<THead, TPrimaryKey>>();
+
+		result.Head = head;
+		result.Id = id;
+		result.Properties = properties;
+
+		return result;
+	}
+
+	public static IDependentPrimaryKeyDto<THead, TPrimaryKey> CreateDependentPrimaryKey<THead, TPrimaryKey>(this IDto dto, THead head, TPrimaryKey id)
+		where THead : notnull
+		where TPrimaryKey : notnull
+	{
+		var result = dto.Create<IDependentPrimaryKeyDto<THead, TPrimaryKey>>();
 
 		result.Head = head;
 		result.Id = id;
 
 		return result;
+	}
+
+	public static string GenerateKey<THead, TPrimaryKey>(this IDependentPrimaryKeyDto<THead, TPrimaryKey> dto)
+		where THead : notnull
+		where TPrimaryKey : notnull
+	{
+		return $"{dto.Head}.{dto.Id}";
 	}
 }

@@ -135,7 +135,7 @@ public static class ShardingExtensions
 	/// </remarks>
 	public static IImmutableList<IShardingNode> WithDefaultNode(this IImmutableList<IShardingNode> existing)
 	{
-		var result = new List<IShardingNode>(existing.ToArray());
+		var result = new List<IShardingNode>([.. existing]);
 
 		result.Append(new DefaultShardingNode());
 
