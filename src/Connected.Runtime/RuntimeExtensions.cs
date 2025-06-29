@@ -340,7 +340,7 @@ public static class RuntimeExtensions
 
 	private static void AddClaimProvider(Type type, IServiceCollection services, bool manual)
 	{
-		var fullName = typeof(IClaimProvider).FullName;
+		var fullName = typeof(IClaimSchemaProvider).FullName;
 
 		if (fullName is null)
 			return;

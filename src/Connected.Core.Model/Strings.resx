@@ -219,4 +219,55 @@
   <data name="ValMinValue" xml:space="preserve">
     <value>Minimum allowed value is {0}.</value>
   </data>
+  <data name="CoreDomain" xml:space="preserve">
+    <value>Core</value>
+  </data>
+  <data name="CommonDomain" xml:space="preserve">
+    <value>Common</value>
+  </data>
+  <data name="MarketingDomain" xml:space="preserve">
+    <value>Marketing</value>
+  </data>
+  <data name="PlanningDomain" xml:space="preserve">
+    <value>Planning</value>
+  </data>
+  <data name="CustomersDomain" xml:space="preserve">
+    <value>Customers</value>
+  </data>
+  <data name="DocumentsDomain" xml:space="preserve">
+    <value>Documents</value>
+  </data>
+  <data name="SupplyDomain" xml:space="preserve">
+    <value>Supply</value>
+  </data>
+  <data name="ManufacturingDomain" xml:space="preserve">
+    <value>Manufacturing</value>
+  </data>
+  <data name="LogisticsDomain" xml:space="preserve">
+    <value>Logistics</value>
+  </data>
+  <data name="SalesDomain" xml:space="preserve">
+    <value>Sales</value>
+  </data>
+  <data name="MaintenanceDomain" xml:space="preserve">
+    <value>Maintenance</value>
+  </data>
+  <data name="ProjectsDomain" xml:space="preserve">
+    <value>Projects</value>
+  </data>
+  <data name="QualityDomain" xml:space="preserve">
+    <value>Quality</value>
+  </data>
+  <data name="ResourcesDomain" xml:space="preserve">
+    <value>Resources</value>
+  </data>
+  <data name="AssetsDomain" xml:space="preserve">
+    <value>Assets</value>
+  </data>
+  <data name="AccountingDomain" xml:space="preserve">
+    <value>Accounting</value>
+  </data>
+  <data name="KnowledgeDomain" xml:space="preserve">
+    <value>Knowledge</value>
+  </data>
 </root>

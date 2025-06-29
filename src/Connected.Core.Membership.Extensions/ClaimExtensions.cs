@@ -1,8 +1,8 @@
-﻿using Connected.Identities;
+﻿using Connected.Authentication;
+using Connected.Identities;
 using Connected.Membership.Claims;
 using Connected.Membership.Claims.Dtos;
 using Connected.Services;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Connected.Membership;
 public static class ClaimExtensions
@@ -20,36 +20,30 @@ public static class ClaimExtensions
 		return await claims.Request(dto);
 	}
 
-	public static async Task<bool> HasManageSystemSecurity(this IClaimService claims, IIdentity? identity)
+	public static async Task<bool> HasClaim(this IIdentity? identity, IClaimService claims, string claim)
 	{
-		if (identity is null)
-			return false;
+		return await HasClaim(identity, claims, claim, null, null);
+	}
 
-		if (await claims.HasFullControl(identity))
-			return true;
-
+	public static async Task<bool> HasClaim(this IIdentity? identity, IClaimService claims, string claim, string? type, string? primaryKey)
+	{
 		var dto = Dto.Factory.Create<IRequestClaimDto>();
 
-		dto.Values = ClaimUtils.ManageSystemSecurity;
-		dto.Identity = identity.Token;
+		dto.Identity = identity?.Token;
+		dto.Values = claim;
+		dto.Type = type;
+		dto.PrimaryKey = primaryKey;
 
 		return await claims.Request(dto);
 	}
 
-	public static async Task<bool> HasClaim(this IIdentity identity, string claim)
+	public static async Task<bool> HasClaim(this IAuthenticationService authentication, IClaimService claims, string claim)
 	{
-		using var scope = ServiceExtensionsStartup.Services.CreateAsyncScope();
+		return await HasClaim(authentication, claims, claim, null, null);
+	}
 
-		var claims = scope.ServiceProvider.GetRequiredService<IClaimService>();
-		var dto = scope.ServiceProvider.GetRequiredService<IRequestClaimDto>();
-
-		dto.Identity = identity.Token;
-		dto.Values = claim;
-
-		var result = await claims.Request(dto);
-
-		await scope.Commit();
-
-		return result;
+	public static async Task<bool> HasClaim(this IAuthenticationService authentication, IClaimService claims, string claim, string? type, string? primaryKey)
+	{
+		return await (await authentication.SelectIdentity()).HasClaim(claims, claim, type, primaryKey);
 	}
 }

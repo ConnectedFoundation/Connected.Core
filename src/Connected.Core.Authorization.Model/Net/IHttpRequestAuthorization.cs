@@ -2,5 +2,5 @@
 
 public interface IHttpRequestAuthorization : IAuthorization
 {
-	Task Invoke();
+	Task<AuthorizationResult> Invoke();
 }

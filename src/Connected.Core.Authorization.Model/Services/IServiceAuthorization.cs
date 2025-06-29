@@ -2,5 +2,5 @@
 
 public interface IServiceAuthorization : IAuthorization
 {
-	Task Invoke(IServiceAuthorizationDto dto);
+	Task<AuthorizationResult> Invoke(IServiceAuthorizationDto dto);
 }

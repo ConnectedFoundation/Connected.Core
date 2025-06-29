@@ -7,16 +7,16 @@ public abstract class ServiceAuthorization : AuthorizationMiddleware, IServiceAu
 	protected IDto? Dto { get; private set; }
 	protected ICallerContext? Caller { get; private set; }
 
-	public async Task Invoke(IServiceAuthorizationDto dto)
+	public async Task<AuthorizationResult> Invoke(IServiceAuthorizationDto dto)
 	{
 		Dto = dto.Dto;
 		Caller = dto.Caller;
 
-		await OnInvoke();
+		return await OnInvoke();
 	}
 
-	protected virtual async Task OnInvoke()
+	protected virtual async Task<AuthorizationResult> OnInvoke()
 	{
-		await Task.CompletedTask;
+		return await Task.FromResult(AuthorizationResult.Skip);
 	}
 }

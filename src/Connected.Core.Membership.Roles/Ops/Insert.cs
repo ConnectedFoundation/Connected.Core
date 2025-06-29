@@ -6,12 +6,12 @@ using Connected.Storage;
 
 namespace Connected.Membership.Roles.Ops;
 
-internal class Insert(IStorageProvider storage, IRoleService roles, IEventService events, IRoleCache cache)
+internal class Insert(IStorageProvider storage, IRoleService roles, IEventService events, IRoleCache cache, IInsertRoleAmbient ambient)
   : ServiceFunction<IInsertRoleDto, int>
 {
 	protected override async Task<int> OnInvoke()
 	{
-		var entity = await storage.Open<Role>().Update(Dto.AsEntity<Role>(State.Add)) ?? throw new NullReferenceException(Strings.ErrEntityExpected);
+		var entity = await storage.Open<Role>().Update(Dto.AsEntity<Role>(State.Add, ambient)) ?? throw new NullReferenceException(Strings.ErrEntityExpected);
 
 		SetState(entity);
 

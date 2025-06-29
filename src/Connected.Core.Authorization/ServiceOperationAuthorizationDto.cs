@@ -10,5 +10,5 @@ internal sealed class ServiceOperationAuthorizationDto<TDto> : Dto, IServiceOper
 	public ICallerContext? Caller { get; set; }
 
 	[SkipValidation]
-	public IDto? Dto { get; set; }
+	public TDto? Dto { get; set; }
 }

@@ -5,5 +5,5 @@ namespace Connected.Authorization.Services;
 public interface IServiceOperationAuthorization<TDto> : IAuthorization
 		where TDto : IDto
 {
-	Task Invoke(IServiceOperationAuthorizationDto<TDto> dto);
+	Task<AuthorizationResult> Invoke(IServiceOperationAuthorizationDto<TDto> dto);
 }

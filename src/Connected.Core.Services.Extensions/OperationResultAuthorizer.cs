@@ -36,8 +36,12 @@ internal sealed class OperationResultAuthorizer<TDto, TResult>
 		if (!await IsEntityProtected(caller, result.GetType()))
 			return result;
 
-		if (result is IEntity entity)
-			return await AuthorizeEntity(caller, dto, result);
+		if (result is IEntity)
+		{
+			await AuthorizeEntity(caller, dto, result);
+
+			return result;
+		}
 
 		if (!result.GetType().IsEnumerable())
 			return result;
@@ -81,21 +85,10 @@ internal sealed class OperationResultAuthorizer<TDto, TResult>
 		{
 			if (iterator.Current is IEntity e)
 			{
-				try
-				{
-					var entity = await Authorization.Authorize(caller, dto, e);
+				var authorizationResult = await Authorization.Authorize(caller, dto, e);
 
-					if (entity is not null)
-						list = add.Invoke(list, new object[] { entity });
-				}
-				catch
-				{
-					/*
-					 * Authorization failed by throwing an exception.
-					 * There is nothing to do, just continue to
-					 * Authorize other entities.
-					 */
-				}
+				if (authorizationResult != AuthorizationResult.Fail)
+					list = add.Invoke(list, [e]);
 			}
 		}
 
@@ -124,41 +117,28 @@ internal sealed class OperationResultAuthorizer<TDto, TResult>
 		{
 			if (iterator.Current is IEntity e)
 			{
-				try
-				{
-					var entity = await Authorization.Authorize(caller, dto, e);
+				var authorizationResult = await Authorization.Authorize(caller, dto, e);
 
-					if (entity is not null)
-						list = add.Invoke(list, new object[] { entity });
-				}
-				catch
-				{
-					/*
-					 * Authorization failed by throwing an exception.
-					 * There is nothing to do, just continue to
-					 * Authorize other entities.
-					 */
-				}
+				if (authorizationResult != AuthorizationResult.Fail)
+					list = add.Invoke(list, [e]);
 			}
 		}
 
 		return result;
 	}
 
-	private async Task<TResult> AuthorizeEntity(ICallerContext caller, TDto dto, TResult entity)
+	private async Task AuthorizeEntity(ICallerContext caller, TDto dto, TResult entity)
 	{
 		if (entity is not IEntity e)
-			return entity;
+			return;
 
 		var result = await Authorization.Authorize(caller, dto, e);
 
-		if (result is null)
-			throw new UnauthorizedAccessException();
-
-		return (TResult)result;
+		if (result == AuthorizationResult.Fail)
+			throw new UnauthorizedAccessException(entity.GetType().Name);
 	}
 
-	private bool IsImmutableList(TResult result)
+	private static bool IsImmutableList(TResult result)
 	{
 		if (result is null)
 			return false;
@@ -171,7 +151,7 @@ internal sealed class OperationResultAuthorizer<TDto, TResult>
 		return result.GetType().GetInterface(type) is not null;
 	}
 
-	private bool IsList(TResult result)
+	private static bool IsList(TResult result)
 	{
 		if (result is null)
 			return false;

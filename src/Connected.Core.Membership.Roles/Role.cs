@@ -15,4 +15,7 @@ internal sealed record Role : ConsistentEntity<int>, IRole
 
 	[Ordinal(2)]
 	public int? Parent { get; init; }
+
+	[Ordinal(3), Length(128), Index(true)]
+	public required string Token { get; init; }
 }

@@ -58,6 +58,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\Connected.Core.Authorization.Extensions\Connected.Core.Authorization.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Caching.Extensions\Connected.Core.Caching.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Caching.Model\Connected.Core.Caching.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Entities.Extensions\Connected.Core.Entities.Extensions.csproj" />

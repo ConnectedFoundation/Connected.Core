@@ -2,13 +2,13 @@
 
 public abstract class HttpRequestAuthorization : AuthorizationMiddleware, IHttpRequestAuthorization
 {
-	public async Task Invoke()
+	public async Task<AuthorizationResult> Invoke()
 	{
-		await OnInvoke();
+		return await OnInvoke();
 	}
 
-	protected virtual Task OnInvoke()
+	protected virtual async Task<AuthorizationResult> OnInvoke()
 	{
-		return Task.CompletedTask;
+		return await Task.FromResult(AuthorizationResult.Skip);
 	}
 }

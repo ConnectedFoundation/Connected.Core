@@ -61,6 +61,60 @@ namespace Connected {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Accounting.
+        /// </summary>
+        public static string AccountingDomain {
+            get {
+                return ResourceManager.GetString("AccountingDomain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Assets.
+        /// </summary>
+        public static string AssetsDomain {
+            get {
+                return ResourceManager.GetString("AssetsDomain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Common.
+        /// </summary>
+        public static string CommonDomain {
+            get {
+                return ResourceManager.GetString("CommonDomain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Core.
+        /// </summary>
+        public static string CoreDomain {
+            get {
+                return ResourceManager.GetString("CoreDomain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Customers.
+        /// </summary>
+        public static string CustomersDomain {
+            get {
+                return ResourceManager.GetString("CustomersDomain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Documents.
+        /// </summary>
+        public static string DocumentsDomain {
+            get {
+                return ResourceManager.GetString("DocumentsDomain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The Activator.CreateInstance method could not create a default instance of the supplied value type.
         /// </summary>
         public static string ErrActivatorCreateInstance {
@@ -237,6 +291,105 @@ namespace Connected {
         public static string ErrTypeInternal {
             get {
                 return ResourceManager.GetString("ErrTypeInternal", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Knowledge.
+        /// </summary>
+        public static string KnowledgeDomain {
+            get {
+                return ResourceManager.GetString("KnowledgeDomain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Logistics.
+        /// </summary>
+        public static string LogisticsDomain {
+            get {
+                return ResourceManager.GetString("LogisticsDomain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Maintenance.
+        /// </summary>
+        public static string MaintenanceDomain {
+            get {
+                return ResourceManager.GetString("MaintenanceDomain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Manufacturing.
+        /// </summary>
+        public static string ManufacturingDomain {
+            get {
+                return ResourceManager.GetString("ManufacturingDomain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Marketing.
+        /// </summary>
+        public static string MarketingDomain {
+            get {
+                return ResourceManager.GetString("MarketingDomain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Planning.
+        /// </summary>
+        public static string PlanningDomain {
+            get {
+                return ResourceManager.GetString("PlanningDomain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Projects.
+        /// </summary>
+        public static string ProjectsDomain {
+            get {
+                return ResourceManager.GetString("ProjectsDomain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Quality.
+        /// </summary>
+        public static string QualityDomain {
+            get {
+                return ResourceManager.GetString("QualityDomain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resources.
+        /// </summary>
+        public static string ResourcesDomain {
+            get {
+                return ResourceManager.GetString("ResourcesDomain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sales.
+        /// </summary>
+        public static string SalesDomain {
+            get {
+                return ResourceManager.GetString("SalesDomain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Supply.
+        /// </summary>
+        public static string SupplyDomain {
+            get {
+                return ResourceManager.GetString("SupplyDomain", resourceCulture);
             }
         }
         

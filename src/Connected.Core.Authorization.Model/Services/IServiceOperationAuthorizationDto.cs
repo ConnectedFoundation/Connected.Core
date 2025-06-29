@@ -5,5 +5,5 @@ public interface IServiceOperationAuthorizationDto<TDto> : IDto
 	where TDto : IDto
 {
 	ICallerContext? Caller { get; set; }
-	IDto? Dto { get; set; }
+	TDto? Dto { get; set; }
 }

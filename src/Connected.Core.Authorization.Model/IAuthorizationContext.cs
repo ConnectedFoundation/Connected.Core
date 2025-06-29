@@ -5,19 +5,18 @@ namespace Connected.Authorization;
 
 public interface IAuthorizationContext
 {
-	/// <summary>
-	/// Performs customer authorization.
-	/// </summary>
-	Task<IAuthorizationResult> Authorize(IAuthorizationDto dto);
+	bool IsAuthorized { get; }
+
+	void Reset();
 	/// <summary>
 	/// Performs <c>IServiceOperationAuthorization</c> authorization.
 	/// </summary>
-	Task Authorize<TDto>(ICallerContext caller, TDto dto)
+	Task<AuthorizationResult> Authorize<TDto>(ICallerContext caller, TDto dto)
 		where TDto : IDto;
 	/// <summary>
 	/// Performs <c>IEntityAuthorization</c> authorization.
 	/// </summary>
-	Task<TEntity?> Authorize<TDto, TEntity>(ICallerContext caller, TDto dto, TEntity entity)
+	Task<AuthorizationResult> Authorize<TDto, TEntity>(ICallerContext caller, TDto dto, TEntity entity)
 		where TDto : IDto
 		where TEntity : IEntity;
 
