@@ -1,10 +1,14 @@
-﻿using Connected.Services;
+﻿using Connected.Annotations;
+using Connected.Services;
 
 namespace Connected.Authorization.Services;
 
-public sealed class ServiceOperationAuthorizationDto<TDto> : Dto
+public sealed class ServiceOperationAuthorizationDto<TDto> : Dto, IServiceOperationAuthorizationDto<TDto>
 	where TDto : IDto
 {
-	public ICallerContext? Caller { get; set; }
-	public IDto? Dto { get; set; }
+	[NonDefault]
+	public required ICallerContext Caller { get; set; }
+
+	[NonDefault]
+	public required TDto Dto { get; set; }
 }

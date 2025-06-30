@@ -1,9 +1,13 @@
-﻿using Connected.Services;
+﻿using Connected.Annotations;
+using Connected.Services;
 
 namespace Connected.Authorization.Services;
 
-public class ServiceAuthorizationDto : Dto
+public class ServiceAuthorizationDto : Dto, IServiceAuthorizationDto
 {
-	public ICallerContext? Caller { get; set; }
-	public IDto? Dto { get; set; }
+	[NonDefault]
+	public required ICallerContext Caller { get; set; }
+
+	[NonDefault]
+	public required IDto Dto { get; set; }
 }

@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Connected.Services;
 
-internal sealed class DependentPrimaryKeyDto<THead, TPrimaryKey>
-	: Dto, IDependentPrimaryKeyDto<THead, TPrimaryKey>
+internal sealed class DistributedPrimaryKeyDto<THead, TPrimaryKey>
+	: Dto, IDistributedPrimaryKeyDto<THead, TPrimaryKey>
 	where THead : notnull
 	where TPrimaryKey : notnull
 {

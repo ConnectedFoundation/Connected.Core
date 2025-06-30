@@ -3,22 +3,23 @@ using System.Collections.Immutable;
 
 namespace Connected.Services;
 
-internal class PrimaryKeyListDto<T> : Dto, IPrimaryKeyListDto<T>
+internal class PrimaryKeyListDto<TPrimaryKey> : Dto, IPrimaryKeyListDto<TPrimaryKey>
+	where TPrimaryKey : notnull
 {
 	[NonDefault]
-	public List<T> Items { get; init; } = null!;
+	public required List<TPrimaryKey> Items { get; set; }
 
-	public static implicit operator PrimaryKeyListDto<T>(ImmutableList<T> value)
+	public static implicit operator PrimaryKeyListDto<TPrimaryKey>(ImmutableList<TPrimaryKey> value)
 	{
-		return new PrimaryKeyListDto<T>
+		return new PrimaryKeyListDto<TPrimaryKey>
 		{
 			Items = [.. value]
 		};
 	}
 
-	public static implicit operator PrimaryKeyListDto<T>(List<T>? value)
+	public static implicit operator PrimaryKeyListDto<TPrimaryKey>(List<TPrimaryKey>? value)
 	{
-		return new PrimaryKeyListDto<T>
+		return new PrimaryKeyListDto<TPrimaryKey>
 		{
 			Items = value ?? []
 		};

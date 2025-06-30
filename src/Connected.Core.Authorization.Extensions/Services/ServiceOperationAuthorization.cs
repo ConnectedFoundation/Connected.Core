@@ -5,8 +5,8 @@ namespace Connected.Authorization.Services;
 public abstract class ServiceOperationAuthorization<TDto> : AuthorizationMiddleware, IServiceOperationAuthorization<TDto>
 	where TDto : IDto
 {
-	protected TDto? Dto { get; private set; }
-	protected ICallerContext? Caller { get; private set; }
+	protected TDto Dto { get; private set; } = default!;
+	protected ICallerContext Caller { get; private set; } = default!;
 
 	public async Task<AuthorizationResult> Invoke(IServiceOperationAuthorizationDto<TDto> dto)
 	{

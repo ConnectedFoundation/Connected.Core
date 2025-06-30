@@ -347,7 +347,7 @@ public static class EntitiesExtensions
 		return serializer;
 	}
 
-	public static string GenerateKey<THead, TPrimaryKey>(this IDependentEntity<THead, TPrimaryKey> entity)
+	public static string DistributedKey<THead, TPrimaryKey>(this IDistributedEntity<THead, TPrimaryKey> entity)
 		where THead : notnull
 		where TPrimaryKey : notnull
 	{

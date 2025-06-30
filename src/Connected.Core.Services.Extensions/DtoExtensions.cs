@@ -41,6 +41,27 @@ public static class DtoExtensions
 		return result;
 	}
 
+	public static IPrimaryKeyListDto<TPrimaryKey> CreatePrimaryKeyList<TPrimaryKey>(this IDto dto, List<TPrimaryKey> items)
+		where TPrimaryKey : notnull
+	{
+		var result = dto.Create<IPrimaryKeyListDto<TPrimaryKey>>();
+
+		result.Items = items;
+
+		return result;
+	}
+
+	public static IDistributedPrimaryKeyListDto<THead, TPrimaryKey> CreateDistributedPrimaryKeyList<THead, TPrimaryKey>(this IDto dto, List<Tuple<THead, TPrimaryKey>> items)
+		where THead : notnull
+		where TPrimaryKey : notnull
+	{
+		var result = dto.Create<IDistributedPrimaryKeyListDto<THead, TPrimaryKey>>();
+
+		result.Items = items;
+
+		return result;
+	}
+
 	public static INameDto CreateName(this IDto dto, string name)
 	{
 		var result = dto.Create<INameDto>();
@@ -89,11 +110,11 @@ public static class DtoExtensions
 		return result;
 	}
 
-	public static IDependentPatchDto<THead, TPrimaryKey> CreateDependentPatch<THead, TPrimaryKey>(this IDto dto, THead head, TPrimaryKey id, Dictionary<string, object?> properties)
+	public static IDistributedPatchDto<THead, TPrimaryKey> CreateDistributedPatch<THead, TPrimaryKey>(this IDto dto, THead head, TPrimaryKey id, Dictionary<string, object?> properties)
 		where THead : notnull
 		where TPrimaryKey : notnull
 	{
-		var result = dto.Create<IDependentPatchDto<THead, TPrimaryKey>>();
+		var result = dto.Create<IDistributedPatchDto<THead, TPrimaryKey>>();
 
 		result.Head = head;
 		result.Id = id;
@@ -102,11 +123,11 @@ public static class DtoExtensions
 		return result;
 	}
 
-	public static IDependentPrimaryKeyDto<THead, TPrimaryKey> CreateDependentPrimaryKey<THead, TPrimaryKey>(this IDto dto, THead head, TPrimaryKey id)
+	public static IDistributedPrimaryKeyDto<THead, TPrimaryKey> CreateDistributedPrimaryKey<THead, TPrimaryKey>(this IDto dto, THead head, TPrimaryKey id)
 		where THead : notnull
 		where TPrimaryKey : notnull
 	{
-		var result = dto.Create<IDependentPrimaryKeyDto<THead, TPrimaryKey>>();
+		var result = dto.Create<IDistributedPrimaryKeyDto<THead, TPrimaryKey>>();
 
 		result.Head = head;
 		result.Id = id;
@@ -114,7 +135,7 @@ public static class DtoExtensions
 		return result;
 	}
 
-	public static string GenerateKey<THead, TPrimaryKey>(this IDependentPrimaryKeyDto<THead, TPrimaryKey> dto)
+	public static string DistributedKey<THead, TPrimaryKey>(this IDistributedPrimaryKeyDto<THead, TPrimaryKey> dto)
 		where THead : notnull
 		where TPrimaryKey : notnull
 	{

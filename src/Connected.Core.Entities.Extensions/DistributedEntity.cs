@@ -3,7 +3,7 @@ using Connected.Annotations.Entities;
 
 namespace Connected.Entities;
 
-public abstract record DependentEntity<THead, TPrimaryKey> : Entity<TPrimaryKey>
+public abstract record DistributedEntity<THead, TPrimaryKey> : Entity<TPrimaryKey>
 	where THead : notnull
 	where TPrimaryKey : notnull
 {

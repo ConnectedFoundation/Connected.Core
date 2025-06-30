@@ -4,6 +4,6 @@ namespace Connected.Authorization.Services;
 public interface IServiceOperationAuthorizationDto<TDto> : IDto
 	where TDto : IDto
 {
-	ICallerContext? Caller { get; set; }
-	TDto? Dto { get; set; }
+	ICallerContext Caller { get; set; }
+	TDto Dto { get; set; }
 }
