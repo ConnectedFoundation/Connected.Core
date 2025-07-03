@@ -99,6 +99,24 @@ public static class DtoExtensions
 		return result;
 	}
 
+	public static IParentDto<T> CreateParent<T>(this IDto dto, T value)
+	{
+		var result = dto.Create<IParentDto<T>>();
+
+		result.Parent = value;
+
+		return result;
+	}
+
+	public static ITagListDto CreateTagList(this IDto dto, List<string> items)
+	{
+		var result = dto.Create<ITagListDto>();
+
+		result.Items = items;
+
+		return result;
+	}
+
 	public static IPatchDto<TPrimaryKey> CreatePatch<TPrimaryKey>(this IDto dto, TPrimaryKey id, Dictionary<string, object?> properties)
 		where TPrimaryKey : notnull
 	{
