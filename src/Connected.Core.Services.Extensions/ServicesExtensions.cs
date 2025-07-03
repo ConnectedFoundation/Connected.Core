@@ -30,30 +30,36 @@ public static class ServicesExtensions
 	}
 	public static List<Type> GetImplementedDtos(this Type type)
 	{
-		/*
-		 * Only direct implementation is used so we can eliminate multiple implementations
-		 * and thus resolving wrong arguments when mapping request.
-		 */
+		return GetImplementedInterfaces<IDto>(type);
+	}
+
+	public static List<Type> GetImplementedEntities(this Type type)
+	{
+		return GetImplementedInterfaces<IEntity>(type);
+	}
+
+	private static List<Type> GetImplementedInterfaces<TInterface>(Type type)
+	{
 		var interfaces = type.GetInterfaces();
 		var allInterfaces = new List<Type>();
 		var baseInterfaces = new List<Type>();
 
 		foreach (var i in interfaces)
 		{
-			if (typeof(IDto)?.FullName is not string fullName)
+			if (typeof(TInterface)?.FullName is not string fullName)
 				continue;
 
 			if (i.GetInterface(fullName) is null)
 				continue;
 
-			if (i == typeof(IDto))
+			if (i == typeof(TInterface))
 				continue;
 
 			allInterfaces.Add(i);
 
 			foreach (var baseInterface in i.GetInterfaces())
 			{
-				if (baseInterface == typeof(IDto) || typeof(IDto)?.FullName is not string baseFullName)
+				if (baseInterface == typeof(TInterface) || typeof(TInterface)?.FullName is not string baseFullName)
 					continue;
 
 				if (baseInterface.GetInterface(baseFullName) is not null)
@@ -61,7 +67,7 @@ public static class ServicesExtensions
 			}
 		}
 
-		return allInterfaces.Except(baseInterfaces).ToList();
+		return [.. allInterfaces.Except(baseInterfaces)];
 	}
 
 	public static bool IsDtoImplementation(this Type type)

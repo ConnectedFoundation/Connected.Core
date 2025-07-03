@@ -37,7 +37,8 @@ public abstract class ServiceOperation<TDto> : IServiceOperation<TDto>, ITransac
 		 * outside the library and implementors cannot access the state
 		 * object this way
 		 */
-		var key = typeof(TEntity).FullName;
+		var implementedEntities = typeof(TEntity).GetImplementedEntities();
+		var key = implementedEntities.Count > 0 ? implementedEntities[0].FullName : typeof(TEntity).FullName;
 
 		if (string.IsNullOrEmpty(key))
 			return entity;
