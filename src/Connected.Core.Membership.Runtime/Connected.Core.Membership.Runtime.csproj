@@ -4,22 +4,38 @@
 		<TargetFramework>net9.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<RootNamespace>Connected.Identities</RootNamespace>
+		<RootNamespace>Connected.Membership</RootNamespace>
+		<PackageId>Connected.Core.Membership.Runtime</PackageId>
 		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 		<Company>Tom PIT</Company>
-		<PackageId>Connected.Identities.Runtime</PackageId>
-		<Title>Connected Identities Runtime</Title>
+		<Title>Connected Membership Runtime</Title>
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>
-		<Product>Connected</Product>
+		<Product>Connected Core</Product>
+		<PackageVersion>1.0.20-beta1</PackageVersion>
 		<FileVersion>1.0.0.0</FileVersion>
 		<Copyright>Connected Foundation</Copyright>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<RepositoryUrl>https://github.com/Tom-PIT/Connected.Core</RepositoryUrl>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
 		<PackageOutputPath>$(ProjectDir)..\..\packages\</PackageOutputPath>
-		<RootNamespace>Connected.Identities</RootNamespace>
+		<Version>1.0.7-beta1</Version>
 		<PackageIcon>ConnectedLogo.png</PackageIcon>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="..\..\ConnectedLogo.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\..\LICENSE.txt">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="GitInfo" Version="3.5.0">
@@ -43,25 +59,14 @@
 			</PackageVersion>
 		</PropertyGroup>
 	</Target>
+
 	<ItemGroup>
-		<None Include="..\..\ConnectedLogo.png" Link="ConnectedLogo.png">
-			<PackagePath>\</PackagePath>
-			<Pack>True</Pack>
-		</None>
-		<None Include="..\..\LICENSE.txt">
-			<Pack>True</Pack>
-			<PackagePath>\</PackagePath>
-		</None>
-		<None Include="..\..\README.md">
-			<Pack>True</Pack>
-			<PackagePath>\</PackagePath>
-		</None>
-	</ItemGroup>
-	<ItemGroup>
-		<ProjectReference Include="..\Connected.Core.Identities.Authentication\Connected.Core.Identities.Authentication.csproj" />
-		<ProjectReference Include="..\Connected.Core.Identities.Globalization\Connected.Core.Identities.Globalization.csproj" />
-		<ProjectReference Include="..\Connected.Core.Identities.MetaData\Connected.Core.Identities.MetaData.csproj" />
-		<ProjectReference Include="..\Connected.Core.Identities.Users\Connected.Core.Identities.Users.csproj" />
+		<ProjectReference Include="..\Connected.Core.Membership.Sdk\Connected.Core.Membership.Sdk.csproj" />
+		<ProjectReference Include="..\Connected.Core.Membership\Connected.Core.Membership.csproj" />
+		<ProjectReference Include="..\Connected.Core.Membership.Authorization\Connected.Core.Membership.Authorization.csproj" />
+		<ProjectReference Include="..\Connected.Core.Membership.Claims\Connected.Core.Membership.Claims.csproj" />
+		<ProjectReference Include="..\Connected.Core.Membership.Roles\Connected.Core.Membership.Roles.csproj" />
+		<ProjectReference Include="..\Connected.Core.Model\Connected.Core.Model.csproj" />
 		<ProjectReference Include="..\Connected.Runtime\Connected.Runtime.csproj" />
 	</ItemGroup>
 </Project>

@@ -2,7 +2,7 @@
 
 namespace Connected.Services;
 
-internal class DistributedPatchDto<THead, TPrimaryKey> : PatchDto<TPrimaryKey>, IPatchDto<TPrimaryKey>, IDistributedPatchDto<THead, TPrimaryKey>
+internal class DistributedPatchDto<THead, TPrimaryKey> : PatchDto<TPrimaryKey>, IDistributedPatchDto<THead, TPrimaryKey>
 	where THead : notnull
 	where TPrimaryKey : notnull
 {
