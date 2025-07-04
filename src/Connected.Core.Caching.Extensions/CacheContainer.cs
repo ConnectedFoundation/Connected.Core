@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using Connected.Reflection;
+using System.Collections;
 using System.Collections.Immutable;
 
 namespace Connected.Caching;
@@ -30,11 +31,27 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 			throw new ArgumentNullException(nameof(id));
 
 		await CachingService.Remove(Key, id);
+		await OnRemoved(id);
 	}
 
 	public async Task Remove(Func<TEntry, bool> predicate)
 	{
-		await CachingService.Remove(Key, predicate);
+		var removed = await CachingService.Remove(Key, predicate);
+
+		if (removed is null)
+			return;
+
+		foreach (var item in removed)
+		{
+			var converted = Types.Convert<TKey>(item);
+
+			await OnRemoved(converted);
+		}
+	}
+
+	protected virtual async Task OnRemoved(TKey id)
+	{
+		await Task.CompletedTask;
 	}
 
 	public virtual Task<IImmutableList<TEntry>?> All()

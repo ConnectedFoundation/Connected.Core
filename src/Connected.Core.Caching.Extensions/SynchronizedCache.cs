@@ -4,25 +4,21 @@ using System.Collections.Immutable;
 
 namespace Connected.Caching;
 
-public abstract class SynchronizedCache<TEntry, TKey> : CacheContainer<TEntry, TKey>, ISynchronizedCache<TEntry, TKey> where TEntry : class
+public abstract class SynchronizedCache<TEntry, TKey>(ICachingService cachingService, string key)
+	: CacheContainer<TEntry, TKey>(cachingService, key), ISynchronizedCache<TEntry, TKey> where TEntry : class
 {
 	static SynchronizedCache()
 	{
-		Initializers = new();
-	}
-
-	protected SynchronizedCache(ICachingService cachingService, string key) : base(cachingService, key)
-	{
-		Locker = new();
+		Initializers = [];
 	}
 
 	private static HashSet<string> Initializers { get; }
-	private AsyncLockerSlim? Locker { get; set; }
+	private AsyncLockerSlim? Locker { get; set; } = new();
 
-	private bool Initialized
+	protected bool Initialized
 	{
 		get => Initializers.Contains(Key);
-		set
+		private set
 		{
 			if (Initializers.Contains(Key))
 				return;
@@ -42,6 +38,11 @@ public abstract class SynchronizedCache<TEntry, TKey> : CacheContainer<TEntry, T
 		await Task.CompletedTask;
 	}
 
+	protected virtual async Task OnInvalidated(TKey id)
+	{
+		await Task.CompletedTask;
+	}
+
 	protected virtual async Task OnInitializing()
 	{
 		await Task.CompletedTask;
@@ -53,6 +54,8 @@ public abstract class SynchronizedCache<TEntry, TKey> : CacheContainer<TEntry, T
 
 		if (converted is not null)
 			await OnInvalidate(converted);
+
+		await OnInvalidated(converted);
 	}
 
 	async Task ICachingDataProvider.Initialize()

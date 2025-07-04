@@ -1,6 +1,7 @@
 ﻿namespace Connected.Entities;
 
-public interface ITaggedEntity : IEntity
+public interface ITaggedEntity<TPrimaryKey> : IEntity<TPrimaryKey>
+	where TPrimaryKey : notnull
 {
 	string? Tags { get; init; }
 }
