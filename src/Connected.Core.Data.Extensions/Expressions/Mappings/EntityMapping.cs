@@ -97,28 +97,9 @@ internal sealed class EntityMapping
 
 	private Expression CreateEntityExpression(IList<EntityAssignment> assignments)
 	{
-		NewExpression newExpression;
-		var readonlyMembers = assignments.Where(f => f.Mapping.IsReadOnly).ToArray();
 		var cons = EntityType.GetTypeInfo().DeclaredConstructors.Where(c => c.IsPublic && !c.IsStatic).ToArray();
 		var hasNoArgConstructor = cons.Any(c => c.GetParameters().Length == 0);
-
-		if (readonlyMembers.Any() || !hasNoArgConstructor)
-		{
-			var consThatApply = cons.Select(c => BindConstructor(c, readonlyMembers)).Where(cbr => cbr is not null && !cbr.Remaining.Any()).ToList();
-
-			if (!consThatApply.Any())
-				throw new InvalidOperationException($"Cannot construct type '{EntityType}' with all mapped and included members.");
-
-			if (readonlyMembers.Length == assignments.Count)
-				return consThatApply[0].Expression;
-
-			var r = BindConstructor(consThatApply[0].Expression.Constructor, assignments);
-
-			newExpression = r.Expression;
-			assignments = r.Remaining;
-		}
-		else
-			newExpression = Expression.New(EntityType);
+		var newExpression = Expression.New(EntityType);
 
 		Expression result;
 

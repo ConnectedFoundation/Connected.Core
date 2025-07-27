@@ -7,6 +7,6 @@ namespace Connected.Entities;
 public abstract record ConsistentEntity<TPrimaryKey> : Entity<TPrimaryKey>
 	 where TPrimaryKey : notnull
 {
-	[Ordinal(10000), ETag, JsonIgnore]
+	[Ordinal(10000), ETag, JsonIgnore, Persistence(PersistenceMode.Read)]
 	public string? ETag { get; init; }
 }
