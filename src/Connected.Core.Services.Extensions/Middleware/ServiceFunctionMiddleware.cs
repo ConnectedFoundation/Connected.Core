@@ -6,18 +6,19 @@ public abstract class ServiceFunctionMiddleware<TDto, TReturnValue> : ServiceOpe
 	where TDto : IDto
 {
 	protected TDto Dto { get; private set; } = default!;
-
+	protected TReturnValue? Result { get; set; }
 	public async Task<TReturnValue?> Invoke(TDto dto, TReturnValue? result)
 	{
 		Dto = dto;
+		Result = result;
 
-		return await OnInvoke(result);
-	}
-
-	protected virtual async Task<TReturnValue?> OnInvoke(TReturnValue? result)
-	{
-		await Task.CompletedTask;
+		await OnInvoke();
 
 		return result;
+	}
+
+	protected virtual async Task OnInvoke()
+	{
+		await Task.CompletedTask;
 	}
 }
