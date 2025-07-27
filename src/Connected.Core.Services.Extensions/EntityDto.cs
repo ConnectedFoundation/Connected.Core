@@ -2,7 +2,7 @@
 
 namespace Connected.Services;
 
-public abstract class EntityDto : Dto, IEntityDto
+public class EntityDto : Dto, IEntityDto
 {
 	[Required, MaxLength(1024)]
 	public required virtual string Entity { get; set; }
