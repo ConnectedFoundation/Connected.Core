@@ -176,14 +176,18 @@ internal class FieldMappings<TEntity>
 			 * format so we simply set the correct kind of date so it can be later correctly
 			 * converted
 			 */
-			value = new DateTimeOffset(DateTime.SpecifyKind((DateTime)value, DateTimeKind.Utc));
+			if (value is DateTime time)
+				value = new DateTimeOffset(DateTime.SpecifyKind(time, DateTimeKind.Utc));
 		}
 		else if (type == typeof(DateTime))
 		{
 			/*
 			 * Like DateTimeOffset, the same is true for DateTime values
 			 */
-			value = DateTime.SpecifyKind((DateTime)value, DateTimeKind.Utc);
+			if (value is DateTimeOffset offset)
+				value = DateTime.SpecifyKind(offset.DateTime, DateTimeKind.Utc);
+			else if (value is DateTime dateTime)
+				value = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
 		}
 		else
 		{
