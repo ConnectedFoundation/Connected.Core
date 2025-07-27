@@ -37,7 +37,7 @@ public abstract class Service : IService, IDisposable
 				if (m is ITransactionClient client && ServiceLocator.GetService<ITransactionContext>() is ITransactionContext transaction)
 					transaction.Register(client);
 
-				result = await m.Invoke(dto, result);
+				result = await m.Invoke(function, result);
 			}
 		}
 
@@ -65,7 +65,7 @@ public abstract class Service : IService, IDisposable
 				if (m is ITransactionClient client && ServiceLocator.GetService<ITransactionContext>() is ITransactionContext transaction)
 					transaction.Register(client);
 
-				await m.Invoke(dto);
+				await m.Invoke(action);
 			}
 		}
 	}

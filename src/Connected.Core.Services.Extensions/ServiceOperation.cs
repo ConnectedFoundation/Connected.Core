@@ -1,10 +1,10 @@
-﻿using Connected.Reflection;
+﻿using Connected.Entities;
 using Connected.Storage.Transactions;
 using System.Collections.Concurrent;
 
 namespace Connected.Services;
 
-public abstract class ServiceOperation<TDto> : IServiceOperation<TDto>, ITransactionClient, IOperationState
+public abstract class ServiceOperation<TDto> : IServiceOperation<TDto>, ITransactionClient
 	where TDto : IDto
 {
 	private TDto? _dto;
@@ -37,16 +37,31 @@ public abstract class ServiceOperation<TDto> : IServiceOperation<TDto>, ITransac
 		 * outside the library and implementors cannot access the state
 		 * object this way
 		 */
-		var implementedEntities = typeof(TEntity).GetImplementedEntities();
-		var key = implementedEntities.Count > 0 ? implementedEntities[0].FullName : typeof(TEntity).FullName;
-
-		if (string.IsNullOrEmpty(key))
-			return entity;
-
-		State.AddOrUpdate(key, entity, (existing, @new) =>
+		if (typeof(TEntity).IsInterface && typeof(TEntity).IsAssignableTo(typeof(IEntity)))
 		{
-			return @new;
-		});
+			var fullName = typeof(TEntity).FullName;
+
+			if (fullName is null)
+				return entity;
+
+			State.AddOrUpdate(fullName, entity, (existing, @new) =>
+			{
+				return @new;
+			});
+		}
+		else
+		{
+			var implementedEntities = typeof(TEntity).GetImplementedEntities();
+			var key = implementedEntities.Count > 0 ? implementedEntities[0].FullName : typeof(TEntity).FullName;
+
+			if (string.IsNullOrEmpty(key))
+				return entity;
+
+			State.AddOrUpdate(key, entity, (existing, @new) =>
+			{
+				return @new;
+			});
+		}
 
 		return entity;
 	}
@@ -61,7 +76,7 @@ public abstract class ServiceOperation<TDto> : IServiceOperation<TDto>, ITransac
 		if (!State.TryGetValue(key, out object? result) || result is null)
 			return default;
 
-		return Types.Convert<TEntity>(result);
+		return (TEntity)result;
 	}
 
 	async Task ITransactionClient.Commit()

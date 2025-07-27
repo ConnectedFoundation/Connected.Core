@@ -289,7 +289,7 @@ internal class CacheContext : ICacheContext
 
 	public IEnumerator<T>? GetEnumerator<T>(string key)
 	{
-		throw new NotImplementedException();
+		return _scope.GetEnumerator<T>(key);
 	}
 
 	public int Count(string key)

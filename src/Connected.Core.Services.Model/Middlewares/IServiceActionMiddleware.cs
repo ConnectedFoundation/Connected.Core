@@ -3,5 +3,5 @@
 public interface IServiceActionMiddleware<TDto> : IServiceOperationMiddleware
 	where TDto : IDto
 {
-	Task Invoke(TDto dto);
+	Task Invoke(IAction<TDto> dto);
 }
