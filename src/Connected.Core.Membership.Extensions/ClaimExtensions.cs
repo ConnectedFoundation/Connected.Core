@@ -27,14 +27,7 @@ public static class ClaimExtensions
 
 	public static async Task<bool> HasClaim(this IIdentity? identity, IClaimService claims, string claim, string? type, string? primaryKey)
 	{
-		var dto = Dto.Factory.Create<IRequestClaimDto>();
-
-		dto.Identity = identity?.Token;
-		dto.Values = claim;
-		dto.Type = type;
-		dto.PrimaryKey = primaryKey;
-
-		return await claims.Request(dto);
+		return await ClaimUtils.HasClaim(identity?.Token, claims, claim, type, primaryKey);
 	}
 
 	public static async Task<bool> HasClaim(this IAuthenticationService authentication, IClaimService claims, string claim)

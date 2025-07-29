@@ -51,8 +51,8 @@ public abstract class ServiceOperation<TDto> : IServiceOperation<TDto>, ITransac
 		}
 		else
 		{
-			var implementedEntities = typeof(TEntity).GetImplementedEntities();
-			var key = implementedEntities.Count > 0 ? implementedEntities[0].FullName : typeof(TEntity).FullName;
+			var implementedEntity = typeof(TEntity).ResolveImplementedEntity();
+			var key = implementedEntity is not null ? implementedEntity.FullName : typeof(TEntity).FullName;
 
 			if (string.IsNullOrEmpty(key))
 				return entity;

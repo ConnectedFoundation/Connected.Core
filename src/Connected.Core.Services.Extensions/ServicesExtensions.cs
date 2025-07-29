@@ -33,9 +33,14 @@ public static class ServicesExtensions
 		return GetImplementedInterfaces<IDto>(type);
 	}
 
-	public static List<Type> GetImplementedEntities(this Type type)
+	public static Type? ResolveImplementedEntity(this Type type)
 	{
-		return GetImplementedInterfaces<IEntity>(type);
+		var interfaces = GetImplementedInterfaces<IEntity>(type);
+
+		if (interfaces.Count == 0)
+			return null;
+
+		return interfaces[0];
 	}
 
 	private static List<Type> GetImplementedInterfaces<TInterface>(Type type)

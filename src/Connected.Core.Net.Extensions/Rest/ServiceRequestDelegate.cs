@@ -1,4 +1,5 @@
 using Connected.Annotations;
+using Connected.Net.Dtos;
 using Connected.Net.Rest.Formatters;
 using Connected.Reflection;
 using Connected.Services;
@@ -176,7 +177,23 @@ internal sealed class ServiceRequestDelegate : IDisposable
 			return null;
 
 		var arguments = new List<object?>();
-		var requestParams = await ParseArguments();
+		var requestArgs = await ParseArguments();
+
+		if (requestArgs is not null && _scope is not null)
+		{
+			var middlewares = await _scope.Value.ServiceProvider.GetRequiredService<IMiddlewareService>().Query<IRequestArgumentHandler>();
+
+			foreach (var argument in requestArgs)
+			{
+				var dto = _scope.Value.ServiceProvider.GetRequiredService<IRequestArgumentDto>();
+
+				dto.Property = argument.Key;
+				dto.Value = argument.Value;
+
+				foreach (var middleware in middlewares)
+					await middleware.Invoke(dto);
+			}
+		}
 		/*
 		 * Look for all method parameters. Note that this is already an implementation method not the interface one.
 		 */
@@ -192,7 +209,7 @@ internal sealed class ServiceRequestDelegate : IDisposable
 
 			if (parameter.ParameterType.GetInterface(dtoName) is not null && parameter.ParameterType.IsInterface)
 			{
-				if (requestParams is null || !requestParams.Any())
+				if (requestArgs is null || !requestArgs.Any())
 				{
 					if (!parameter.IsOptional && !parameter.IsNullable())
 						throw new ValidationException($"{RestStrings.ValParseRequestArguments} ('{parameter.ParameterType.ShortName()}')");
@@ -208,7 +225,7 @@ internal sealed class ServiceRequestDelegate : IDisposable
 						/*
 						 * Merge request properties into argument instance.
 						 */
-						Serializer.Merge(argument, requestParams);
+						Serializer.Merge(argument, requestArgs);
 
 						arguments.Add(argument);
 					}
@@ -220,7 +237,7 @@ internal sealed class ServiceRequestDelegate : IDisposable
 			}
 			else
 			{
-				if (requestParams is null || !requestParams.Any())
+				if (requestArgs is null || !requestArgs.Any())
 				{
 					if (!parameter.IsOptional && !parameter.IsNullable())
 						throw new ValidationException($"{RestStrings.ValParseRequestArguments} ('{parameter.ParameterType.ShortName()}')");
@@ -235,7 +252,7 @@ internal sealed class ServiceRequestDelegate : IDisposable
 					 */
 					if (parameter.ParameterType.IsTypePrimitive())
 					{
-						var value = ResolvePrimitiveArgument(parameter, requestParams);
+						var value = ResolvePrimitiveArgument(parameter, requestArgs);
 
 						if (value is not null)
 							arguments.Add(value);
@@ -245,9 +262,9 @@ internal sealed class ServiceRequestDelegate : IDisposable
 						var binder = ResolveBinder(argument);
 
 						if (binder is not null)
-							binder.Invoke(argument, requestParams ?? new Dictionary<string, object?>());
+							binder.Invoke(argument, requestArgs ?? new Dictionary<string, object?>());
 						else
-							Serializer.Merge(argument, requestParams);
+							Serializer.Merge(argument, requestArgs);
 
 						arguments.Add(argument);
 					}

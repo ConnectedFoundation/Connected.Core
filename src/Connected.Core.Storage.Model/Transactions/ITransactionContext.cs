@@ -15,6 +15,7 @@ public interface ITransactionContext
 {
 	event EventHandler? StateChanged;
 	MiddlewareTransactionState State { get; }
+	Guid Id { get; }
 	void Register(ITransactionClient client);
 	bool IsDirty { get; set; }
 

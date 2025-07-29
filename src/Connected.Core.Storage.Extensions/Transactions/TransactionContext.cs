@@ -17,6 +17,8 @@ internal class TransactionContext : ITransactionContext
 
 	public bool IsDirty { get; set; }
 
+	public Guid Id { get; } = Guid.NewGuid();
+
 	private void ChangeState(MiddlewareTransactionState state)
 	{
 		if (State == state)
