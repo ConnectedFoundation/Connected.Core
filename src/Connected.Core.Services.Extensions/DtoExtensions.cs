@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Connected.Reflection;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Connected.Services;
 public static class DtoExtensions
@@ -149,6 +150,23 @@ public static class DtoExtensions
 
 		result.Head = head;
 		result.Id = id;
+
+		return result;
+	}
+
+	public static IDistributedPrimaryKeyDto<THead, TPrimaryKey> CreateDistributedPrimaryKey<THead, TPrimaryKey>(this IDto dto, string value)
+		where THead : notnull
+		where TPrimaryKey : notnull
+	{
+		var tokens = value.Split('.');
+
+		if (tokens.Length != 2)
+			throw new ArgumentException($"{SR.ErrExpectingHeadAndKey} ({value})");
+
+		var result = dto.Create<IDistributedPrimaryKeyDto<THead, TPrimaryKey>>();
+
+		result.Head = Types.Convert<THead>(tokens[0]);
+		result.Id = Types.Convert<TPrimaryKey>(tokens[1]);
 
 		return result;
 	}
