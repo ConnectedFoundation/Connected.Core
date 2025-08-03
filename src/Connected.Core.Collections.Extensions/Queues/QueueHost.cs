@@ -48,7 +48,7 @@ public abstract class QueueHost : ScheduledWorker
 				Priority = Dispatcher.MinPriority
 			});
 
-			await OnDequeued(items);
+			items = await OnDequeued(items);
 
 			if (!items.Any())
 				return;
@@ -88,8 +88,8 @@ public abstract class QueueHost : ScheduledWorker
 		return await Task.FromResult(true);
 	}
 
-	protected virtual async Task OnDequeued(IImmutableList<IQueueMessage> messages)
+	protected virtual async Task<IImmutableList<IQueueMessage>> OnDequeued(IImmutableList<IQueueMessage> messages)
 	{
-		await Task.CompletedTask;
+		return await Task.FromResult(messages);
 	}
 }
