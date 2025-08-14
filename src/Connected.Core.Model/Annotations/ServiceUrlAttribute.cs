@@ -11,6 +11,7 @@
 [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Event)]
 public sealed class ServiceUrlAttribute : Attribute
 {
+	public const string Lookup = "lookup";
 	/// <summary>
 	/// Creates a new instance of the ServiceUrlAttribute class.
 	/// </summary>
