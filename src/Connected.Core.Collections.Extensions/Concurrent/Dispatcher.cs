@@ -64,7 +64,7 @@ public abstract class Dispatcher<TDto, TJob> : IDispatcher<TDto, TJob>
 		if (!Queue.TryDequeue(out TDto? item) || item is null)
 			return;
 
-		if (item is IPopReceipt pr && pr.NextVisible <= DateTime.UtcNow)
+		if (item is IPopReceipt pr && pr.NextVisible <= DateTimeOffset.UtcNow)
 			return;
 		/*
 		 * Dispatcher jobs should be transient so it's safe to request a service from the root collection.
