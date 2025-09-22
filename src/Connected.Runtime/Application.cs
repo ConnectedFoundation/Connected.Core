@@ -5,6 +5,8 @@ using Connected.Globalization;
 using Connected.Net;
 using Connected.Net.Routing;
 using Connected.Net.Routing.Dtos;
+using Connected.Reflection;
+using Connected.Runtime;
 using Connected.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -37,8 +39,6 @@ public static class Application
 
 	public static void AddMicroServices(this WebApplicationBuilder builder)
 	{
-		var startups = MicroServices.Startups;
-
 		foreach (var microService in MicroServices.All)
 			builder.Services.AddMicroService(microService);
 
@@ -116,7 +116,7 @@ public static class Application
 		return serviceName;
 	}
 
-	public static async Task InitializeMicroServices(this IApplicationBuilder builder, IHost host)
+	public static async Task InitializeMicroServices(IHost host)
 	{
 		var startups = MicroServices.Startups;
 
@@ -126,7 +126,7 @@ public static class Application
 			await startup.Initialize(host);
 	}
 
-	public static async Task StartMicroServices(this IApplicationBuilder builder)
+	public static async Task StartMicroServices()
 	{
 		var startups = MicroServices.Startups;
 
@@ -215,6 +215,7 @@ public static class Application
 		RegisterCoreMicroService("Authentication");
 		RegisterCoreMicroService("Storage.Sql");
 		RegisterCoreMicroService("Net.Routing");
+		RegisterCoreMicroService("Authorization.Extensions");
 	}
 
 	private static void RegisterCoreMicroService(string name)
@@ -226,16 +227,22 @@ public static class Application
 	{
 		try
 		{
-			RegisterCoreMicroServices();
-			AddOutOfMemoryExceptionHandler();
-			AddAutoRestart();
-
 			var builder = WebApplication.CreateBuilder(args);
 
-			builder.Configuration.AddUserSecrets(Assembly.GetEntryAssembly(), true);
+			var entryAssembly = Assembly.GetEntryAssembly();
+
+			if (entryAssembly is not null)
+				builder.Configuration.AddUserSecrets(entryAssembly, true);
+
 			builder.Configuration.AddEnvironmentVariables();
 
 			var services = builder.Services;
+
+			RegisterConfiguredMicroServices(builder.Configuration);
+			RegisterImages(builder.Configuration);
+			RegisterCoreMicroServices();
+			AddOutOfMemoryExceptionHandler();
+			AddAutoRestart();
 
 			services.AddLogging(builder => builder.AddConsole());
 
@@ -264,8 +271,8 @@ public static class Application
 			webApp.ActivateAuthenticationCookieMiddleware();
 			webApp.ActivateRest();
 
-			await webApp.InitializeMicroServices(webApp);
-			await webApp.StartMicroServices();
+			await InitializeMicroServices(webApp);
+			await StartMicroServices();
 
 			HasStarted = true;
 
@@ -277,6 +284,48 @@ public static class Application
 			{
 				while (true)
 					Thread.Sleep(1000);
+			}
+		}
+	}
+
+	private static void RegisterConfiguredMicroServices(IConfiguration configuration)
+	{
+		var section = configuration.GetSection("microServices");
+
+		foreach (var child in section.GetChildren())
+		{
+			var value = child.Value;
+
+			if (!string.IsNullOrWhiteSpace(value))
+				RegisterMicroService(value);
+		}
+	}
+
+	private static void RegisterImages(IConfiguration configuration)
+	{
+		var section = configuration.GetSection("images");
+
+		foreach (var child in section.GetChildren())
+		{
+			var value = child.Value;
+
+			if (string.IsNullOrWhiteSpace(value))
+				continue;
+
+			var fileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, value);
+			var name = AssemblyName.GetAssemblyName(fileName);
+			var assembly = AppDomain.CurrentDomain.Load(name);
+			var types = assembly.GetTypes();
+
+			foreach (var type in types)
+			{
+				if (type.IsClass && !type.IsAbstract && type.ImplementsInterface<IRuntimeImage>())
+				{
+					if (Activator.CreateInstance(type) is not IRuntimeImage instance)
+						continue;
+
+					instance.Register();
+				}
 			}
 		}
 	}

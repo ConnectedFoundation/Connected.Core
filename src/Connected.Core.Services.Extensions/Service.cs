@@ -125,7 +125,10 @@ public abstract class Service : IService, IDisposable
 		if (caller.Sender is null || ServiceLocator.GetService<IAuthorizationContext>() is not IAuthorizationContext authorization)
 			return;
 
-		await authorization.Authorize(caller, dto);
+		var result = await authorization.Authorize(caller, dto);
+
+		if (result == AuthorizationResult.Fail)
+			throw new UnauthorizedAccessException();
 	}
 
 	private async Task<TResult> Authorize<TDto, TResult>(ICallerContext caller, TDto dto, TResult result)

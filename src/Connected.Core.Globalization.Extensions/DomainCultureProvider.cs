@@ -1,4 +1,5 @@
-﻿using Connected.Globalization.Languages;
+﻿using Connected.Authentication;
+using Connected.Globalization.Languages;
 using Connected.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Localization;
@@ -15,7 +16,7 @@ internal sealed class DomainCultureProvider : CultureProviderBase, IRequestCultu
 		if (string.IsNullOrWhiteSpace(domain))
 			return await Unresolved;
 
-		using var scope = Scope.Create();
+		using var scope = Scope.Create().WithSystemIdentity();
 
 		try
 		{

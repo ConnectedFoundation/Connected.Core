@@ -1,11 +1,10 @@
 ﻿using Connected.Authentication;
 using Connected.Authorization;
-using Connected.Authorization.Net;
+using Connected.Authorization.Services;
 
 namespace Connected.Core.Authorization.Default;
-
-internal sealed class DefaultHttpRequestAuthorization(IAuthenticationService authentication)
-	: HttpRequestAuthorization
+internal sealed class DefaultScopeAuthorization(IAuthenticationService authentication)
+	: ScopeAuthorization
 {
 	protected override async Task<AuthorizationResult> OnInvoke()
 	{

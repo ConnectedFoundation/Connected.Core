@@ -1,4 +1,5 @@
-﻿using Connected.Configuration.Settings;
+﻿using Connected.Authentication;
+using Connected.Configuration.Settings;
 using Connected.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Localization;
@@ -9,7 +10,7 @@ internal sealed class DefaultSettingsCultureProvider : CultureProviderBase, IReq
 {
 	public override async Task<ProviderCultureResult?> DetermineProviderCultureResult(HttpContext httpContext)
 	{
-		using var scope = Scope.Create();
+		using var scope = Scope.Create().WithSystemIdentity();
 
 		var settings = scope.ServiceProvider.GetRequiredService<ISettingService>();
 		var value = await settings.Select(Dto.Factory.CreateName("DefaultCulture"));

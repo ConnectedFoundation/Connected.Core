@@ -2,8 +2,7 @@
 using Connected.Services;
 
 namespace Connected.Authorization.Services;
-
-internal sealed class ServiceAuthorizationDto : Dto, IServiceAuthorizationDto
+internal sealed class ScopeAuthorizationDto : Dto, IScopeAuthorizationDto
 {
 	[NonDefault]
 	public required ICallerContext Caller { get; set; }

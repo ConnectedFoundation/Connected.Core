@@ -21,7 +21,7 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 	private async Task<AuthorizationResult> Authorize()
 	{
 		if (http?.HttpContext is null)
-			return AuthorizationResult.Skip;
+			return AuthorizationResult.Fail;
 
 		var middlewares = await middleware.Query<IHttpRequestAuthorization>();
 		var onePassed = false;
@@ -53,7 +53,7 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 		if (onePassed)
 			return AuthorizationResult.Pass;
 
-		return AuthorizationResult.Skip;
+		return AuthorizationResult.Fail;
 	}
 
 	public async Task<AuthorizationResult> Authorize<TDto>(ICallerContext context, TDto dto)
@@ -77,9 +77,61 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 		if (IsAuthorized)
 			return AuthorizationResult.Pass;
 
+		var scopeResult = await AuthorizeScope(context, dto);
+
+		if (scopeResult == AuthorizationResult.Fail)
+			return AuthorizationResult.Fail;
+
+		if (IsAuthorized)
+			return AuthorizationResult.Pass;
+
 		return await Authorize();
 	}
 
+	private async Task<AuthorizationResult> AuthorizeScope<TDto>(ICallerContext context, TDto dto)
+		where TDto : IDto
+	{
+		/*
+		 * We need to strip method from the caller since we are looking for 
+		 * the service scope middleware.
+		 */
+		var middlewares = await middleware.Query<IScopeAuthorization>();
+		var authorizationDto = Dto.Factory.Create<IScopeAuthorizationDto>();
+		var onePassed = false;
+
+		authorizationDto.Caller = context;
+		authorizationDto.Dto = dto;
+
+		foreach (var middleware in middlewares)
+		{
+			var decorationResult = await InvokeDecorations(middleware);
+
+			if (decorationResult == AuthorizationResult.Fail)
+				return AuthorizationResult.Fail;
+
+			if (decorationResult == AuthorizationResult.Pass)
+				onePassed = true;
+
+			var result = await middleware.Invoke(authorizationDto);
+
+			if (result == AuthorizationResult.Fail)
+				return AuthorizationResult.Fail;
+
+			if (result == AuthorizationResult.Pass)
+				onePassed = true;
+
+			if (middleware.IsSealed)
+				break;
+		}
+
+		if (middlewares.Count != 0 && onePassed)
+			IsAuthorized = true;
+
+		if (onePassed)
+			return AuthorizationResult.Pass;
+
+		return AuthorizationResult.Skip;
+	}
 	private async Task<AuthorizationResult> AuthorizeService<TDto>(ICallerContext context, TDto dto)
 		where TDto : IDto
 	{

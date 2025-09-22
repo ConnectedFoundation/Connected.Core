@@ -207,7 +207,7 @@ internal class MiddlewareService : IMiddlewareService
 			if (method is null)
 				continue;
 
-			if (!string.Equals(Convert.ToString(method.GetValue(attribute)), context.Method, StringComparison.Ordinal))
+			if (!string.Equals(method.GetValue(attribute) as string, context.Method, StringComparison.Ordinal))
 				continue;
 
 			var argument = attribute.GetType().GetGenericArguments()[0];

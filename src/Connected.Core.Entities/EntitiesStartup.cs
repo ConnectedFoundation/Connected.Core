@@ -1,4 +1,5 @@
-﻿using Connected.Reflection;
+﻿using Connected.Authentication;
+using Connected.Reflection;
 using Connected.Runtime;
 using Connected.Services;
 using Connected.Storage.Schemas;
@@ -14,7 +15,7 @@ public sealed class EntitiesStartup : Startup
 
 	private async Task SynchronizeSchemas()
 	{
-		using var scope = Scope.Create();
+		using var scope = Scope.Create().WithSystemIdentity();
 
 		var rt = scope.ServiceProvider.GetRequiredService<IRuntimeService>();
 

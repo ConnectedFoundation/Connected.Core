@@ -336,6 +336,8 @@ internal sealed class ServiceRequestDelegate : IDisposable
 
 		if (ex is AccessViolationException)
 			HttpContext.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+		else if (ex is UnauthorizedAccessException)
+			HttpContext.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
 		else if (ex is ValidationException)
 			HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
 		else if (ex is ArgumentException)
