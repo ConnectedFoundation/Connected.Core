@@ -4,7 +4,7 @@ using System.Collections.Immutable;
 
 namespace Connected.Caching;
 
-public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKey> where TEntry : class
+public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKey>
 {
 	protected CacheContainer(ICachingService cachingService, string key)
 	{

@@ -4,6 +4,6 @@ using Connected.Storage;
 namespace Connected.Membership;
 
 internal sealed class MembershipCache(ICachingService cache, IStorageProvider storage)
-	: EntityCache<Membership, long>(cache, storage, MembershipMetaData.MembershipKey), IMembershipCache
+	: EntityCache<IMembership, Membership, long>(cache, storage, MembershipMetaData.MembershipKey), IMembershipCache
 {
 }

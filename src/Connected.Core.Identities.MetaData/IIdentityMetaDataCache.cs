@@ -3,6 +3,6 @@
 namespace Connected.Identities.MetaData;
 
 internal interface IIdentityMetaDataCache
-  : IEntityCache<IdentityMetaData, string>
+  : IEntityCache<IIdentityMetaData, string>
 {
 }

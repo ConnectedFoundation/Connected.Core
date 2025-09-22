@@ -4,6 +4,6 @@ using Connected.Storage;
 namespace Connected.Identities.MetaData;
 
 internal sealed class IdentityMetaDataCache(ICachingService cache, IStorageProvider storage)
-	 : EntityCache<IdentityMetaData, string>(cache, storage, IdentitiesMetaData.MetaDataKey)
+	 : EntityCache<IIdentityMetaData, IdentityMetaData, string>(cache, storage, IdentitiesMetaData.MetaDataKey), IIdentityMetaDataCache
 {
 }

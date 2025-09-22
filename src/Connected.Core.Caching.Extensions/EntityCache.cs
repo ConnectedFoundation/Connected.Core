@@ -5,9 +5,10 @@ using System.Collections.Immutable;
 
 namespace Connected.Caching;
 
-public abstract class EntityCache<TEntity, TPrimaryKey> : SynchronizedCache<TEntity, TPrimaryKey>, IEntityCache<TEntity, TPrimaryKey>
-	 where TEntity : class, IPrimaryKeyEntity<TPrimaryKey>, IEntity
-	 where TPrimaryKey : notnull
+public abstract class EntityCache<TEntity, TEntityImplementation, TPrimaryKey> : SynchronizedCache<TEntity, TPrimaryKey>, IEntityCache<TEntity, TPrimaryKey>
+	where TEntity : IPrimaryKeyEntity<TPrimaryKey>
+	where TEntityImplementation : class, IPrimaryKeyEntity<TPrimaryKey>, TEntity
+	where TPrimaryKey : notnull
 {
 	protected EntityCache(ICachingService cache, IStorageProvider storage, string key) : base(cache, key)
 	{
@@ -27,8 +28,8 @@ public abstract class EntityCache<TEntity, TPrimaryKey> : SynchronizedCache<TEnt
 
 	protected virtual async Task<IImmutableList<TEntity>?> OnInitializingEntities()
 	{
-		return await (from dc in Storage.Open<TEntity>()
-						  select dc).AsEntities();
+		return await (from dc in Storage.Open<TEntityImplementation>()
+						  select dc).AsEntities<TEntity>();
 	}
 
 	protected override async Task OnInvalidate(TPrimaryKey id)
@@ -41,9 +42,9 @@ public abstract class EntityCache<TEntity, TPrimaryKey> : SynchronizedCache<TEnt
 
 	protected virtual async Task<TEntity?> OnInvalidating(TPrimaryKey id)
 	{
-		return await (from dc in Storage.Open<TEntity>()
+		return await (from dc in Storage.Open<TEntityImplementation>()
 						  where TypeComparer.Compare(dc.Id, id)
-						  select dc).AsEntity();
+						  select dc).AsEntity<TEntity>();
 	}
 
 	async Task IEntityCache<TEntity, TPrimaryKey>.Refresh(TPrimaryKey id)

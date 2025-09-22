@@ -2,6 +2,6 @@
 
 namespace Connected.Membership;
 
-internal interface IMembershipCache : IEntityCache<Membership, long>
+internal interface IMembershipCache : IEntityCache<IMembership, long>
 {
 }

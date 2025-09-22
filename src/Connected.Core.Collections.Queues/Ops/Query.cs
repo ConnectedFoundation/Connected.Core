@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 
 namespace Connected.Collections.Queues.Ops;
 
-internal sealed class Query(IQueueCache cache, IStorageProvider storage, IQueueService queue)
+internal sealed class Query(IQueueCache cache, IStorageProvider storage)
 	: ServiceFunction<IQueryDto, IImmutableList<IQueueMessage>>
 {
 	protected override async Task<IImmutableList<IQueueMessage>> OnInvoke()
@@ -24,7 +24,9 @@ internal sealed class Query(IQueueCache cache, IStorageProvider storage, IQueueS
 		 */
 		foreach (var target in targets)
 		{
-			var message = target with
+			var entity = target as QueueMessage ?? throw new NullReferenceException(Strings.ErrEntityExpected);
+
+			var message = entity with
 			{
 				NextVisible = DateTimeOffset.UtcNow.Add(Dto.NextVisible),
 				DequeueTimestamp = DateTimeOffset.UtcNow,
@@ -42,7 +44,7 @@ internal sealed class Query(IQueueCache cache, IStorageProvider storage, IQueueS
 				 */
 				await cache.Refresh(message.Id);
 
-				return await cache.Select(message.Id);
+				return await cache.Select(message.Id) as QueueMessage ?? throw new NullReferenceException(Strings.ErrEntityExpected);
 			}, Caller, (entity) =>
 			{
 				/*
@@ -65,18 +67,18 @@ internal sealed class Query(IQueueCache cache, IStorageProvider storage, IQueueS
 		return [.. result];
 	}
 
-	private async Task<List<QueueMessage>> SelectTargets()
+	private async Task<List<IQueueMessage>> SelectTargets()
 	{
 		/*
 		 * First, let's make a call that will return all messages for the requested queue.
 		 */
 		var items = (await cache.Query(Dto.Queue)).OrderByDescending(f => f.Priority).ThenBy(f => f.NextVisible).ThenBy(f => f.Id);
-		var result = new List<QueueMessage>();
+		var result = new List<IQueueMessage>();
 
 		if (!items.Any())
 			return result;
 
-		var targets = new List<QueueMessage>();
+		var targets = new List<IQueueMessage>();
 		int? priority = null;
 
 		foreach (var i in items)
@@ -145,6 +147,6 @@ internal sealed class Query(IQueueCache cache, IStorageProvider storage, IQueueS
 		/*
 		 * Return only a subset of results, not more than caller requested.
 		 */
-		return ordered.Take(Dto.MaxCount).ToList();
+		return [.. ordered.Take(Dto.MaxCount)];
 	}
 }

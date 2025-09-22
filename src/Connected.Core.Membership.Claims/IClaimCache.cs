@@ -2,6 +2,6 @@
 
 namespace Connected.Membership.Claims;
 
-internal interface IClaimCache : IEntityCache<Claim, long>
+internal interface IClaimCache : IEntityCache<IClaim, long>
 {
 }

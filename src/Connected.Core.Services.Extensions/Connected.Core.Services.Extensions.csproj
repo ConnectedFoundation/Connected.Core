@@ -65,6 +65,7 @@
 		<ProjectReference Include="..\Connected.Core.Reflection.Extensions\Connected.Core.Reflection.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Services.Model\Connected.Core.Services.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Storage.Model\Connected.Core.Storage.Model.csproj" />
+		<ProjectReference Include="..\Connected.Core.Notifications.Model\Connected.Core.Notifications.Model.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

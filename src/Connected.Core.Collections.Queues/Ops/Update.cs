@@ -9,7 +9,7 @@ internal sealed class Update(IQueueCache cache, IStorageProvider storage)
 {
 	protected override async Task OnInvoke()
 	{
-		var existing = await cache.Select(Dto.Value) ?? throw new NullReferenceException($"{QueueStrings.ErrQueueMessageNull} ('{Dto.Value}')");
+		var existing = await cache.Select(Dto.Value) as QueueMessage ?? throw new NullReferenceException($"{QueueStrings.ErrQueueMessageNull} ('{Dto.Value}')");
 		var modified = existing with
 		{
 			NextVisible = DateTime.UtcNow.Add(Dto.NextVisible),
@@ -20,7 +20,7 @@ internal sealed class Update(IQueueCache cache, IStorageProvider storage)
 		{
 			await cache.Refresh(existing.Id);
 
-			return await cache.Select(existing.Id);
+			return await cache.Select(existing.Id) as QueueMessage ?? throw new NullReferenceException(Strings.ErrEntityExpected);
 		}, Caller, (entity) =>
 		{
 			return Task.FromResult(entity with

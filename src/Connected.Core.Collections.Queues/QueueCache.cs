@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 namespace Connected.Collections.Queues;
 
 internal sealed class QueueCache(ICachingService cache, IStorageProvider storage)
-	: EntityCache<QueueMessage, long>(cache, storage, MetaData.QueueMessageKey), IQueueCache
+	: EntityCache<IQueueMessage, QueueMessage, long>(cache, storage, MetaData.QueueMessageKey), IQueueCache
 {
 	public async Task<bool> Exists(Type client, string batch)
 	{
@@ -21,17 +21,17 @@ internal sealed class QueueCache(ICachingService cache, IStorageProvider storage
 		return !(existing.NextVisible > DateTimeOffset.UtcNow);
 	}
 
-	public async Task<IImmutableList<QueueMessage>> Query(string queue)
+	public async Task<IImmutableList<IQueueMessage>> Query(string queue)
 	{
 		return await Task.FromResult(this.Where(f => string.Equals(f.Queue, queue, StringComparison.OrdinalIgnoreCase)).ToImmutableList());
 	}
 
-	public async Task<QueueMessage?> Select(Guid popReceipt)
+	public async Task<IQueueMessage?> Select(Guid popReceipt)
 	{
 		return await Get(f => f.PopReceipt == popReceipt);
 	}
 
-	public async Task<QueueMessage?> Select(long id)
+	public async Task<IQueueMessage?> Select(long id)
 	{
 		return await Get(id);
 	}
@@ -46,7 +46,7 @@ internal sealed class QueueCache(ICachingService cache, IStorageProvider storage
 		await Remove(id);
 	}
 
-	public Task Update(QueueMessage message)
+	public Task Update(IQueueMessage message)
 	{
 		Set(message.Id, message, TimeSpan.Zero);
 

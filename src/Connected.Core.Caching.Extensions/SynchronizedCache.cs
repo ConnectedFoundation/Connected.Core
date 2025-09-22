@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 namespace Connected.Caching;
 
 public abstract class SynchronizedCache<TEntry, TKey>(ICachingService cachingService, string key)
-	: CacheContainer<TEntry, TKey>(cachingService, key), ISynchronizedCache<TEntry, TKey> where TEntry : class
+	: CacheContainer<TEntry, TKey>(cachingService, key), ISynchronizedCache<TEntry, TKey>
 {
 	static SynchronizedCache()
 	{
