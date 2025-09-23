@@ -297,13 +297,12 @@ internal sealed class ServiceRequestDelegate : IDisposable
 		/*
 		 * Post, Delete, Put and Patch methods have parameters in the request body, let formatter do the work.
 		 */
-		if (method.Equals(HttpMethods.Post, StringComparison.OrdinalIgnoreCase) || method.Equals(HttpMethods.Delete, StringComparison.Ordinal)
-			|| method.Equals(HttpMethods.Put, StringComparison.OrdinalIgnoreCase) || method.Equals(HttpMethods.Patch, StringComparison.OrdinalIgnoreCase))
+		if (method.Equals(HttpMethods.Post, StringComparison.OrdinalIgnoreCase) || method.Equals(HttpMethods.Put, StringComparison.OrdinalIgnoreCase) || method.Equals(HttpMethods.Patch, StringComparison.OrdinalIgnoreCase))
 			return await Formatter.ParseArguments();
 		else
 		{
 			/*
-			 * For Get, Options and Trace use query string
+			 * For Get, Options, Delete and Trace use query string
 			 */
 			var result = new Dictionary<string, object?>();
 

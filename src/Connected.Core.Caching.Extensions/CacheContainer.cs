@@ -20,9 +20,9 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 	private ICacheContext Context { get; }
 	protected bool IsDisposed { get; set; }
 	protected ICachingService CachingService { get; }
-	protected virtual IImmutableList<string>? Keys => CachingService.Ids(Key);
+	protected virtual IImmutableList<string>? Keys => Context.Ids(Key);
 
-	public int Count => CachingService.Count(Key);
+	public int Count => Context.Count(Key);
 	public string Key { get; }
 
 	public async Task Remove(TKey id)
@@ -138,7 +138,12 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 
 	public virtual IEnumerator<TEntry> GetEnumerator()
 	{
-		return (Context?.GetEnumerator<TEntry>(Key)) ?? throw new NullReferenceException("Cannot retrieve cache enumerator.");
+		var enumerator = Context?.GetEnumerator<TEntry>(Key);
+
+		if (enumerator is not null)
+			return enumerator;
+
+		return new List<TEntry>().GetEnumerator();
 	}
 
 	IEnumerator IEnumerable.GetEnumerator()

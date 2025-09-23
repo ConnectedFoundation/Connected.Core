@@ -1,4 +1,3 @@
-using Connected.Reflection;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 
@@ -59,9 +58,7 @@ internal class Entries
 
 		foreach (var i in instances)
 		{
-			var converted = Types.Convert<T>(i);
-
-			if (converted is T t)
+			if (i is T t)
 				r.Add(t);
 		}
 
