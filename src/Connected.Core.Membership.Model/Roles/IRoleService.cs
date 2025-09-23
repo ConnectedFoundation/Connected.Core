@@ -8,10 +8,10 @@ namespace Connected.Membership.Roles;
 [Service, ServiceUrl(MembershipUrls.RoleService)]
 public interface IRoleService
 {
-	[ServiceOperation(ServiceOperationVerbs.Put)]
+	[ServiceOperation(ServiceOperationVerbs.Post)]
 	Task<int> Insert(IInsertRoleDto dto);
 
-	[ServiceOperation(ServiceOperationVerbs.Post)]
+	[ServiceOperation(ServiceOperationVerbs.Put)]
 	Task Update(IUpdateRoleDto dto);
 
 	[ServiceOperation(ServiceOperationVerbs.Delete)]

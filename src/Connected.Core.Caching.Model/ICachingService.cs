@@ -13,7 +13,7 @@ public interface ICachingService : ICache
 	/// <remarks>
 	/// This method is called from the context cache once the commit is performed.
 	/// </remarks>
-	void Merge(ICache cache);
+	void Merge(ICacheContext cache);
 
 	ICacheContext CreateContext();
 }

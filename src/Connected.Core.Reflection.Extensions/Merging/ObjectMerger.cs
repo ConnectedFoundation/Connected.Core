@@ -114,28 +114,41 @@ internal sealed class ObjectMerger : Merger
 
 		for (var i = 0; i < sourceElements.Count; i++)
 		{
-			/*
-			 * TODO: handle Dictionary
-			 */
 			var sourceElement = sourceElements[i];
 			object? item;
 
-			if (elementType.IsTypePrimitive())
-				item = Types.Convert(sourceElement, elementType);
-			else
+			if (instance.GetType().IsDictionary())
 			{
-				item = Activator.CreateInstance(elementType);
-
-				if (item is null)
+				if (addMethod is null)
 					continue;
 
-				Merge(item, sourceElement);
-			}
+				var keyProperty = sourceElement.GetType().GetProperty(nameof(KeyValuePair<int, int>.Key));
+				var valueProperty = sourceElement.GetType().GetProperty(nameof(KeyValuePair<int, int>.Value));
 
-			if (addMethod is not null)
-				addMethod.Invoke(instance, [item]);
+				if (keyProperty is null || valueProperty is null)
+					continue;
+
+				addMethod.Invoke(instance, [keyProperty.GetValue(sourceElement), valueProperty.GetValue(sourceElement)]);
+			}
 			else
-				((Array)instance).SetValue(item, i);
+			{
+				if (elementType.IsTypePrimitive())
+					item = Types.Convert(sourceElement, elementType);
+				else
+				{
+					item = Activator.CreateInstance(elementType);
+
+					if (item is null)
+						continue;
+
+					Merge(item, sourceElement);
+				}
+
+				if (addMethod is not null)
+					addMethod.Invoke(instance, [item]);
+				else
+					((Array)instance).SetValue(item, i);
+			}
 		}
 
 		property.SetValue(destination, instance);

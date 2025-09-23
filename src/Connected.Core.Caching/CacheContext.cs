@@ -307,6 +307,12 @@ internal class CacheContext : ICacheContext
 		_scope.CopyTo(key, id, entry);
 	}
 
+
+	public IImmutableList<string>? OwnIds(string key)
+	{
+		return _scope.Ids(key);
+	}
+
 	public IImmutableList<string>? Ids(string key)
 	{
 		var scoped = _scope.Ids(key) ?? [];
@@ -332,6 +338,11 @@ internal class CacheContext : ICacheContext
 		}
 
 		return scoped;
+	}
+
+	public IImmutableList<string>? OwnKeys()
+	{
+		return _scope.Keys();
 	}
 
 	public IImmutableList<string>? Keys()

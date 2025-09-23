@@ -2,5 +2,5 @@
 
 public interface IInProcessCache : ICache
 {
-	void Merge(ICache cache);
+	void Merge(ICacheContext cache);
 }

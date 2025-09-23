@@ -9,5 +9,6 @@ public class MembershipImage : RuntimeImage
 		Application.RegisterMicroService("Connected.Core.Membership.Authorization.dll");
 		Application.RegisterMicroService("Connected.Core.Membership.Claims.dll");
 		Application.RegisterMicroService("Connected.Core.Membership.Roles.dll");
+		Application.RegisterMicroService("Connected.Core.Membership.dll");
 	}
 }

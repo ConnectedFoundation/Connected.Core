@@ -1,4 +1,6 @@
-﻿namespace Connected.Caching;
+﻿using System.Collections.Immutable;
+
+namespace Connected.Caching;
 /// <summary>
 /// Represents a scoped cache.
 /// </summary>
@@ -13,4 +15,7 @@ public interface ICacheContext : ICache
 	/// Merges the changes with the shared cache.
 	/// </summary>
 	void Flush();
+
+	IImmutableList<string>? OwnKeys();
+	IImmutableList<string>? OwnIds(string key);
 }

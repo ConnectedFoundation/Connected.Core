@@ -4,14 +4,14 @@ namespace Connected.Caching;
 
 internal class InProcessCache : Cache, IInProcessCache
 {
-	public void Merge(ICache cache)
+	public void Merge(ICacheContext cache)
 	{
-		if (cache.Keys() is not IImmutableList<string> keys)
+		if (cache.OwnKeys() is not IImmutableList<string> keys)
 			return;
 
 		foreach (var key in keys)
 		{
-			if (cache.Ids(key) is not IImmutableList<string> entryKeys)
+			if (cache.OwnIds(key) is not IImmutableList<string> entryKeys)
 				continue;
 
 			foreach (var entryKey in entryKeys)
