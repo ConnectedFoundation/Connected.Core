@@ -1,6 +1,6 @@
 ﻿using Connected.Services;
 
-namespace Connected.Authentication;
+namespace Connected.Authentication.Ops;
 internal sealed class UpdateIdentity(IAuthenticationService authentication) : ServiceAction<IUpdateIdentityDto>
 {
 	protected override async Task OnInvoke()

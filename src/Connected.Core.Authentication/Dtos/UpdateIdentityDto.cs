@@ -2,7 +2,7 @@
 using Connected.Identities;
 using Connected.Services;
 
-namespace Connected.Authentication;
+namespace Connected.Authentication.Dtos;
 internal sealed class UpdateIdentityDto : Dto, IUpdateIdentityDto
 {
 	[SkipValidation]
