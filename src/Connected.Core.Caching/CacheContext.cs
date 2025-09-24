@@ -235,7 +235,7 @@ internal class CacheContext : ICacheContext
 			return shared;
 
 		if (shared is null)
-			return default;
+			return scope;
 
 		foreach (var sharedItem in shared)
 		{
