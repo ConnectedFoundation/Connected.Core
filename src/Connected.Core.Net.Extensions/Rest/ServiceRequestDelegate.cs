@@ -307,7 +307,24 @@ internal sealed class ServiceRequestDelegate : IDisposable
 			var result = new Dictionary<string, object?>();
 
 			foreach (var i in HttpContext.Request.Query.Keys)
-				result.Add(i, HttpContext.Request.Query[i].ToString());
+			{
+				var value = HttpContext.Request.Query[i];
+
+				if (value.Count > 1)
+				{
+					var list = new List<string>();
+
+					foreach (var v in value)
+					{
+						if (v is not null)
+							list.Add(v);
+					}
+
+					result.Add(i, list);
+				}
+				else
+					result.Add(i, value.ToString());
+			}
 
 			return result;
 		}

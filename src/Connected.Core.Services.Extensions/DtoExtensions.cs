@@ -1,4 +1,5 @@
-﻿using Connected.Reflection;
+﻿using Connected.Entities;
+using Connected.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Connected.Services;
@@ -48,6 +49,19 @@ public static class DtoExtensions
 		var result = dto.Create<IPrimaryKeyListDto<TPrimaryKey>>();
 
 		result.Items = items;
+
+		return result;
+	}
+
+	public static IHeadListDto<TPrimaryKey> CreateHeadList<TPrimaryKey>(this IDto dto, IEnumerable<IPrimaryKeyEntity<TPrimaryKey>> items)
+		where TPrimaryKey : notnull
+	{
+		var result = dto.Create<IHeadListDto<TPrimaryKey>>();
+
+		result.Items = [];
+
+		foreach (var item in items)
+			result.Items.Add(item.Id);
 
 		return result;
 	}
