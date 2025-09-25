@@ -12,11 +12,11 @@ internal class Request(IClaimCache cache, IMembershipService membership, IRoleSe
 	{
 		var identities = await MembershipUtils.ResolveIdentityTokens(Dto.Identity, membership, roles);
 		var values = Dto.Values.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-		var targets = await cache.AsEntities<IClaim>(f =>
+		var targets = await cache.AsEntities(f =>
 					values.Any(g => string.Equals(g, f.Value, StringComparison.OrdinalIgnoreCase))
 				&& (Dto.Identity is null || identities.Any(g => string.Equals(g, f.Identity, StringComparison.Ordinal)))
-				&& (Dto.Type is null || string.Equals(f.Type, Dto.Type, StringComparison.OrdinalIgnoreCase))
-				&& (Dto.PrimaryKey is null || string.Equals(f.PrimaryKey, Dto.PrimaryKey, StringComparison.OrdinalIgnoreCase)));
+				&& (Dto.Entity is null || string.Equals(f.Entity, Dto.Entity, StringComparison.OrdinalIgnoreCase))
+				&& (Dto.EntityId is null || string.Equals(f.EntityId, Dto.EntityId, StringComparison.OrdinalIgnoreCase)));
 
 		return targets.Any();
 	}

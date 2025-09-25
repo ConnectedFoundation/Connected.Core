@@ -1,5 +1,4 @@
-﻿using Connected.Reflection;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Immutable;
 
 namespace Connected.Caching;
@@ -286,7 +285,7 @@ internal sealed class CacheScope : ICache, IDisposable
 		if (entry is null || entry.Instance is null)
 			return default;
 
-		return Types.Convert<T>(entry.Instance);
+		return (T)entry.Instance;
 	}
 
 	private void OnDisposing(bool disposing)

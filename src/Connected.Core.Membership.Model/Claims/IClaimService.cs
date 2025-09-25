@@ -18,7 +18,7 @@ public interface IClaimService
 	[ServiceOperation(ServiceOperationVerbs.Get)]
 	Task<IClaim?> Select(IPrimaryKeyDto<long> dto);
 
-	[ServiceOperation(ServiceOperationVerbs.Put)]
+	[ServiceOperation(ServiceOperationVerbs.Post)]
 	Task<long> Insert(IInsertClaimDto dto);
 
 	[ServiceOperation(ServiceOperationVerbs.Delete)]

@@ -6,5 +6,8 @@ namespace Connected.Membership.Claims.Dtos;
 internal sealed class QueryClaimSchemaDto : Dto, IQueryClaimSchemaDto
 {
 	[MaxLength(256)]
-	public string? Id { get; set; }
+	public string? Entity { get; set; }
+
+	[MaxLength(256)]
+	public string? EntityId { get; set; }
 }

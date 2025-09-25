@@ -14,7 +14,7 @@ public interface IClaim : IEntity<long>
 	string Value { get; init; }
 	string? Schema { get; init; }
 	string? Identity { get; init; }
-	string? Type { get; init; }
-	string? PrimaryKey { get; init; }
+	string Entity { get; init; }
+	string EntityId { get; init; }
 	ClaimStatus Status { get; init; }
 }

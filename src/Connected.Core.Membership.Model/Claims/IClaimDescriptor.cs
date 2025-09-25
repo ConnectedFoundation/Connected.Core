@@ -2,7 +2,10 @@
 
 namespace Connected.Membership.Claims;
 
-public interface IClaimDescriptor : IEntity<string>
+public interface IClaimDescriptor : IEntity
 {
-	string Text { get; init; }
+	string Entity { get; init; }
+	string EntityId { get; init; }
+	string Value { get; init; }
+	string? Text { get; init; }
 }

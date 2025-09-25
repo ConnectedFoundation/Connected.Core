@@ -1,8 +1,19 @@
 ﻿using Connected.Entities;
+using System.ComponentModel.DataAnnotations;
 
 namespace Connected.Membership.Claims;
 
-public record ClaimDescriptor : Entity<string>, IClaimDescriptor
+public record ClaimDescriptor : Entity, IClaimDescriptor
 {
-	public required string Text { get; init; }
+	[MaxLength(256)]
+	public string? Text { get; init; }
+
+	[Required, MaxLength(256)]
+	public required string Entity { get; init; }
+
+	[Required, MaxLength(256)]
+	public required string EntityId { get; init; }
+
+	[Required, MaxLength(256)]
+	public required string Value { get; init; }
 }

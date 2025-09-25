@@ -2,8 +2,9 @@
 
 namespace Connected.Membership.Claims;
 
-public interface IClaimSchema : IEntity<string>
+public interface IClaimSchema : IEntity
 {
 	string Text { get; init; }
-	string Type { get; init; }
+	string Entity { get; init; }
+	string EntityId { get; init; }
 }

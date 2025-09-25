@@ -20,13 +20,13 @@ public interface IUserService
 	[ServiceOperation(ServiceOperationVerbs.Get), ServiceUrl(IdentitiesUrls.ResolveOperation)]
 	Task<IUser?> Select(IValueDto<string> dto);
 
-	[ServiceOperation(ServiceOperationVerbs.Put)]
+	[ServiceOperation(ServiceOperationVerbs.Post)]
 	Task<long> Insert(IInsertUserDto dto);
 
-	[ServiceOperation(ServiceOperationVerbs.Patch)]
+	[ServiceOperation(ServiceOperationVerbs.Put)]
 	Task Update(IUpdateUserDto dto);
 
-	[ServiceOperation(ServiceOperationVerbs.Patch)]
+	[ServiceOperation(ServiceOperationVerbs.Put)]
 	Task UpdatePassword(IUpdatePasswordDto dto);
 
 	[ServiceOperation(ServiceOperationVerbs.Delete)]

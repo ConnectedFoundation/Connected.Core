@@ -18,7 +18,8 @@ internal sealed class QuerySchema(IMiddlewareService middlewares)
 
 			foreach (var schemaItem in schema)
 			{
-				if (result.FirstOrDefault(f => string.Equals(f.Id, schemaItem.Id, StringComparison.OrdinalIgnoreCase)) is null)
+				if (result.FirstOrDefault(f => string.Equals(f.Entity, schemaItem.Entity, StringComparison.OrdinalIgnoreCase)
+					&& string.Equals(f.EntityId, schemaItem.EntityId, StringComparison.OrdinalIgnoreCase)) is null)
 					result.Add(schemaItem);
 			}
 		}

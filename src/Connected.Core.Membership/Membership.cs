@@ -4,6 +4,7 @@ using Connected.Entities;
 
 namespace Connected.Membership;
 
+[Table(Schema = SchemaAttribute.CoreSchema)]
 internal sealed record Membership : Entity<long>, IMembership
 {
 	[Ordinal(0), Length(256)]

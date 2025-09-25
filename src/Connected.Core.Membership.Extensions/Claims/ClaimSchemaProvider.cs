@@ -17,4 +17,10 @@ public abstract class ClaimSchemaProvider : Middleware, IClaimSchemaProvider
 	{
 		return Task.FromResult<IImmutableList<IClaimSchema>>(ImmutableList<IClaimSchema>.Empty);
 	}
+
+	protected bool DtoEquals(string? entity, string? entityId)
+	{
+		return string.Equals(Dto.Entity, entity, StringComparison.OrdinalIgnoreCase)
+			&& string.Equals(Dto.EntityId, entityId, StringComparison.OrdinalIgnoreCase);
+	}
 }

@@ -231,7 +231,7 @@ internal sealed class ServiceRequestDelegate : IDisposable
 					}
 					catch
 					{
-						throw new InvalidOperationException($"{RestStrings.ErrBindingAttributeMissing} ({method?.DeclaringType?.FullName}.{method?.Name})");
+						throw new InvalidOperationException($"{RestStrings.ValParseRequestArguments} ('{parameter.ParameterType.ShortName()}')");
 					}
 				}
 			}

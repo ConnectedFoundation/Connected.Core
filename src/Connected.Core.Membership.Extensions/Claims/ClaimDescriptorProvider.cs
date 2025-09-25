@@ -17,4 +17,10 @@ public abstract class ClaimDescriptorProvider : Middleware, IClaimDescriptorProv
 	{
 		return Task.FromResult<IImmutableList<IClaimDescriptor>>(ImmutableList<IClaimDescriptor>.Empty);
 	}
+
+	protected bool DtoEquals(string? entity, string? entityId)
+	{
+		return string.Equals(Dto.Entity, entity, StringComparison.OrdinalIgnoreCase)
+			&& string.Equals(Dto.EntityId, entityId, StringComparison.OrdinalIgnoreCase);
+	}
 }

@@ -8,17 +8,33 @@ internal static class TypeConversion
 		if (value.GetType() == type)
 			return value;
 
-		var converter = TypeDescriptor.GetConverter(value);
+		var valueConverter = TypeDescriptor.GetConverter(value);
 
-		if (converter.CanConvertTo(type))
+		if (valueConverter.CanConvertTo(type))
 		{
-			var result = converter.ConvertTo(value, type);
+			var result = valueConverter.ConvertTo(value, type);
+
+			return result is null ? throw new NullReferenceException() : result;
+		}
+
+		var typeConverter = TypeDescriptor.GetConverter(type);
+
+		if (typeConverter.CanConvertFrom(value.GetType()))
+		{
+			var result = typeConverter.ConvertFrom(value);
 
 			return result is null ? throw new NullReferenceException() : result;
 		}
 
 		if (TryConvertEnum(value, type, out object? er) && er is not null)
 			return er;
+
+		if (type.IsNullable())
+		{
+			var nonNullable = type.GetNonNullableType();
+
+			return Convert(value, nonNullable);
+		}
 
 		return System.Convert.ChangeType(value, type);
 	}

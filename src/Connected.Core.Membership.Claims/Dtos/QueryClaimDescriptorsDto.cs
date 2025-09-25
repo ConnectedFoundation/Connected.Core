@@ -9,5 +9,8 @@ internal sealed class QueryClaimDescriptorsDto : Dto, IQueryClaimDescriptorsDto
 	public required string Id { get; set; }
 
 	[Required, MaxLength(256)]
-	public required string Type { get; set; }
+	public required string Entity { get; set; }
+
+	[Required, MaxLength(256)]
+	public required string EntityId { get; set; }
 }

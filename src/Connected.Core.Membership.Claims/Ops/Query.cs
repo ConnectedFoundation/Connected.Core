@@ -12,7 +12,7 @@ internal class Query(IClaimCache cache)
 		return await cache.AsEntities<IClaim>(f =>
 					(Dto.Identity is null || string.Equals(f.Identity, Dto.Identity, StringComparison.Ordinal))
 				&& (Dto.Schema is null || string.Equals(f.Schema, Dto.Schema, StringComparison.OrdinalIgnoreCase))
-				&& (Dto.Type is null || string.Equals(f.Type, Dto.Type, StringComparison.OrdinalIgnoreCase))
-				&& (Dto.PrimaryKey is null || string.Equals(f.PrimaryKey, Dto.PrimaryKey, StringComparison.OrdinalIgnoreCase)));
+				&& (Dto.EntityId is null || string.Equals(f.Entity, Dto.Entity, StringComparison.OrdinalIgnoreCase))
+				&& (Dto.EntityId is null || string.Equals(f.EntityId, Dto.EntityId, StringComparison.OrdinalIgnoreCase)));
 	}
 }

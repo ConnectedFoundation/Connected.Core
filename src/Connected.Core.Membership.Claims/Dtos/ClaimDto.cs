@@ -14,9 +14,9 @@ internal abstract class ClaimDto : Dto, IClaimDto
 	[MaxLength(256)]
 	public string? Identity { get; set; }
 
-	[MaxLength(256)]
-	public string? Type { get; set; }
+	[Required, MaxLength(256)]
+	public required string Entity { get; set; }
 
-	[MaxLength(256)]
-	public string? PrimaryKey { get; set; }
+	[Required, MaxLength(256)]
+	public required string EntityId { get; set; }
 }

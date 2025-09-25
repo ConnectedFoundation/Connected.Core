@@ -4,6 +4,6 @@ namespace Connected.Membership.Claims.Dtos;
 
 public interface IQueryClaimDescriptorsDto : IDto
 {
-	string Id { get; set; }
-	string Type { get; set; }
+	string EntityId { get; set; }
+	string Entity { get; set; }
 }

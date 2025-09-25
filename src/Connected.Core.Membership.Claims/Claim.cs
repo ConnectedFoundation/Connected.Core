@@ -14,10 +14,10 @@ internal sealed record Claim : Entity<long>, IClaim
 	public string? Identity { get; init; }
 
 	[Ordinal(2), Length(256)]
-	public string? Type { get; init; }
+	public required string Entity { get; init; }
 
 	[Ordinal(3), Length(256)]
-	public string? PrimaryKey { get; init; }
+	public required string EntityId { get; init; }
 
 	[Ordinal(4), Length(256)]
 	public ClaimStatus Status { get; init; }
