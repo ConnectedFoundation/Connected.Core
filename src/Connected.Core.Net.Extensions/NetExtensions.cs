@@ -13,7 +13,7 @@ using System.Collections.Immutable;
 namespace Connected.Net;
 public static class NetExtensions
 {
-	private static bool Enabled { get; set; }
+	private static CorsConfiguration Cors { get; set; } = new();
 
 	private static readonly string[] configurePolicy = ["http://localhost"];
 
@@ -23,19 +23,18 @@ public static class NetExtensions
 
 		using var scope = provider.CreateAsyncScope();
 		var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-		var cors = new CorsConfiguration();
 
-		configuration.GetSection("cors")?.Bind(cors);
+		configuration.GetSection("cors")?.Bind(Cors);
 
-		if (cors.Enabled)
+        if (Cors.Enabled)
 		{
 			builder.Services.AddCors(options => options.AddPolicy("Connected",
 				 builder =>
 				 {
 					 var origin = configurePolicy;
 
-					 if (!string.IsNullOrWhiteSpace(cors.Origins))
-						 origin = cors.Origins.Split([','], StringSplitOptions.RemoveEmptyEntries);
+					 if (!string.IsNullOrWhiteSpace(Cors.Origins))
+						 origin = Cors.Origins.Split([','], StringSplitOptions.RemoveEmptyEntries);
 
 					 builder.AllowAnyMethod()
 						  .AllowAnyHeader()
@@ -57,7 +56,7 @@ public static class NetExtensions
 
 	public static void ActivateCors(this IApplicationBuilder app)
 	{
-		if (Enabled)
+		if (Cors.Enabled)
 			app.UseCors("Connected");
 	}
 
