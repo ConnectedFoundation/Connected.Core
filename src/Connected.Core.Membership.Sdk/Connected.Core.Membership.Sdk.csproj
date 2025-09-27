@@ -60,7 +60,7 @@
 	</Target>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Connected.Core.Membership.Model\Connected.Core.Membership.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Membership.Extensions\Connected.Core.Membership.Extensions.csproj" />
+		<ProjectReference Include="..\Connected.Core.Membership.Model\Connected.Core.Membership.Model.csproj" />
 	</ItemGroup>
 </Project>

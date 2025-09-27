@@ -6,31 +6,18 @@ using Connected.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using System.ComponentModel.DataAnnotations;
-using System.Net;
 using System.Reflection;
 
 namespace Connected.Net.Rest;
 
-internal sealed class ServiceRequestDelegate : IDisposable
+internal sealed class ServiceRequestDelegate : RestRequest
 {
-	private AsyncServiceScope? _scope = null;
 	public ServiceRequestDelegate(HttpContext httpContext)
+		: base(httpContext)
 	{
-		HttpContext = httpContext;
-
-		_scope = Services.Scope.Create();
-
-		HttpContext.RequestAborted.Register(async () =>
-		{
-			await Scope.Cancel();
-		});
-
 		InitializeFormatter();
 	}
 
-	private bool IsDisposed { get; set; }
-	private HttpContext HttpContext { get; }
-	private AsyncServiceScope? Scope => _scope;
 	private Formatter Formatter { get; set; } = default!;
 
 	private void InitializeFormatter()
@@ -65,28 +52,7 @@ internal sealed class ServiceRequestDelegate : IDisposable
 	/// This method invokes the Api Service method with the request parameters.
 	/// </summary>
 	/// <returns>Result of the Api method or nothing if the methods return type is void.</returns>
-	public async Task Invoke()
-	{
-		try
-		{
-			var result = await Execute();
-			/*
-			 * Now, commit changes made in the context.
-			 */
-			await Scope.Commit();
-			/*
-			 * Send result to the client.
-			 */
-			await RenderResult(result);
-		}
-		catch (Exception ex)
-		{
-			await Scope.Rollback();
-			await HandleException(ex);
-		}
-	}
-
-	private async Task<object?> Execute()
+	protected override async Task<object?> OnInvoke()
 	{
 		/*
 		 * First, try to get appropriate method (target) from the resolution service.
@@ -127,7 +93,7 @@ internal sealed class ServiceRequestDelegate : IDisposable
 		}
 	}
 
-	private async Task RenderResult(object? content)
+	protected override async Task OnRenderResult(object? content)
 	{
 		await Formatter.RenderResult(content);
 	}
@@ -179,13 +145,13 @@ internal sealed class ServiceRequestDelegate : IDisposable
 		var arguments = new List<object?>();
 		var requestArgs = await ParseArguments();
 
-		if (requestArgs is not null && _scope is not null)
+		if (requestArgs is not null && Scope is not null)
 		{
-			var middlewares = await _scope.Value.ServiceProvider.GetRequiredService<IMiddlewareService>().Query<IRequestArgumentHandler>();
+			var middlewares = await Scope.Value.ServiceProvider.GetRequiredService<IMiddlewareService>().Query<IRequestArgumentHandler>();
 
 			foreach (var argument in requestArgs)
 			{
-				var dto = _scope.Value.ServiceProvider.GetRequiredService<IRequestArgumentDto>();
+				var dto = Scope.Value.ServiceProvider.GetRequiredService<IRequestArgumentDto>();
 
 				dto.Property = argument.Key;
 				dto.Value = argument.Value;
@@ -345,49 +311,8 @@ internal sealed class ServiceRequestDelegate : IDisposable
 		return null;
 	}
 
-	private async Task HandleException(Exception ex)
+	protected override async Task OnRenderException(Exception ex)
 	{
-		if (HttpContext.Response.StatusCode != (int)HttpStatusCode.OK)
-			return;
-
-		if (ex is AccessViolationException)
-			HttpContext.Response.StatusCode = (int)HttpStatusCode.Forbidden;
-		else if (ex is UnauthorizedAccessException)
-			HttpContext.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-		else if (ex is ValidationException)
-			HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-		else if (ex is ArgumentException)
-			HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-		else if (ex is NullReferenceException)
-			HttpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
-		else if (ex is InvalidOperationException)
-			HttpContext.Response.StatusCode = (int)HttpStatusCode.MethodNotAllowed;
-		else
-			HttpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-
 		await Formatter.RenderException(ex);
-	}
-
-	private void Dispose(bool disposing)
-	{
-		if (!IsDisposed)
-		{
-			if (disposing)
-			{
-				if (_scope is not null)
-				{
-					_scope.Value.Dispose();
-					_scope = null;
-				}
-			}
-
-			IsDisposed = true;
-		}
-	}
-
-	public void Dispose()
-	{
-		Dispose(true);
-		GC.SuppressFinalize(this);
 	}
 }

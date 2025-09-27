@@ -1,6 +1,6 @@
 ﻿using Connected.Services;
 
-namespace Connected.Notifications;
+namespace Connected.Notifications.Dtos;
 internal sealed class InsertEventDto<TService, TDto> : IInsertEventDto<TService, TDto>
 	where TDto : IDto
 {

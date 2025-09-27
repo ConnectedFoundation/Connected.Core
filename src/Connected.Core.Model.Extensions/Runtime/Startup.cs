@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -10,6 +11,20 @@ public abstract class Startup : IStartup
 	public bool IsUpdated { get; }
 	protected IHost? Host { get; private set; }
 	protected IServiceProvider? ServiceProvider => Host?.Services;
+	protected IConfiguration Configuration { get; private set; } = default!;
+
+	public void Prepare(IConfiguration configuration)
+	{
+		Configuration = configuration;
+
+		OnPrepare();
+	}
+
+	protected virtual void OnPrepare()
+	{
+
+	}
+
 	public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 	{
 		OnConfigure(app, env);

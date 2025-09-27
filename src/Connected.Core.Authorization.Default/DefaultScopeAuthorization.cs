@@ -1,8 +1,11 @@
-﻿using Connected.Authentication;
+﻿using Connected.Annotations;
+using Connected.Authentication;
 using Connected.Authorization;
 using Connected.Authorization.Services;
 
 namespace Connected.Core.Authorization.Default;
+
+[ServiceRegistration(ServiceRegistrationMode.Manual)]
 internal sealed class DefaultScopeAuthorization(IAuthenticationService authentication)
 	: ScopeAuthorization
 {

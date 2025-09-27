@@ -21,10 +21,12 @@ using System.Text;
 
 namespace Connected;
 
+public delegate void MicroServiceTypeDiscoveryEventHandler(object sender, MicroServiceTypeDiscoveryEventArgs e);
 public static class Application
 {
-	private static object _lastException = new();
+	public static event MicroServiceTypeDiscoveryEventHandler? DiscoverType;
 
+	private static object _lastException = new();
 	public static bool IsErrorServerStarted { get; private set; }
 	public static bool HasStarted { get; private set; }
 	public static void AddOutOfMemoryExceptionHandler()
@@ -200,22 +202,24 @@ public static class Application
 			RegisterMicroService(entry);
 
 		RegisterMicroService(typeof(Application).Assembly);
-		RegisterMicroService(typeof(Authorization.AuthorizationStartup).Assembly);
-		RegisterMicroService(typeof(Services.ServiceExtensionsStartup).Assembly);
-		RegisterMicroService(typeof(Services.ServicesStartup).Assembly);
-		RegisterMicroService(typeof(Entities.EntitiesStartup).Assembly);
-		RegisterMicroService(typeof(Net.NetStartup).Assembly);
-		RegisterMicroService(typeof(Configuration.Settings.SettingsStartup).Assembly);
-		RegisterMicroService(typeof(Caching.CachingStartup).Assembly);
-		RegisterMicroService(typeof(Storage.StorageExtensionsStartup).Assembly);
-		RegisterMicroService(typeof(Configuration.ConfigurationStartup).Assembly);
-		RegisterMicroService(typeof(Notifications.NotificationsStartup).Assembly);
-		RegisterMicroService(typeof(Globalization.Languages.LanguagesStartup).Assembly);
-		RegisterMicroService(typeof(Net.NetExtensionsStartup).Assembly);
+
+		RegisterCoreMicroService("Authorization");
+		RegisterCoreMicroService("Services.Extensions");
+		RegisterCoreMicroService("Services");
+		RegisterCoreMicroService("Net");
+		RegisterCoreMicroService("Configuration.Settings");
+		RegisterCoreMicroService("Caching");
+		RegisterCoreMicroService("Storage.Extensions");
+		RegisterCoreMicroService("Configuration");
+		RegisterCoreMicroService("Notifications");
+		RegisterCoreMicroService("Globalization.Languages");
+		RegisterCoreMicroService("Net.Extensions");
+		RegisterCoreMicroService("Entities");
 		RegisterCoreMicroService("Authentication");
 		RegisterCoreMicroService("Storage.Sql");
 		RegisterCoreMicroService("Net.Routing");
 		RegisterCoreMicroService("Authorization.Extensions");
+		RegisterCoreMicroService("Authorization.Default");
 	}
 
 	private static void RegisterCoreMicroService(string name)
@@ -241,6 +245,10 @@ public static class Application
 			RegisterConfiguredMicroServices(builder.Configuration);
 			RegisterImages(builder.Configuration);
 			RegisterCoreMicroServices();
+
+			foreach (var startup in MicroServices.Startups)
+				startup.Prepare(builder.Configuration);
+
 			AddOutOfMemoryExceptionHandler();
 			AddAutoRestart();
 
@@ -328,5 +336,10 @@ public static class Application
 				}
 			}
 		}
+	}
+
+	internal static void TriggerDiscoverType(IServiceCollection services, Type type)
+	{
+		DiscoverType?.Invoke(services, new MicroServiceTypeDiscoveryEventArgs(services, type));
 	}
 }

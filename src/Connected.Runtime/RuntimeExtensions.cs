@@ -1,7 +1,6 @@
 ﻿using Connected.Annotations;
 using Connected.Caching;
 using Connected.Collections.Concurrent;
-using Connected.Membership.Claims;
 using Connected.Reflection;
 using Connected.Runtime;
 using Connected.Services;
@@ -57,10 +56,12 @@ public static class RuntimeExtensions
 			AddDispatcher(type, services, false);
 			AddDispatcherJob(type, services, false);
 			AddAmbientValue(type, services, false, typeRef);
-			AddClaimProvider(type, services, false);
 			AddMiddleware(type, services, false, typeRef);
 			AddDto(type, services, false);
 			AddHostedService(type, services, false);
+
+			if (CanRegister(type, false))
+				Application.TriggerDiscoverType(services, type);
 		}
 
 		return services;
@@ -300,11 +301,6 @@ public static class RuntimeExtensions
 		}
 	}
 
-	public static void AddClaimProvider(Type type, IServiceCollection services)
-	{
-		AddClaimProvider(type, services, true);
-	}
-
 	public static void AddDto(Type type, IServiceCollection services)
 	{
 		AddDto(type, services, true);
@@ -336,19 +332,6 @@ public static class RuntimeExtensions
 				services.AddTransient(interfaceDefinition, typeDefinition);
 			}
 		}
-	}
-
-	private static void AddClaimProvider(Type type, IServiceCollection services, bool manual)
-	{
-		var fullName = typeof(IClaimSchemaProvider).FullName;
-
-		if (fullName is null)
-			return;
-
-		if (!CanRegister(type, manual) || type.GetInterface(fullName) is null)
-			return;
-
-		services.Add(ServiceDescriptor.Scoped(type, type));
 	}
 
 	private static bool CanRegister(Type type, bool manual)

@@ -4,9 +4,9 @@ using Connected.Reflection;
 using Connected.Services;
 using System.Reflection;
 
-namespace Connected.Notifications;
+namespace Connected.Notifications.Ops;
 
-internal sealed class Insert<TService, TDto>(IServiceProvider services, IMiddlewareService middlewares, EventServer server)
+internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, EventServer server)
 	: ServiceAction<IInsertEventDto<TService, TDto>>
 	where TDto : IDto
 {
@@ -15,7 +15,8 @@ internal sealed class Insert<TService, TDto>(IServiceProvider services, IMiddlew
 		var broadcast = Broadcast();
 
 		var targetMiddleware = typeof(IEventListener<>);
-		var gt = targetMiddleware.MakeGenericType(Dto.Dto.GetType());
+		var dto = Dto.Dto.GetType().GetImplementedDtos();
+		var gt = targetMiddleware.MakeGenericType(dto.Count == 0 ? Dto.Dto.GetType() : dto[0]);
 		var middleware = await middlewares.Query(gt, new CallerContext { Sender = Dto.Service, Method = Dto.Event });
 
 		foreach (var m in middleware)

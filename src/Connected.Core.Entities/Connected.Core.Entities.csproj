@@ -45,8 +45,8 @@
 
 	<ItemGroup>
 		<None Include="..\..\ConnectedLogo.png" Link="ConnectedLogo.png">
-		  <PackagePath>\</PackagePath>
-		  <Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+			<Pack>True</Pack>
 		</None>
 		<None Include="..\..\LICENSE.txt">
 			<Pack>True</Pack>

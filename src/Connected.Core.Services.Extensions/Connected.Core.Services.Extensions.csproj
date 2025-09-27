@@ -62,7 +62,6 @@
 		<ProjectReference Include="..\Connected.Core.Authorization.Model\Connected.Core.Authorization.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Caching.Model\Connected.Core.Caching.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Entities.Extensions\Connected.Core.Entities.Extensions.csproj" />
-		<ProjectReference Include="..\Connected.Core.Entities.Model\Connected.Core.Entities.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Model\Connected.Core.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Reflection.Extensions\Connected.Core.Reflection.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Services.Model\Connected.Core.Services.Model.csproj" />
