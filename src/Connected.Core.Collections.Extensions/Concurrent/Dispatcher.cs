@@ -1,4 +1,5 @@
-﻿using Connected.Data;
+﻿using Connected.Authentication;
+using Connected.Data;
 using Connected.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
@@ -55,9 +56,6 @@ public abstract class Dispatcher<TDto, TJob> : IDispatcher<TDto, TJob>
 
 	private void RunJob()
 	{
-		if (Queue.Count >= WorkerSize)
-			return;
-
 		if (Queue.IsEmpty)
 			return;
 
@@ -69,7 +67,7 @@ public abstract class Dispatcher<TDto, TJob> : IDispatcher<TDto, TJob>
 		/*
 		 * Dispatcher jobs should be transient so it's safe to request a service from the root collection.
 		 */
-		var scope = Scope.Create();
+		var scope = Scope.Create().WithSystemIdentity();
 
 		if (scope.ServiceProvider.GetService<TJob>() is not DispatcherJob<TDto> job)
 			throw new NullReferenceException($"{Strings.ErrCreateService} ({typeof(DispatcherJob<TDto>).Name})");

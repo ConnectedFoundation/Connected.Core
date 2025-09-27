@@ -20,23 +20,13 @@ public static class ClaimExtensions
 		return await claims.Request(dto);
 	}
 
-	public static async Task<bool> HasClaim(this IIdentity? identity, IClaimService claims, string claim)
+	public static async Task<bool> HasClaim(this IIdentity? identity, IClaimService claims, string claim, string entity, string entityId)
 	{
-		return await HasClaim(identity, claims, claim, null, null);
+		return await ClaimUtils.HasClaim(identity?.Token, claims, claim, entity, entityId);
 	}
 
-	public static async Task<bool> HasClaim(this IIdentity? identity, IClaimService claims, string claim, string? type, string? primaryKey)
+	public static async Task<bool> HasClaim(this IAuthenticationService authentication, IClaimService claims, string claim, string entity, string entityId)
 	{
-		return await ClaimUtils.HasClaim(identity?.Token, claims, claim, type, primaryKey);
-	}
-
-	public static async Task<bool> HasClaim(this IAuthenticationService authentication, IClaimService claims, string claim)
-	{
-		return await HasClaim(authentication, claims, claim, null, null);
-	}
-
-	public static async Task<bool> HasClaim(this IAuthenticationService authentication, IClaimService claims, string claim, string? type, string? primaryKey)
-	{
-		return await (await authentication.SelectIdentity()).HasClaim(claims, claim, type, primaryKey);
+		return await (await authentication.SelectIdentity()).HasClaim(claims, claim, entity, entityId);
 	}
 }

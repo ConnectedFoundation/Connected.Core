@@ -8,6 +8,9 @@ namespace Connected.Membership.Claims;
 [Middleware<IClaimService>(nameof(IClaimService.Request))]
 internal sealed class RequestClaimAuthorization : ServiceOperationAuthorization<IRequestClaimDto>
 {
+	public override string Entity => NullAuthorizationEntity;
+	public override string EntityId => NullAuthorizationEntityId;
+
 	protected override async Task<AuthorizationResult> OnInvoke()
 	{
 		/*

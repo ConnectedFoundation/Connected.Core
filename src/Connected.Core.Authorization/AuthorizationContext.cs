@@ -28,20 +28,21 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 
 		foreach (var middleware in middlewares)
 		{
-			var decorationResult = await InvokeDecorations(middleware);
-
-			if (decorationResult == AuthorizationResult.Fail)
-				return AuthorizationResult.Fail;
-			else if (decorationResult == AuthorizationResult.Pass)
-				onePassed = true;
-
 			var result = await middleware.Invoke();
 
 			if (result == AuthorizationResult.Fail)
 				return AuthorizationResult.Fail;
-
-			if (result == AuthorizationResult.Pass)
+			else if (result == AuthorizationResult.Pass)
 				onePassed = true;
+			else
+			{
+				var decorationResult = await InvokeDecorations(middleware);
+
+				if (decorationResult == AuthorizationResult.Fail)
+					return AuthorizationResult.Fail;
+				else if (decorationResult == AuthorizationResult.Pass)
+					onePassed = true;
+			}
 
 			if (middleware.IsSealed)
 				break;
@@ -104,21 +105,21 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 
 		foreach (var middleware in middlewares)
 		{
-			var decorationResult = await InvokeDecorations(middleware);
-
-			if (decorationResult == AuthorizationResult.Fail)
-				return AuthorizationResult.Fail;
-
-			if (decorationResult == AuthorizationResult.Pass)
-				onePassed = true;
-
 			var result = await middleware.Invoke(authorizationDto);
 
 			if (result == AuthorizationResult.Fail)
 				return AuthorizationResult.Fail;
-
-			if (result == AuthorizationResult.Pass)
+			else if (result == AuthorizationResult.Pass)
 				onePassed = true;
+			else
+			{
+				var decorationResult = await InvokeDecorations(middleware);
+
+				if (decorationResult == AuthorizationResult.Fail)
+					return AuthorizationResult.Fail;
+				else if (decorationResult == AuthorizationResult.Pass)
+					onePassed = true;
+			}
 
 			if (middleware.IsSealed)
 				break;
@@ -149,21 +150,21 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 
 		foreach (var middleware in middlewares)
 		{
-			var decorationResult = await InvokeDecorations(middleware);
-
-			if (decorationResult == AuthorizationResult.Fail)
-				return AuthorizationResult.Fail;
-
-			if (decorationResult == AuthorizationResult.Pass)
-				onePassed = true;
-
 			var result = await middleware.Invoke(authorizationDto);
 
 			if (result == AuthorizationResult.Fail)
 				return AuthorizationResult.Fail;
-
-			if (result == AuthorizationResult.Pass)
+			else if (result == AuthorizationResult.Pass)
 				onePassed = true;
+			else
+			{
+				var decorationResult = await InvokeDecorations(middleware);
+
+				if (decorationResult == AuthorizationResult.Fail)
+					return AuthorizationResult.Fail;
+				else if (decorationResult == AuthorizationResult.Pass)
+					onePassed = true;
+			}
 
 			if (middleware.IsSealed)
 				break;
@@ -189,19 +190,21 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 
 		foreach (var middleware in middlewares)
 		{
-			var decorationResult = await InvokeDecorations(middleware);
-
-			if (decorationResult == AuthorizationResult.Fail)
-				return AuthorizationResult.Fail;
-			else if (decorationResult == AuthorizationResult.Pass)
-				onePassed = true;
-
 			var result = await middleware.Invoke(operationDto);
 
 			if (result == AuthorizationResult.Fail)
 				return AuthorizationResult.Fail;
 			else if (result == AuthorizationResult.Pass)
 				onePassed = true;
+			else
+			{
+				var decorationResult = await InvokeDecorations(middleware);
+
+				if (decorationResult == AuthorizationResult.Fail)
+					return AuthorizationResult.Fail;
+				else if (decorationResult == AuthorizationResult.Pass)
+					onePassed = true;
+			}
 
 			if (middleware.IsSealed)
 				break;
@@ -238,19 +241,21 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 
 		foreach (var middleware in middlewares)
 		{
-			var decorationsResult = await InvokeDecorations(middleware);
-
-			if (decorationsResult == AuthorizationResult.Fail)
-				return AuthorizationResult.Fail;
-			else if (decorationsResult == AuthorizationResult.Pass)
-				onePassed = true;
-
 			var authorizationResult = await middleware.Invoke(entityDto);
 
 			if (authorizationResult == AuthorizationResult.Fail)
 				return AuthorizationResult.Fail;
 			else if (authorizationResult == AuthorizationResult.Pass)
 				onePassed = true;
+			else
+			{
+				var decorationsResult = await InvokeDecorations(middleware);
+
+				if (decorationsResult == AuthorizationResult.Fail)
+					return AuthorizationResult.Fail;
+				else if (decorationsResult == AuthorizationResult.Pass)
+					onePassed = true;
+			}
 
 			if (middleware.IsSealed)
 				break;

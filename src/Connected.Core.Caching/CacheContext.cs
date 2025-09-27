@@ -202,12 +202,7 @@ internal class CacheContext : ICacheContext
 		if (items is not null)
 		{
 			foreach (var item in items)
-			{
-				var id = ResolveId(item);
-
-				if (id is not null)
-					AddToRemoveList(key, id);
-			}
+				AddToRemoveList(key, item);
 		}
 
 		return items;

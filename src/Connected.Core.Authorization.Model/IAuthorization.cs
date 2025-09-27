@@ -11,6 +11,6 @@ public interface IAuthorization : IMiddleware
 {
 	bool IsSealed { get; }
 
-	string? Type { get; }
-	string? PrimaryKey { get; }
+	string Entity { get; }
+	string EntityId { get; }
 }

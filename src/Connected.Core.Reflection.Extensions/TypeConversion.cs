@@ -36,6 +36,9 @@ internal static class TypeConversion
 			return Convert(value, nonNullable);
 		}
 
+		if (value.GetType().IsAssignableTo(type))
+			return value;
+
 		return System.Convert.ChangeType(value, type);
 	}
 

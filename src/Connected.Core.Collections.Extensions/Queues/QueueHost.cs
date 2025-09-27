@@ -1,4 +1,5 @@
-﻿using Connected.Services;
+﻿using Connected.Authentication;
+using Connected.Services;
 using Connected.Workers;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
@@ -35,7 +36,10 @@ public abstract class QueueHost : ScheduledWorker
 
 	protected override sealed async Task OnInvoke(CancellationToken cancel)
 	{
-		using var scope = Scope.Create();
+		if (Dispatcher.Available <= 0)
+			return;
+
+		using var scope = Scope.Create().WithSystemIdentity();
 		var service = scope.ServiceProvider.GetRequiredService<IQueueService>();
 
 		try

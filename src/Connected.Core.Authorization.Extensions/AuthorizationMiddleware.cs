@@ -2,9 +2,11 @@
 
 public abstract class AuthorizationMiddleware : Middleware, IAuthorization
 {
+	public const string NullAuthorizationEntity = "null";
+	public const string NullAuthorizationEntityId = "null";
 	public bool IsSealed { get; protected set; }
 
-	public virtual string? Type { get; }
+	public abstract string Entity { get; }
 
-	public virtual string? PrimaryKey { get; }
+	public abstract string EntityId { get; }
 }

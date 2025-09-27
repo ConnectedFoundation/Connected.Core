@@ -201,6 +201,16 @@ public static class EntitiesExtensions
 
 		return $"{attribute.Schema}.{attribute.Name}";
 	}
+
+	public static string EntityKey(this Type type)
+	{
+		var attribute = type.GetCustomAttribute<EntityKeyAttribute>();
+
+		if (attribute is null)
+			throw new NullReferenceException($"{SR.ErrEntityKeyExpected} ({type.ShortName()})");
+
+		return attribute.Key;
+	}
 	public static SchemaAttribute GetSchemaAttribute(this IEntity entity)
 	{
 		var definedAttribute = entity.GetType().GetCustomAttribute<SchemaAttribute>();
@@ -281,28 +291,6 @@ public static class EntitiesExtensions
 		return Types.Convert<T>(firstNonNull);
 	}
 
-	public static string EntityKey(this Type type)
-	{
-		if (!type.ImplementsInterface<IEntity>())
-			return type.RawEntityKey();
-
-		var attribute = type.GetCustomAttribute<TableAttribute>();
-
-		if (attribute is null || attribute.Schema is null)
-			return type.RawEntityKey();
-
-		return $"{attribute.Schema}_{type.Name.ToCamelCase()}";
-	}
-
-	private static string RawEntityKey(this Type type)
-	{
-		var typeName = type.FullName;
-
-		if (typeName is null)
-			return type.Name.ToCamelCase();
-
-		return typeName.ToCamelCase();
-	}
 	/// <summary>
 	/// Returns the type of the entity that a passes type implements.
 	/// </summary>

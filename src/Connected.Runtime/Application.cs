@@ -220,6 +220,8 @@ public static class Application
 		RegisterCoreMicroService("Net.Routing");
 		RegisterCoreMicroService("Authorization.Extensions");
 		RegisterCoreMicroService("Authorization.Default");
+		RegisterCoreMicroService("Collections.Queues");
+		RegisterCoreMicroService("Collections.Extensions");
 	}
 
 	private static void RegisterCoreMicroService(string name)
