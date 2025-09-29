@@ -16,6 +16,6 @@ public interface ICacheContext : ICache
 	/// </summary>
 	void Flush();
 
-	IImmutableList<string>? OwnKeys();
-	IImmutableList<string>? OwnIds(string key);
+	IImmutableList<string> OwnKeys();
+	IImmutableList<string> OwnIds(string key);
 }

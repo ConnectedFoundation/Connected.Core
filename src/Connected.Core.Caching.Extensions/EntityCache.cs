@@ -5,17 +5,13 @@ using System.Collections.Immutable;
 
 namespace Connected.Caching;
 
-public abstract class EntityCache<TEntity, TEntityImplementation, TPrimaryKey> : SynchronizedCache<TEntity, TPrimaryKey>, IEntityCache<TEntity, TPrimaryKey>
+public abstract class EntityCache<TEntity, TEntityImplementation, TPrimaryKey>(ICachingService cache, IStorageProvider storage, string key)
+	: SynchronizedCache<TEntity, TPrimaryKey>(cache, key), IEntityCache<TEntity, TPrimaryKey>
 	where TEntity : IPrimaryKeyEntity<TPrimaryKey>
 	where TEntityImplementation : class, IPrimaryKeyEntity<TPrimaryKey>, TEntity
 	where TPrimaryKey : notnull
 {
-	protected EntityCache(ICachingService cache, IStorageProvider storage, string key) : base(cache, key)
-	{
-		Storage = storage;
-	}
-
-	private IStorageProvider Storage { get; }
+	private IStorageProvider Storage { get; } = storage;
 
 	protected override sealed async Task OnInitializing()
 	{

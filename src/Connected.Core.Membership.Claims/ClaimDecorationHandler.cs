@@ -39,7 +39,11 @@ internal sealed class ClaimDecorationHandler(IClaimService claims, IAuthenticati
 
 		foreach (var token in tokens)
 		{
-			var hasClaim = await identity.HasClaim(claims, token, authorization.Entity, authorization.EntityId);
+			var bound = authorization as IBoundAuthorization;
+			var entity = bound is null ? AuthorizationMiddleware.NullAuthorizationEntity : bound.Entity;
+			var entityId = bound is null ? AuthorizationMiddleware.NullAuthorizationEntityId : bound.EntityId;
+
+			var hasClaim = await identity.HasClaim(claims, token, entity, entityId);
 
 			if (!hasClaim && attribute.Options == ClaimsOptions.All)
 				return AuthorizationResult.Fail;

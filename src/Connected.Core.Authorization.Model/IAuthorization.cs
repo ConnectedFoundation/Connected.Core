@@ -10,7 +10,4 @@ public enum AuthorizationResult
 public interface IAuthorization : IMiddleware
 {
 	bool IsSealed { get; }
-
-	string Entity { get; }
-	string EntityId { get; }
 }

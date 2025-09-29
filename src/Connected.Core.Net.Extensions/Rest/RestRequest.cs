@@ -16,7 +16,14 @@ public abstract class RestRequest : IDisposable
 
 		HttpContext.RequestAborted.Register(async () =>
 		{
-			await Scope.Cancel();
+			try
+			{
+				await Scope.Cancel();
+			}
+			catch
+			{
+				// avoid craching process by eating this one
+			}
 		});
 	}
 

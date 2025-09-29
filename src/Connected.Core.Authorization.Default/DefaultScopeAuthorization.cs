@@ -9,9 +9,6 @@ namespace Connected.Core.Authorization.Default;
 internal sealed class DefaultScopeAuthorization(IAuthenticationService authentication)
 	: ScopeAuthorization
 {
-	public override string Entity => NullAuthorizationEntity;
-	public override string EntityId => NullAuthorizationEntityId;
-
 	protected override async Task<AuthorizationResult> OnInvoke()
 	{
 		if (await authentication.SelectIdentity() is null)

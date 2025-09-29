@@ -102,10 +102,10 @@ internal class Entries
 		return Find(predicate);
 	}
 
-	public IImmutableList<string>? Remove<T>(Func<T, bool> predicate)
+	public IImmutableList<string> Remove<T>(Func<T, bool> predicate)
 	{
 		if (Where(predicate) is not IImmutableList<T> ds || ds.Count == 0)
-			return default;
+			return ImmutableList<string>.Empty;
 
 		var result = new HashSet<string>();
 
@@ -121,17 +121,17 @@ internal class Entries
 		return [.. result];
 	}
 
-	public IImmutableList<T>? Where<T>(Func<T, bool> predicate)
+	public IImmutableList<T> Where<T>(Func<T, bool> predicate)
 	{
 		var values = Items.Select(f => f.Value.Instance).Cast<T>();
 
 		if (values is null || !values.Any())
-			return default;
+			return ImmutableList<T>.Empty;
 
 		var filtered = values.Where(predicate);
 
 		if (filtered is null || !filtered.Any())
-			return default;
+			return ImmutableList<T>.Empty;
 
 		foreach (var i in filtered)
 			HitList.Enqueue(i);

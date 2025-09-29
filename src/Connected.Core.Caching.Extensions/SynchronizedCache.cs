@@ -82,7 +82,7 @@ public abstract class SynchronizedCache<TEntry, TKey>(ICachingService cachingSer
 		await Task.CompletedTask;
 	}
 
-	public override async Task<IImmutableList<TEntry>?> All()
+	public override async Task<IImmutableList<TEntry>> All()
 	{
 		await ((ICachingDataProvider)this).Initialize();
 

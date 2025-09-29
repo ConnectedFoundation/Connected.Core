@@ -341,4 +341,13 @@ public static class EntitiesExtensions
 	{
 		return $"{entity.Head}.{entity.Id}";
 	}
+
+	public static TEntity Required<TEntity>(this TEntity? entity)
+		where TEntity : IEntity
+	{
+		if (entity is null)
+			throw new NullReferenceException($"{Strings.ErrEntityExpected} ({typeof(TEntity).ShortName()})");
+
+		return entity;
+	}
 }

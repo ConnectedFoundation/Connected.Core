@@ -10,6 +10,9 @@ public abstract class EntityAuthorization<TEntity> : AuthorizationMiddleware, IE
 	protected TEntity Instance { get; private set; } = default!;
 	protected ICallerContext Caller { get; private set; } = default!;
 
+	public abstract string Entity { get; }
+	public abstract string EntityId { get; }
+
 	public async Task<AuthorizationResult> Invoke<TDto>(IEntityAuthorizationDto<TDto, TEntity> dto)
 		where TDto : IDto
 	{

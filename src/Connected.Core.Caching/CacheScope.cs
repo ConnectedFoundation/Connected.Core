@@ -61,12 +61,12 @@ internal sealed class CacheScope : ICache, IDisposable
 		return new List<T>().GetEnumerator();
 	}
 
-	public IImmutableList<T>? All<T>(string key)
+	public IImmutableList<T> All<T>(string key)
 	{
 		if (Items.TryGetValue(key, out Entries? value))
 			return value.All<T>();
 
-		return default;
+		return ImmutableList<T>.Empty;
 	}
 
 	public int Count(string key)
@@ -197,12 +197,12 @@ internal sealed class CacheScope : ICache, IDisposable
 		return default;
 	}
 
-	public IImmutableList<T>? Where<T>(string key, Func<T, bool> predicate)
+	public IImmutableList<T> Where<T>(string key, Func<T, bool> predicate)
 	{
 		if (Items.TryGetValue(key, out Entries? value))
 			return value.Where(predicate);
 
-		return default;
+		return ImmutableList<T>.Empty;
 	}
 
 	public void CopyTo(string key, object id, IEntry instance)
@@ -251,20 +251,20 @@ internal sealed class CacheScope : ICache, IDisposable
 		await Task.CompletedTask;
 	}
 
-	public async Task<IImmutableList<string>?> Remove<T>(string key, Func<T, bool> predicate)
+	public async Task<IImmutableList<string>> Remove<T>(string key, Func<T, bool> predicate)
 	{
 		if (Items.TryGetValue(key, out Entries? value))
 			return value.Remove(predicate);
 
-		return await Task.FromResult<IImmutableList<string>?>(null);
+		return await Task.FromResult(ImmutableList<string>.Empty);
 	}
 
-	public IImmutableList<string>? Ids(string key)
+	public IImmutableList<string> Ids(string key)
 	{
 		if (Items.TryGetValue(key, out Entries? value))
 			return value.Keys;
 
-		return default;
+		return ImmutableList<string>.Empty;
 	}
 
 	public IImmutableList<string> Keys()

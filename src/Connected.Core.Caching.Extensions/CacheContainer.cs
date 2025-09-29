@@ -20,7 +20,7 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 	private ICacheContext Context { get; }
 	protected bool IsDisposed { get; set; }
 	protected ICachingService CachingService { get; }
-	protected virtual IImmutableList<string>? Keys => Context.Ids(Key);
+	public virtual IImmutableList<string> Keys => Context.Ids(Key);
 
 	public int Count => Context.Count(Key);
 	public string Key { get; }
@@ -54,7 +54,7 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 		await Task.CompletedTask;
 	}
 
-	public virtual Task<IImmutableList<TEntry>?> All()
+	public virtual Task<IImmutableList<TEntry>> All()
 	{
 		return Task.FromResult(Context.All<TEntry>(Key));
 	}

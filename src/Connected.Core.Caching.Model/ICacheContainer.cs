@@ -14,10 +14,10 @@ public interface ICacheContainer<TEntry, TKey> : IEnumerable<TEntry>, IDisposabl
 	/// The number of entries in the container.
 	/// </summary>
 	int Count { get; }
-
+	IImmutableList<string> Keys { get; }
 	Task Remove(TKey id);
 	Task Remove(Func<TEntry, bool> predicate);
-	Task<IImmutableList<TEntry>?> All();
+	Task<IImmutableList<TEntry>> All();
 	Task<TEntry?> Get(TKey id, Func<IEntryOptions, Task<TEntry?>>? retrieve);
 	Task<TEntry?> Get(TKey id);
 	Task<TEntry?> First();

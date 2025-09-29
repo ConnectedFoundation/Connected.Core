@@ -54,9 +54,9 @@ internal class CacheContext : ICacheContext
 		return true;
 	}
 
-	public IImmutableList<T>? All<T>(string key)
+	public IImmutableList<T> All<T>(string key)
 	{
-		return Merge(_scope.All<T>(key), Cache?.All<T>(key));
+		return Merge(_scope.All<T>(key), Cache.All<T>(key));
 	}
 
 	public async Task<T?> Get<T>(string key, object id, Func<IEntryOptions, Task<T?>>? retrieve)
@@ -162,7 +162,7 @@ internal class CacheContext : ICacheContext
 		return default;
 	}
 
-	public IImmutableList<T>? Where<T>(string key, Func<T, bool> predicate)
+	public IImmutableList<T> Where<T>(string key, Func<T, bool> predicate)
 	{
 		return Merge(_scope.Where(key, predicate), Cache.Where(key, predicate));
 	}
@@ -195,15 +195,12 @@ internal class CacheContext : ICacheContext
 		AddToRemoveList(key, id);
 	}
 
-	public async Task<IImmutableList<string>?> Remove<T>(string key, Func<T, bool> predicate)
+	public async Task<IImmutableList<string>> Remove<T>(string key, Func<T, bool> predicate)
 	{
 		var items = await _scope.Remove(key, predicate);
 
-		if (items is not null)
-		{
-			foreach (var item in items)
-				AddToRemoveList(key, item);
-		}
+		foreach (var item in items)
+			AddToRemoveList(key, item);
 
 		return items;
 	}
@@ -224,7 +221,7 @@ internal class CacheContext : ICacheContext
 		Cache.Merge(this);
 	}
 
-	private static IImmutableList<T>? Merge<T>(IImmutableList<T>? scope, IImmutableList<T>? shared)
+	private static IImmutableList<T> Merge<T>(IImmutableList<T> scope, IImmutableList<T> shared)
 	{
 		if (scope is null)
 			return shared;
@@ -303,12 +300,12 @@ internal class CacheContext : ICacheContext
 	}
 
 
-	public IImmutableList<string>? OwnIds(string key)
+	public IImmutableList<string> OwnIds(string key)
 	{
 		return _scope.Ids(key);
 	}
 
-	public IImmutableList<string>? Ids(string key)
+	public IImmutableList<string> Ids(string key)
 	{
 		var scoped = _scope.Ids(key) ?? [];
 		var shared = Cache.Ids(key) ?? [];
@@ -335,12 +332,12 @@ internal class CacheContext : ICacheContext
 		return scoped;
 	}
 
-	public IImmutableList<string>? OwnKeys()
+	public IImmutableList<string> OwnKeys()
 	{
 		return _scope.Keys();
 	}
 
-	public IImmutableList<string>? Keys()
+	public IImmutableList<string> Keys()
 	{
 		var scoped = _scope.Keys();
 		var shared = Cache.Keys();

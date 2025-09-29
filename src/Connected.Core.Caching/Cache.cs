@@ -21,7 +21,7 @@ internal abstract class Cache : ICache
 		return _scope.GetEnumerator<T>(key);
 	}
 
-	public virtual IImmutableList<T>? All<T>(string key)
+	public virtual IImmutableList<T> All<T>(string key)
 	{
 		return _scope.All<T>(key);
 	}
@@ -71,7 +71,7 @@ internal abstract class Cache : ICache
 		return _scope.First<T>(key);
 	}
 
-	public virtual IImmutableList<T>? Where<T>(string key, Func<T, bool> predicate)
+	public virtual IImmutableList<T> Where<T>(string key, Func<T, bool> predicate)
 	{
 		return _scope.Where(key, predicate);
 	}
@@ -129,11 +129,11 @@ internal abstract class Cache : ICache
 		await Task.CompletedTask;
 	}
 
-	public virtual async Task<IImmutableList<string>?> Remove<T>(string key, Func<T, bool> predicate)
+	public virtual async Task<IImmutableList<string>> Remove<T>(string key, Func<T, bool> predicate)
 	{
 		var items = await _scope.Remove(key, predicate);
 
-		if (items is not null && items.Count != 0)
+		if (items.Count != 0)
 			await OnRemove(key, items);
 
 		return items;
@@ -144,7 +144,7 @@ internal abstract class Cache : ICache
 		await Task.CompletedTask;
 	}
 
-	public IImmutableList<string>? Ids(string key)
+	public IImmutableList<string> Ids(string key)
 	{
 		return _scope.Ids(key);
 	}
