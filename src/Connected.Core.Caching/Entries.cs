@@ -1,3 +1,4 @@
+using Connected.Reflection;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 
@@ -58,8 +59,10 @@ internal class Entries
 
 		foreach (var i in instances)
 		{
-			if (i is T t)
-				r.Add(t);
+			if (i is not T t)
+				throw new InvalidCastException($"{Exceptions.ExInvalidCacheEntry} ({i.GetType().ShortName()}->{typeof(T).ShortName()})");
+            
+			r.Add(t);
 		}
 
 		return [.. r];
