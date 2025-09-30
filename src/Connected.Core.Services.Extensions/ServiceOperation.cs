@@ -1,6 +1,7 @@
 ﻿using Connected.Entities;
 using Connected.Storage.Transactions;
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 
 namespace Connected.Services;
 
@@ -29,6 +30,15 @@ public abstract class ServiceOperation<TDto> : IServiceOperation<TDto>, ITransac
 		}
 	}
 
+	public TEntity? SetState<TEntity, TPrimaryKey>(TEntity? entity)
+		where TEntity : IPrimaryKeyEntity<TPrimaryKey>
+		where TPrimaryKey : notnull
+	{
+		if (entity is null)
+			return default;
+
+		return SetState(entity, entity.Id);
+	}
 	public TEntity? SetState<TEntity>(TEntity? entity)
 	{
 		/*
@@ -66,6 +76,37 @@ public abstract class ServiceOperation<TDto> : IServiceOperation<TDto>, ITransac
 		return entity;
 	}
 
+	public TEntity? SetState<TEntity, TPrimaryKey>(TEntity? entity, TPrimaryKey id)
+	{
+		if (typeof(TEntity).IsInterface && typeof(TEntity).IsAssignableTo(typeof(IEntity)))
+		{
+			var fullName = typeof(TEntity).FullName;
+
+			if (fullName is null)
+				return entity;
+
+			State.AddOrUpdate($"{fullName}:{id}", entity, (existing, @new) =>
+			{
+				return @new;
+			});
+		}
+		else
+		{
+			var implementedEntity = typeof(TEntity).ResolveImplementedEntity();
+			var key = implementedEntity is not null ? implementedEntity.FullName : typeof(TEntity).FullName;
+
+			if (string.IsNullOrEmpty(key))
+				return entity;
+
+			State.AddOrUpdate($"{key}:{id}", entity, (existing, @new) =>
+			{
+				return @new;
+			});
+		}
+
+		return entity;
+	}
+
 	public TEntity? GetState<TEntity>()
 	{
 		var key = typeof(TEntity).FullName;
@@ -73,10 +114,51 @@ public abstract class ServiceOperation<TDto> : IServiceOperation<TDto>, ITransac
 		if (string.IsNullOrEmpty(key))
 			return default;
 
-		if (!State.TryGetValue(key, out object? result) || result is null)
+		if (State.TryGetValue(key, out object? result) && result is not null)
+			return (TEntity)result;
+		else
+		{
+			foreach (var stateKey in State.Keys)
+			{
+				if (stateKey.StartsWith(key) && State[stateKey] is TEntity entity)
+					return entity;
+			}
+		}
+
+		return default;
+	}
+
+	public TEntity? GetState<TEntity, TPrimaryKey>(TPrimaryKey id)
+	{
+		var key = typeof(TEntity).FullName;
+
+		if (string.IsNullOrEmpty(key))
+			return default;
+
+		if (!State.TryGetValue($"{key}:{id}", out object? result) || result is null)
 			return default;
 
 		return (TEntity)result;
+	}
+
+	public IImmutableList<TEntity> GetStates<TEntity>()
+	{
+		var key = typeof(TEntity).FullName;
+
+		if (string.IsNullOrEmpty(key))
+			return ImmutableList<TEntity>.Empty;
+		else
+		{
+			var result = new List<TEntity>();
+
+			foreach (var stateKey in State.Keys)
+			{
+				if (stateKey.StartsWith(key) && State[key] is TEntity entity)
+					result.Add(entity);
+			}
+
+			return result.ToImmutableList();
+		}
 	}
 
 	async Task ITransactionClient.Commit()
