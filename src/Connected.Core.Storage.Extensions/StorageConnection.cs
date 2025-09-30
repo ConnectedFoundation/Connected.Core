@@ -211,7 +211,7 @@ public abstract class StorageConnection : Middleware, IStorageConnection
 		{
 			foreach (var i in command.Operation.Parameters)
 			{
-				if (i.Direction == ParameterDirection.Output && i.Name is not null)
+				if (i.Direction.HasFlag(ParameterDirection.Output) && i.Name is not null)
 					i.Value = GetParameterValue(com, i.Name);
 			}
 		}

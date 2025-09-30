@@ -43,8 +43,17 @@ internal sealed class Query(IQueueCache cache, IStorageProvider storage)
 				 * Concurrency failed. refresh the cache to read it from a database.
 				 */
 				await cache.Refresh(message.Id);
+				var cached = (await cache.Select(message.Id)).Required<QueueMessage>();
 
-				return await cache.Select(message.Id) as QueueMessage ?? throw new NullReferenceException(Strings.ErrEntityExpected);
+				return cached with
+				{
+					NextVisible = DateTimeOffset.UtcNow.Add(Dto.NextVisible),
+					DequeueTimestamp = DateTimeOffset.UtcNow,
+					DequeueCount = cached.DequeueCount + 1,
+					PopReceipt = Guid.NewGuid(),
+					State = State.Update
+				};
+
 			}, Caller, (entity) =>
 			{
 				/*

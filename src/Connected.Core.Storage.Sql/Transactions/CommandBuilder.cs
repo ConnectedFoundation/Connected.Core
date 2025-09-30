@@ -62,6 +62,7 @@ internal abstract class CommandBuilder
 						Value = parameter.Direction switch
 						{
 							ParameterDirection.Input => await GetValue(property, cancel),
+							ParameterDirection.InputOutput => await GetValue(property, cancel),
 							_ => default
 						},
 						Name = parameter.Name,

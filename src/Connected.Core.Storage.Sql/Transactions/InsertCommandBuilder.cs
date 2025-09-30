@@ -53,15 +53,17 @@ internal class InsertCommandBuilder : CommandBuilder
 	{
 		foreach (var property in Properties)
 		{
-			if (property.GetCustomAttribute<PrimaryKeyAttribute>() is not null || IsVersion(property))
+			if (property.GetCustomAttribute<PrimaryKeyAttribute>() is PrimaryKeyAttribute pk)
 			{
-				if (IsVersion(property))
+				if (pk.IsIdentity)
+				{
+					PrimaryKeyParameter = await CreateParameter(property, ParameterDirection.Output, cancel);
+
 					continue;
-
-				PrimaryKeyParameter = await CreateParameter(property, ParameterDirection.Output, cancel);
-
-				continue;
+				}
 			}
+			else if (IsVersion(property))
+				continue;
 
 			await CreateParameter(property, cancel);
 
@@ -75,7 +77,9 @@ internal class InsertCommandBuilder : CommandBuilder
 	{
 		foreach (var property in Properties)
 		{
-			if (property.GetCustomAttribute<PrimaryKeyAttribute>() is not null || IsVersion(property))
+			if (property.GetCustomAttribute<PrimaryKeyAttribute>() is PrimaryKeyAttribute pk && pk.IsIdentity)
+				continue;
+			else if (IsVersion(property))
 				continue;
 
 			Write($"@{ColumnName(property)}, ");

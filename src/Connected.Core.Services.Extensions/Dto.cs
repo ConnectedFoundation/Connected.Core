@@ -9,6 +9,7 @@ public class Dto : IDto
 
 	public const int DefaultDistributedHeadLength = 257;
 
+	public const int MaxLength = -1;
 	public static IDto Empty => new Dto();
 	public static IDto Factory => new Dto();
 }

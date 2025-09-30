@@ -14,7 +14,7 @@ internal static class ReturnValueBinder
 
 		foreach (var parameter in operation.Parameters)
 		{
-			if (parameter.Direction != ParameterDirection.Output)
+			if (!parameter.Direction.HasFlag(ParameterDirection.Output))
 				continue;
 
 			if (string.IsNullOrWhiteSpace(parameter.Name))

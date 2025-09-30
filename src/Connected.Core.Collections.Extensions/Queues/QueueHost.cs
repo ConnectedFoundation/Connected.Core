@@ -53,13 +53,13 @@ public abstract class QueueHost : ScheduledWorker
 			});
 
 			items = await OnDequeued(items);
-
-			if (!items.Any())
-				return;
 			/*
 			 * Make sure changes to the queue service get commited.
 			 */
 			await scope.Commit();
+
+			if (!items.Any())
+				return;
 			/*
 			 * Messages have been receive but it's not necessary we'll process them
 			 */

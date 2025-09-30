@@ -12,8 +12,6 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, Eve
 {
 	protected override async Task OnInvoke()
 	{
-		var broadcast = Broadcast();
-
 		var targetMiddleware = typeof(IEventListener<>);
 		var dto = Dto.Dto.GetType().GetImplementedDtos();
 		var gt = targetMiddleware.MakeGenericType(dto.Count == 0 ? Dto.Dto.GetType() : dto[0]);
@@ -26,8 +24,11 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, Eve
 
 			await method.InvokeAsync(m, Dto.Sender, Dto.Dto);
 		}
+	}
 
-		await broadcast;
+	protected override async Task OnCommitted()
+	{
+		await Broadcast();
 	}
 
 	private async Task Broadcast()

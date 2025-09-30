@@ -57,7 +57,8 @@ public sealed class ExecutionBuilder : DatabaseVisitor
 				Type = parameter.Value.Type.ToDbType(),
 				Value = parameter.Value.Value
 			});
-		};
+		}
+		;
 
 		foreach (var variable in Context.Variables)
 		{

@@ -350,4 +350,13 @@ public static class EntitiesExtensions
 
 		return entity;
 	}
+
+	public static TEntity Required<TEntity>(this IEntity? entity)
+		where TEntity : IEntity
+	{
+		if (entity is null)
+			throw new NullReferenceException($"{Strings.ErrEntityExpected} ({typeof(TEntity).ShortName()})");
+
+		return (TEntity)entity;
+	}
 }
