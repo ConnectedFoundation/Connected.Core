@@ -11,6 +11,9 @@ public interface IUserService
 	[ServiceOperation(ServiceOperationVerbs.Get)]
 	Task<IImmutableList<IUser>> Query(IQueryDto? dto);
 
+	[ServiceOperation(ServiceOperationVerbs.Get), ServiceUrl(IdentitiesUrls.LookupOperation)]
+	Task<IImmutableList<IUser>> Query(IPrimaryKeyListDto<int> dto);
+
 	[ServiceOperation(ServiceOperationVerbs.Get)]
 	Task<IUser?> Select(IPrimaryKeyDto<long> dto);
 

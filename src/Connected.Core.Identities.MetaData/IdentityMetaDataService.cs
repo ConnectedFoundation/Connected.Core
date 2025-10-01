@@ -23,6 +23,11 @@ internal sealed class IdentityMetaDataService(IServiceProvider services)
 		return await Invoke(GetOperation<Query>(), dto ?? QueryDto.NoPaging);
 	}
 
+	public async Task<IImmutableList<IIdentityMetaData>> Query(IPrimaryKeyListDto<string> dto)
+	{
+		return await Invoke(GetOperation<Lookup>(), dto);
+	}
+
 	public async Task<IIdentityMetaData?> Select(IPrimaryKeyDto<string> dto)
 	{
 		return await Invoke(GetOperation<Select>(), dto);

@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Connected.Core.Membership.Model\Connected.Core.Membership.Model.csproj" />
+    <ProjectReference Include="..\Connected.Core.Entities.Mock\Connected.Core.Entities.Mock.csproj" />
+    <ProjectReference Include="..\Connected.Core.Services.Mock\Connected.Core.Services.Mock.csproj" />
+  </ItemGroup>
+
+</Project>

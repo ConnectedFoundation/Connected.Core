@@ -1,6 +1,7 @@
 ﻿using Connected.Annotations;
 using Connected.Annotations.Entities;
 using Connected.Entities;
+using System.Text.Json.Serialization;
 
 namespace Connected.Identities;
 
@@ -19,7 +20,7 @@ internal sealed record User : ConsistentEntity<long>, IUser
 	[Ordinal(3)]
 	public UserStatus Status { get; init; }
 
-	[Ordinal(5), Length(256)]
+	[Ordinal(5), Length(256), JsonIgnore]
 	public string? Password { get; init; }
 
 	[Ordinal(6), Length(128)]

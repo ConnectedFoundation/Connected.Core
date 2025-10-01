@@ -8,18 +8,21 @@ namespace Connected.Identities.MetaData;
 [Service]
 public interface IIdentityMetaDataService
 {
-	[ServiceOperation(ServiceOperationVerbs.Post | ServiceOperationVerbs.Put)]
+	[ServiceOperation(ServiceOperationVerbs.Post)]
 	Task Insert(IInsertIdentityMetaDataDto dto);
 
-	[ServiceOperation(ServiceOperationVerbs.Post)]
+	[ServiceOperation(ServiceOperationVerbs.Put)]
 	Task Update(IUpdateIdentityMetaDataDto dto);
 
-	[ServiceOperation(ServiceOperationVerbs.Post | ServiceOperationVerbs.Delete)]
+	[ServiceOperation(ServiceOperationVerbs.Delete)]
 	Task Delete(IPrimaryKeyDto<string> dto);
 
-	[ServiceOperation(ServiceOperationVerbs.Post | ServiceOperationVerbs.Get)]
+	[ServiceOperation(ServiceOperationVerbs.Get)]
 	Task<IImmutableList<IIdentityMetaData>> Query(IQueryDto? dto);
 
-	[ServiceOperation(ServiceOperationVerbs.Post | ServiceOperationVerbs.Get)]
+	[ServiceOperation(ServiceOperationVerbs.Get)]
+	Task<IImmutableList<IIdentityMetaData>> Query(IPrimaryKeyListDto<string> dto);
+
+	[ServiceOperation(ServiceOperationVerbs.Get)]
 	Task<IIdentityMetaData?> Select(IPrimaryKeyDto<string> dto);
 }

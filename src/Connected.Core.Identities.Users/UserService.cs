@@ -23,6 +23,11 @@ internal sealed class UserService(IServiceProvider services)
 		return await Invoke(GetOperation<Query>(), dto ?? QueryDto.NoPaging);
 	}
 
+	public async Task<IImmutableList<IUser>> Query(IPrimaryKeyListDto<int> dto)
+	{
+		return await Invoke(GetOperation<Lookup>(), dto);
+	}
+
 	public async Task<IUser?> Select(IPrimaryKeyDto<long> dto)
 	{
 		return await Invoke(GetOperation<Select>(), dto);
