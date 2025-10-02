@@ -13,3 +13,13 @@ public class Dto : IDto
 	public static IDto Empty => new Dto();
 	public static IDto Factory => new Dto();
 }
+
+public class Dto<TDto> : Dto
+	where TDto : IDto
+{
+	public Dto()
+	{
+		Value = Factory.Create<TDto>();
+	}
+	public TDto Value { get; }
+}

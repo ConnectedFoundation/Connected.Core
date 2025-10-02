@@ -16,7 +16,7 @@ public sealed class QueryDto : Dto, IQueryDto
 	/// The period with which returned messages will move the NextVisible value.
 	/// </summary>
 	/// <remarks>
-	/// Do not set this value to very short internal, for example to less than a second since
+	/// Do not set this value to very short interval, for example to less than a second since
 	/// it's very likely that the message won't get processes soon enough before gets available
 	/// again.
 	/// </remarks>

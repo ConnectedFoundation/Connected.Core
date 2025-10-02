@@ -13,4 +13,6 @@ public static class IdentitiesUrls
 	public const string SelectByCredentialsOperation = "select-by-redentials";
 	public const string ResolveOperation = "resolve";
 	public const string LookupOperation = "lookup";
+	public const string LookupByTokenOperation = "lookup-by-token";
+	public const string UpdatePasswordOperation = "update-password";
 }

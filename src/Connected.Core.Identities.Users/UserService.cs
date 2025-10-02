@@ -28,6 +28,11 @@ internal sealed class UserService(IServiceProvider services)
 		return await Invoke(GetOperation<Lookup>(), dto);
 	}
 
+	public async Task<IImmutableList<IUser>> Query(IValueListDto<string> dto)
+	{
+		return await Invoke(GetOperation<LookupByToken>(), dto);
+	}
+
 	public async Task<IUser?> Select(IPrimaryKeyDto<long> dto)
 	{
 		return await Invoke(GetOperation<Select>(), dto);
@@ -48,7 +53,7 @@ internal sealed class UserService(IServiceProvider services)
 		await Invoke(GetOperation<Update>(), dto);
 	}
 
-	public async Task UpdatePassword(IUpdatePasswordDto dto)
+	public async Task Update(IUpdatePasswordDto dto)
 	{
 		await Invoke(GetOperation<UpdatePassword>(), dto);
 	}

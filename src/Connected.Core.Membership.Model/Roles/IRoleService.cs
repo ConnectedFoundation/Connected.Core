@@ -18,11 +18,17 @@ public interface IRoleService
 	Task Delete(IPrimaryKeyDto<int> dto);
 
 	[ServiceOperation(ServiceOperationVerbs.Get)]
-	Task<IRole?> Select(IPrimaryKeyDto<int> id);
+	Task<IRole?> Select(IPrimaryKeyDto<int> dto);
 
-	[ServiceOperation(ServiceOperationVerbs.Get), ServiceUrl(MembershipUrls.SelectByNameOperation)]
+	[ServiceOperation(ServiceOperationVerbs.Get), ServiceUrl(ServiceOperations.SelectByToken)]
+	Task<IRole?> Select(IValueDto<string> dto);
+
+	[ServiceOperation(ServiceOperationVerbs.Get), ServiceUrl(ServiceOperations.SelectByName)]
 	Task<IRole?> Select(INameDto dto);
 
 	[ServiceOperation(ServiceOperationVerbs.Get)]
 	Task<IImmutableList<IRole>> Query(IQueryDto? dto);
+
+	[ServiceOperation(ServiceOperationVerbs.Get), ServiceUrl(ServiceOperations.LookupByTokens)]
+	Task<IImmutableList<IRole>> Query(IValueListDto<string> dto);
 }

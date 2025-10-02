@@ -9,6 +9,5 @@ public static class MembershipUrls
 	public const string ClaimService = $"{Namespace}/claims";
 	public const string ClaimSchemaService = $"{Namespace}/claims/schema";
 
-	public const string SelectByNameOperation = "select-by-name";
 	public const string QueryClaimsOperation = "query-claims";
 }

@@ -1,4 +1,5 @@
-﻿using Connected.Membership.Claims.Dtos;
+﻿using Connected.Authorization;
+using Connected.Membership.Claims.Dtos;
 using System.Collections.Immutable;
 
 namespace Connected.Membership.Claims;
@@ -6,16 +7,34 @@ namespace Connected.Membership.Claims;
 public abstract class ClaimSchemaProvider : Middleware, IClaimSchemaProvider
 {
 	protected IQueryClaimSchemaDto Dto { get; private set; } = default!;
+	protected List<IClaimSchema> Schema { get; } = [];
+
+	protected void Add(string? entity, string? entityId, string text)
+	{
+		Schema.Add(new ClaimSchema
+		{
+			Entity = entity ?? AuthorizationMiddleware.NullAuthorizationEntity,
+			EntityId = entityId ?? AuthorizationMiddleware.NullAuthorizationEntityId,
+			Text = text
+		});
+	}
 	public async Task<IImmutableList<IClaimSchema>> Invoke(IQueryClaimSchemaDto dto)
 	{
 		Dto = dto;
 
-		return await OnInvoke();
+		await OnInvoke();
+
+		return Schema.ToImmutableList();
 	}
 
-	protected virtual Task<IImmutableList<IClaimSchema>> OnInvoke()
+	protected virtual async Task OnInvoke()
 	{
-		return Task.FromResult<IImmutableList<IClaimSchema>>(ImmutableList<IClaimSchema>.Empty);
+		await Task.CompletedTask;
+	}
+
+	protected bool DtoEquals(string? entity)
+	{
+		return string.Equals(Dto.Entity, entity, StringComparison.OrdinalIgnoreCase);
 	}
 
 	protected bool DtoEquals(string? entity, string? entityId)

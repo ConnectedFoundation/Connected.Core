@@ -14,6 +14,9 @@ public interface IUserService
 	[ServiceOperation(ServiceOperationVerbs.Get), ServiceUrl(IdentitiesUrls.LookupOperation)]
 	Task<IImmutableList<IUser>> Query(IPrimaryKeyListDto<int> dto);
 
+	[ServiceOperation(ServiceOperationVerbs.Get), ServiceUrl(IdentitiesUrls.LookupByTokenOperation)]
+	Task<IImmutableList<IUser>> Query(IValueListDto<string> dto);
+
 	[ServiceOperation(ServiceOperationVerbs.Get)]
 	Task<IUser?> Select(IPrimaryKeyDto<long> dto);
 
@@ -29,8 +32,8 @@ public interface IUserService
 	[ServiceOperation(ServiceOperationVerbs.Put)]
 	Task Update(IUpdateUserDto dto);
 
-	[ServiceOperation(ServiceOperationVerbs.Put)]
-	Task UpdatePassword(IUpdatePasswordDto dto);
+	[ServiceOperation(ServiceOperationVerbs.Put), ServiceUrl(IdentitiesUrls.UpdatePasswordOperation)]
+	Task Update(IUpdatePasswordDto dto);
 
 	[ServiceOperation(ServiceOperationVerbs.Delete)]
 	Task Delete(IPrimaryKeyDto<long> dto);

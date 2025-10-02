@@ -12,37 +12,25 @@ internal sealed class BasicAuthentication : BasicAuthenticationProvider
 		if (UserName is null || Password is null)
 			return;
 
-		using var scope = Scope.Create();
+		using var scope = Scope.Create().WithSystemIdentity();
 
-		try
-		{
-			var authentication = scope.ServiceProvider.GetRequiredService<IAuthenticationService>();
-			var users = scope.ServiceProvider.GetRequiredService<IUserService>();
-			var dto = scope.ServiceProvider.GetRequiredService<ISelectUserDto>();
+		var authentication = scope.ServiceProvider.GetRequiredService<IAuthenticationService>();
+		var users = scope.ServiceProvider.GetRequiredService<IUserService>();
+		var dto = scope.ServiceProvider.GetRequiredService<ISelectUserDto>();
 
-			dto.User = UserName;
-			dto.Password = Password;
+		dto.User = UserName;
+		dto.Password = Password;
 
-			var user = await users.Select(dto);
+		var user = await users.Select(dto);
 
-			if (user is null)
-				return;
+		if (user is null)
+			return;
 
-			var identityDto = scope.ServiceProvider.GetRequiredService<IUpdateIdentityDto>();
+		var identityDto = scope.ServiceProvider.GetRequiredService<IUpdateIdentityDto>();
 
-			identityDto.Identity = user;
+		identityDto.Identity = user;
 
-			await authentication.UpdateIdentity(identityDto);
-		}
-		catch
-		{
-			await scope.Rollback();
-
-			throw;
-		}
-		finally
-		{
-			await scope.Flush();
-		}
+		await authentication.UpdateIdentity(identityDto);
+		await scope.Flush();
 	}
 }

@@ -28,6 +28,11 @@ internal sealed class IdentityAuthenticationTokenService(IServiceProvider servic
 		return await Invoke(GetOperation<Select>(), dto);
 	}
 
+	public async Task<IIdentityAuthenticationToken?> Select(IValueDto<string> dto)
+	{
+		return await Invoke(GetOperation<SelectByToken>(), dto);
+	}
+
 	public async Task Update(IUpdateIdentityAuthenticationTokenDto dto)
 	{
 		await Invoke(GetOperation<Update>(), dto);

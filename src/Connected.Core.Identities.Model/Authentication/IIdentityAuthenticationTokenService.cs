@@ -8,18 +8,21 @@ namespace Connected.Identities.Authentication;
 [Service]
 public interface IIdentityAuthenticationTokenService
 {
-	[ServiceOperation(ServiceOperationVerbs.Post | ServiceOperationVerbs.Put)]
+	[ServiceOperation(ServiceOperationVerbs.Post)]
 	Task<long?> Insert(IInsertIdentityAuthenticationTokenDto dto);
 
-	[ServiceOperation(ServiceOperationVerbs.Post)]
+	[ServiceOperation(ServiceOperationVerbs.Put)]
 	Task Update(IUpdateIdentityAuthenticationTokenDto dto);
 
-	[ServiceOperation(ServiceOperationVerbs.Post | ServiceOperationVerbs.Delete)]
+	[ServiceOperation(ServiceOperationVerbs.Delete)]
 	Task Delete(IPrimaryKeyDto<long> dto);
 
-	[ServiceOperation(ServiceOperationVerbs.Post | ServiceOperationVerbs.Get)]
+	[ServiceOperation(ServiceOperationVerbs.Get)]
 	Task<IImmutableList<IIdentityAuthenticationToken>> Query(IQueryIdentityAuthenticationTokensDto dto);
 
-	[ServiceOperation(ServiceOperationVerbs.Post | ServiceOperationVerbs.Get)]
+	[ServiceOperation(ServiceOperationVerbs.Get)]
 	Task<IIdentityAuthenticationToken?> Select(IPrimaryKeyDto<long> dto);
+
+	[ServiceOperation(ServiceOperationVerbs.Get)]
+	Task<IIdentityAuthenticationToken?> Select(IValueDto<string> dto);
 }

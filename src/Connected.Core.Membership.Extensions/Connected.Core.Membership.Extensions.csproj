@@ -60,7 +60,9 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Connected.Core.Authentication.Model\Connected.Core.Authentication.Model.csproj" />
+		<ProjectReference Include="..\Connected.Core.Authorization.Extensions\Connected.Core.Authorization.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Entities.Extensions\Connected.Core.Entities.Extensions.csproj" />
+		<ProjectReference Include="..\Connected.Core.Identities.Extensions\Connected.Core.Identities.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Membership.Model\Connected.Core.Membership.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Model\Connected.Core.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Services.Extensions\Connected.Core.Services.Extensions.csproj" />

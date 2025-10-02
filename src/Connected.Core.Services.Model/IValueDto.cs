@@ -1,5 +1,5 @@
 ﻿namespace Connected.Services;
-public interface IValueDto<T> : IDto
+public interface IValueListDto<TPrimaryKey> : IDto
 {
-	T Value { get; set; }
+	List<TPrimaryKey> Items { get; set; }
 }

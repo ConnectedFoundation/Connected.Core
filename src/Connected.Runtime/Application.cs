@@ -203,25 +203,26 @@ public static class Application
 
 		RegisterMicroService(typeof(Application).Assembly);
 
+		RegisterCoreMicroService("Authentication");
+		RegisterCoreMicroService("Authentication.Extensions");
 		RegisterCoreMicroService("Authorization");
-		RegisterCoreMicroService("Services.Extensions");
+		RegisterCoreMicroService("Authorization.Default");
+		RegisterCoreMicroService("Authorization.Extensions");
+		RegisterCoreMicroService("Caching");
+		RegisterCoreMicroService("Collections.Extensions");
+		RegisterCoreMicroService("Collections.Queues");
+		RegisterCoreMicroService("Configuration");
+		RegisterCoreMicroService("Configuration.Settings");
+		RegisterCoreMicroService("Entities");
+		RegisterCoreMicroService("Globalization.Languages");
 		RegisterCoreMicroService("Services");
 		RegisterCoreMicroService("Net");
-		RegisterCoreMicroService("Configuration.Settings");
-		RegisterCoreMicroService("Caching");
-		RegisterCoreMicroService("Storage.Extensions");
-		RegisterCoreMicroService("Configuration");
-		RegisterCoreMicroService("Notifications");
-		RegisterCoreMicroService("Globalization.Languages");
 		RegisterCoreMicroService("Net.Extensions");
-		RegisterCoreMicroService("Entities");
-		RegisterCoreMicroService("Authentication");
-		RegisterCoreMicroService("Storage.Sql");
 		RegisterCoreMicroService("Net.Routing");
-		RegisterCoreMicroService("Authorization.Extensions");
-		RegisterCoreMicroService("Authorization.Default");
-		RegisterCoreMicroService("Collections.Queues");
-		RegisterCoreMicroService("Collections.Extensions");
+		RegisterCoreMicroService("Notifications");
+		RegisterCoreMicroService("Services.Extensions");
+		RegisterCoreMicroService("Storage.Extensions");
+		RegisterCoreMicroService("Storage.Sql");
 	}
 
 	private static void RegisterCoreMicroService(string name)
@@ -278,7 +279,6 @@ public static class Application
 			webApp.UseRouting();
 			webApp.ConfigureMicroServices(builder.Environment);
 			webApp.ActivateHttpServices();
-			webApp.ActivateAuthenticationCookieMiddleware();
 			webApp.ActivateRest();
 
 			await InitializeMicroServices(webApp);

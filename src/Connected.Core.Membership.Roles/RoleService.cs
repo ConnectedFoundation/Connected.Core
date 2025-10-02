@@ -23,14 +23,24 @@ internal sealed class RoleService(IServiceProvider services)
 		return await Invoke(GetOperation<Query>(), dto ?? QueryDto.NoPaging);
 	}
 
-	public async Task<IRole?> Select(IPrimaryKeyDto<int> id)
+	public async Task<IImmutableList<IRole>> Query(IValueListDto<string> dto)
 	{
-		return await Invoke(GetOperation<Select>(), id);
+		return await Invoke(GetOperation<LookupByTokens>(), dto);
+	}
+
+	public async Task<IRole?> Select(IPrimaryKeyDto<int> dto)
+	{
+		return await Invoke(GetOperation<Select>(), dto);
 	}
 
 	public async Task<IRole?> Select(INameDto dto)
 	{
 		return await Invoke(GetOperation<SelectByName>(), dto);
+	}
+
+	public Task<IRole?> Select(IValueDto<string> dto)
+	{
+		return Invoke(GetOperation<SelectByToken>(), dto);
 	}
 
 	public async Task Update(IUpdateRoleDto dto)

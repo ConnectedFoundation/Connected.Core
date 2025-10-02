@@ -61,6 +61,7 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Connected.Core.Authentication.Model\Connected.Core.Authentication.Model.csproj" />
 		<ProjectReference Include="..\Connected.Core.Configuration.Extensions\Connected.Core.Configuration.Extensions.csproj" />
+		<ProjectReference Include="..\Connected.Core.Identities.Extensions\Connected.Core.Identities.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Model.Extensions\Connected.Core.Model.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Core.Model\Connected.Core.Model.csproj" />
 	</ItemGroup>

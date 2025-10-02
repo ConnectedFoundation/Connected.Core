@@ -32,6 +32,7 @@
 	<ItemGroup>
     <ProjectReference Include="..\Connected.Core.Authentication.Model\Connected.Core.Authentication.Model.csproj" />
     <ProjectReference Include="..\Connected.Core.Authorization.Extensions\Connected.Core.Authorization.Extensions.csproj" />
+    <ProjectReference Include="..\Connected.Core.Membership.Extensions\Connected.Core.Membership.Extensions.csproj" />
   </ItemGroup>
 
 </Project>
