@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 
 namespace Connected.Identities.MetaData;
 
-[Service]
+[Service, ServiceUrl(IdentitiesUrls.MetaDataService)]
 public interface IIdentityMetaDataService
 {
 	[ServiceOperation(ServiceOperationVerbs.Post)]
