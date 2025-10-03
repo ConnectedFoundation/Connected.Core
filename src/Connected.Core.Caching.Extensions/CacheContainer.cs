@@ -43,7 +43,7 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 
 		foreach (var item in removed)
 		{
-			var converted = Types.Convert<TKey>(item);
+			var converted = Types.Convert<TKey>(item) ?? throw new NullReferenceException();
 
 			await OnRemoved(converted);
 		}

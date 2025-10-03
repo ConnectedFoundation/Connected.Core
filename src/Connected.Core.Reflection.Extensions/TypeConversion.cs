@@ -3,7 +3,7 @@
 namespace Connected.Reflection;
 internal static class TypeConversion
 {
-	public static object Convert(object value, Type type)
+	public static object? Convert(object value, Type type)
 	{
 		if (value.GetType() == type)
 			return value;
@@ -11,20 +11,12 @@ internal static class TypeConversion
 		var valueConverter = TypeDescriptor.GetConverter(value);
 
 		if (valueConverter.CanConvertTo(type))
-		{
-			var result = valueConverter.ConvertTo(value, type);
-
-			return result is null ? throw new NullReferenceException() : result;
-		}
+			return valueConverter.ConvertTo(value, type);
 
 		var typeConverter = TypeDescriptor.GetConverter(type);
 
 		if (typeConverter.CanConvertFrom(value.GetType()))
-		{
-			var result = typeConverter.ConvertFrom(value);
-
-			return result is null ? throw new NullReferenceException() : result;
-		}
+			return typeConverter.ConvertFrom(value);
 
 		if (TryConvertEnum(value, type, out object? er) && er is not null)
 			return er;

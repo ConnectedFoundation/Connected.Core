@@ -12,6 +12,9 @@ internal class Columns(ExistingSchema existing) : SynchronizationQuery<List<ISch
 		var result = new List<ISchemaColumn>();
 		var rdr = await Context.OpenReader(new SqlStorageOperation { CommandText = CommandText });
 
+		if (rdr is null)
+			return result;
+
 		while (rdr.Read())
 		{
 			var column = new ExistingColumn(existing)

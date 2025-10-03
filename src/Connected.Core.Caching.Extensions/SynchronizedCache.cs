@@ -53,9 +53,10 @@ public abstract class SynchronizedCache<TEntry, TKey>(ICachingService cachingSer
 		var converted = Types.Convert<TKey>(id);
 
 		if (converted is not null)
+		{
 			await OnInvalidate(converted);
-
-		await OnInvalidated(converted);
+			await OnInvalidated(converted);
+		}
 	}
 
 	async Task ICachingDataProvider.Initialize()

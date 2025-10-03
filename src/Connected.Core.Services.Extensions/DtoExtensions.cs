@@ -179,8 +179,8 @@ public static class DtoExtensions
 
 		var result = dto.Create<IDistributedPrimaryKeyDto<THead, TPrimaryKey>>();
 
-		result.Head = Types.Convert<THead>(tokens[0]);
-		result.Id = Types.Convert<TPrimaryKey>(tokens[1]);
+		result.Head = Types.Convert<THead>(tokens[0]) ?? throw new NullReferenceException();
+		result.Id = Types.Convert<TPrimaryKey>(tokens[1]) ?? throw new NullReferenceException();
 
 		return result;
 	}

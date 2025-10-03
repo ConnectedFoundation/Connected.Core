@@ -136,7 +136,10 @@ internal static class SchemaExtensions
 		if (r.IsDBNull(idx))
 			return defaultValue;
 
-		return Types.Convert<T>(r.GetValue(idx));
+		if (Types.Convert<T>(r.GetValue(idx)) is T result)
+			return result;
+
+		return defaultValue;
 	}
 
 	public static string SchemaName(this ISchema schema)
@@ -166,7 +169,7 @@ internal static class SchemaExtensions
 		return defValue;
 	}
 
-	public static DbType ToDbType(string value)
+	public static DbType ToDbType(string? value)
 	{
 		if (string.Equals(value, "bigint", StringComparison.OrdinalIgnoreCase))
 			return DbType.Int64;

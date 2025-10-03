@@ -4,6 +4,8 @@ using Connected.Entities;
 
 namespace Connected.Identities.Authentication;
 
+[Table(Schema = SchemaAttribute.CoreSchema)]
+
 internal sealed record IdentityAuthenticationToken : ConsistentEntity<long>, IIdentityAuthenticationToken
 {
 	[Ordinal(0), Length(256)]

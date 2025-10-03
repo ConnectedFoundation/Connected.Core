@@ -314,12 +314,12 @@ public static class Types
 			return type.ShortName();
 	}
 
-	public static T Convert<T>(object value)
+	public static T? Convert<T>(object value)
 	{
-		return (T)TypeConversion.Convert(value, typeof(T));
+		return (T?)TypeConversion.Convert(value, typeof(T));
 	}
 
-	public static object Convert(object value, Type type)
+	public static object? Convert(object value, Type type)
 	{
 		return TypeConversion.Convert(value, type);
 	}
