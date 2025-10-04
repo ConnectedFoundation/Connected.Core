@@ -24,18 +24,12 @@ public abstract class SynchronizedCache<TEntry, TKey>(ICachingService cachingSer
 			if (Initializers.Contains(Key))
 				return;
 
-			Lock.Enter();
-
-			try
+			lock (Lock)
 			{
 				if (Initializers.Contains(Key))
 					return;
 
 				Initializers.Add(Key);
-			}
-			finally
-			{
-				Lock.Exit();
 			}
 		}
 	}
@@ -45,25 +39,17 @@ public abstract class SynchronizedCache<TEntry, TKey>(ICachingService cachingSer
 		if (!Initializers.Contains(Key))
 			return;
 
-		Lock.Enter();
-
-		try
+		foreach (var key in Keys)
 		{
-			foreach (var key in Keys)
-			{
-				var converted = Types.Convert<TKey>(key);
+			var converted = Types.Convert<TKey>(key);
 
-				if (converted is not null)
-					await Remove(converted);
-			}
+			if (converted is not null)
+				await Remove(converted);
+		}
 
-			Initializers.Remove(Key);
-		}
-		finally
-		{
-			Lock.Exit();
-		}
+		Initializers.Remove(Key);
 	}
+
 	protected virtual async Task OnInvalidate(TKey id)
 	{
 		await Task.CompletedTask;
