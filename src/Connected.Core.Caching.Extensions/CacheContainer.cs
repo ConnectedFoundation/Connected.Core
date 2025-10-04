@@ -119,7 +119,10 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 		if (!IsDisposed)
 		{
 			if (disposing)
+			{
+				Context.Dispose();
 				OnDisposing();
+			}
 
 			IsDisposed = true;
 		}
