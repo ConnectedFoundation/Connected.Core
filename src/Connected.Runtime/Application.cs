@@ -17,6 +17,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Net.Mime;
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Text;
 
 namespace Connected;
@@ -189,9 +190,8 @@ public static class Application
 	public static void RegisterMicroService(string assemblyName)
 	{
 		var fileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, assemblyName);
-		var name = AssemblyName.GetAssemblyName(fileName);
 
-		MicroServices.Register(AppDomain.CurrentDomain.Load(name));
+		MicroServices.Register(AssemblyLoadContext.Default.LoadFromAssemblyPath(fileName));
 	}
 
 	public static void RegisterCoreMicroServices()

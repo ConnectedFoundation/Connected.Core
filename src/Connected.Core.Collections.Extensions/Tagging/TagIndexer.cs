@@ -38,9 +38,9 @@ public class TagIndexer<TEntity, TPrimaryKey>
 	{
 		foreach (var key in Items)
 		{
-			var items = key.Value.Where(f => Comparer.Default.Compare(f.Id, id) == 0);
+			var items = key.Value.Where(f => Comparer.Default.Compare(f.Id, id) == 0).ToImmutableList();
 
-			if (!items.Any())
+			if (items.IsEmpty)
 				continue;
 
 			lock (key.Value)

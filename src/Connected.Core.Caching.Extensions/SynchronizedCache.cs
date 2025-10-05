@@ -47,7 +47,10 @@ public abstract class SynchronizedCache<TEntry, TKey>(ICachingService cachingSer
 				await Remove(converted);
 		}
 
-		Initializers.Remove(Key);
+		lock (Lock)
+		{
+			Initializers.Remove(Key);
+		}
 	}
 
 	protected virtual async Task OnInvalidate(TKey id)
@@ -104,7 +107,7 @@ public abstract class SynchronizedCache<TEntry, TKey>(ICachingService cachingSer
 	{
 		await ((ICachingDataProvider)this).Initialize();
 
-		return base.All().Result;
+		return await base.All();
 	}
 
 	public override async Task<TEntry?> First()

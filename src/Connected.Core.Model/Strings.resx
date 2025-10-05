@@ -141,9 +141,6 @@
   <data name="ValDuplicate" xml:space="preserve">
     <value>Duplicate value</value>
   </data>
-  <data name="ValEntityDisabled" xml:space="preserve">
-    <value>Entity is disabled</value>
-  </data>
   <data name="ValEnumValueNotDefined" xml:space="preserve">
     <value>Enum value not defined</value>
   </data>
@@ -269,5 +266,8 @@
   </data>
   <data name="KnowledgeDomain" xml:space="preserve">
     <value>Knowledge</value>
+  </data>
+  <data name="ValEntityDisabled" xml:space="preserve">
+    <value>Entity is disabled</value>
   </data>
 </root>

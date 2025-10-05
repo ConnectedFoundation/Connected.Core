@@ -19,6 +19,29 @@ public static class EntitiesExtensions
 		return Serializer.Merge(newEntity, existing, sources);
 	}
 
+	public static TResultEntity WithState<TEntity, TResultEntity>(this TEntity existing, State state)
+		where TEntity : IEntity
+		where TResultEntity : IEntity
+	{
+		var newEntity = Activator.CreateInstance<TResultEntity>();
+
+		return Serializer.Merge(newEntity, existing, new
+		{
+			State = state
+		});
+	}
+
+	public static TEntity WithState<TEntity>(this TEntity existing, State state)
+		where TEntity : IEntity, new()
+	{
+		var newEntity = Activator.CreateInstance<TEntity>();
+
+		return Serializer.Merge(newEntity, existing, new
+		{
+			State = state
+		});
+	}
+
 	public static TEntity Clone<TEntity>(this TEntity existing)
 		where TEntity : IEntity
 	{

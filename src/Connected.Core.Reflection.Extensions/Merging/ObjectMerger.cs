@@ -77,8 +77,7 @@ internal sealed class ObjectMerger : Merger
 		else
 			targetValue = targetProperty.GetValue(sourceProperty);
 
-		if (targetValue is null)
-			return;
+		targetValue ??= new object[] { sourceProperty };
 
 		if (!targetValue.GetType().IsArray && targetValue is not IEnumerable)
 			return;

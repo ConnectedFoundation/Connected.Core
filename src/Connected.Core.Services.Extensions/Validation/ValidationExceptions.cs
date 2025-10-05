@@ -1,5 +1,4 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Connected.Validation;
 
@@ -27,6 +26,11 @@ public static class ValidationExceptions
 	public static ValidationException Disabled(string argument)
 	{
 		return new ValidationException($"{Strings.ValEntityDisabled} ({argument})");
+	}
+
+	public static ValidationException Disabled(string argument, object value)
+	{
+		return new ValidationException($"{Strings.ValEntityDisabled} ({argument}:{value})");
 	}
 
 	public static ValidationException ReferenceExists(Type entity, object value)
