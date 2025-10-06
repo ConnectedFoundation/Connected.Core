@@ -20,7 +20,7 @@ public interface IUserService
 	[ServiceOperation(ServiceOperationVerbs.Get)]
 	Task<IUser?> Select(IPrimaryKeyDto<long> dto);
 
-	[ServiceOperation(ServiceOperationVerbs.Get), ServiceUrl(IdentitiesUrls.SelectByCredentialsOperation)]
+	[ServiceOperation(ServiceOperationVerbs.Put), ServiceUrl(IdentitiesUrls.SelectByCredentialsOperation)]
 	Task<IUser?> Select(ISelectUserDto dto);
 
 	[ServiceOperation(ServiceOperationVerbs.Get), ServiceUrl(IdentitiesUrls.ResolveOperation)]

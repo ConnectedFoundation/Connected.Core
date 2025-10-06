@@ -10,18 +10,18 @@ internal sealed class SelectByCredentials(IUserService users)
 	{
 		var user = await users.Select(Dto.CreateValue(Dto.User));
 
-		if (user is null)
+		if (user is null || user is not User u)
 			return null;
 
 		if (user.Status != UserStatus.Active)
 			return null;
 
-		if (user.Password is null)
+		if (u.Password is null)
 			return null;
 
 		var hashed = await UserUtils.HashPassword(Dto.Password);
 
-		if (!string.Equals(user.Password, hashed, StringComparison.Ordinal))
+		if (!string.Equals(u.Password, hashed, StringComparison.Ordinal))
 			return null;
 
 		return user;

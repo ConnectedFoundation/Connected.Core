@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Connected.Core.Entities.Model\Connected.Core.Entities.Model.csproj" />
     <ProjectReference Include="..\Connected.Core.Services.Mock\Connected.Core.Services.Mock.csproj" />
   </ItemGroup>
 

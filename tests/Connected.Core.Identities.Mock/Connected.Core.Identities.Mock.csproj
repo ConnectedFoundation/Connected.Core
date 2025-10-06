@@ -6,4 +6,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Connected.Core.Identities.Model\Connected.Core.Identities.Model.csproj" />
+    <ProjectReference Include="..\Connected.Core.Entities.Mock\Connected.Core.Entities.Mock.csproj" />
+    <ProjectReference Include="..\Connected.Core.Services.Mock\Connected.Core.Services.Mock.csproj" />
+  </ItemGroup>
+
 </Project>

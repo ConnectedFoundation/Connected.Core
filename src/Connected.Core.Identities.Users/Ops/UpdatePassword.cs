@@ -11,8 +11,8 @@ internal sealed class UpdatePassword(IUserService users, IUserCache cache, IStor
 {
 	protected override async Task OnInvoke()
 	{
-		var entity = SetState(await users.Select(Dto)) as User ?? throw new NullReferenceException(Connected.Strings.ErrEntityExpected);
-		var password = Dto.Password is null ? null : UserUtils.HashPassword(Dto.Password);
+		var entity = SetState(await users.Select(Dto) as User).Required();
+		var password = Dto.Password is null ? null : await UserUtils.HashPassword(Dto.Password);
 
 		await storage.Open<User>().Update(entity.Merge(Dto, State.Update, new
 		{
@@ -21,7 +21,7 @@ internal sealed class UpdatePassword(IUserService users, IUserCache cache, IStor
 		{
 			await cache.Refresh(Dto.Id);
 
-			return SetState(await users.Select(Dto)) as User ?? throw new NullReferenceException(Connected.Strings.ErrEntityExpected);
+			return SetState(await users.Select(Dto) as User).Required();
 		}, Caller, async (f) =>
 		{
 			return await Task.FromResult(f.Merge(Dto, State.Update, new

@@ -1,4 +1,5 @@
 ﻿using Connected.Core.Services.Mock;
+using Connected.Entities;
 using Connected.Services;
 using Microsoft.AspNetCore.Http;
 using System.Net.Http.Headers;
@@ -206,6 +207,7 @@ public abstract class RestTest(string serviceUrl)
 	}
 
 	protected async Task<List<TEntity>> Query<TEntity>()
+		where TEntity : IEntity
 	{
 		return await Get<List<TEntity>>(QueryOperation, new Dictionary<string, object?>()) ?? new List<TEntity>();
 	}

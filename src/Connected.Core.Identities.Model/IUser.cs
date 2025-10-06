@@ -16,6 +16,4 @@ public interface IUser : IEntity<long>, IIdentity
 	string? Email { get; init; }
 
 	UserStatus Status { get; init; }
-
-	string? Password { get; init; }
 }
