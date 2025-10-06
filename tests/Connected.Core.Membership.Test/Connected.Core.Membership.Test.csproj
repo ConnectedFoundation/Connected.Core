@@ -13,6 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Connected.Core.Identities.Mock\Connected.Core.Identities.Mock.csproj" />
     <ProjectReference Include="..\Connected.Core.Membership.Mock\Connected.Core.Membership.Mock.csproj" />
     <ProjectReference Include="..\Connected.Core.Mock\Connected.Core.Mock.csproj" />
   </ItemGroup>

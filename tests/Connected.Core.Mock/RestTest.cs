@@ -79,6 +79,14 @@ public abstract class RestTest(string serviceUrl)
 		return await HandleResponse<TEntity>(await client.PutAsync(TestConfiguration.ParseUrl(ServiceUrl, operation), CreateContent(dto)));
 	}
 
+	protected async Task<TValue?> PutNonEntity<TDto, TValue>(string operation, TDto? dto)
+		where TDto : DtoMock
+	{
+		using var client = PrepareClient();
+
+		return await HandleResponse<TValue>(await client.PutAsync(TestConfiguration.ParseUrl(ServiceUrl, operation), CreateContent(dto)));
+	}
+
 	protected async Task<List<TEntity>> GetList<TDto, TEntity>(string operation, TDto? dto)
 		where TEntity : EntityMock
 		where TDto : DtoMock
@@ -97,6 +105,15 @@ public abstract class RestTest(string serviceUrl)
 		var url = $"{TestConfiguration.ParseUrl(ServiceUrl, operation)}{CreateQueryString(dto)}";
 
 		return await HandleResponse<TEntity>(await client.GetAsync(url));
+	}
+
+	protected async Task<TReturnValue?> GetNonEntity<TDto, TReturnValue>(string operation, TDto? dto)
+		where TDto : DtoMock
+	{
+		using var client = PrepareClient();
+		var url = $"{TestConfiguration.ParseUrl(ServiceUrl, operation)}{CreateQueryString(dto)}";
+
+		return await HandleResponse<TReturnValue>(await client.GetAsync(url));
 	}
 
 	protected async Task Upload(string operation, string directory, string fileName)

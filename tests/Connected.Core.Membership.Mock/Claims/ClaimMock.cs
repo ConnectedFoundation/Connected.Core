@@ -2,7 +2,8 @@
 using Connected.Membership.Claims;
 
 namespace Connected.Core.Membership.Mock.Claims;
-public class ClaimMock : EntityMock<long>, IClaim
+public class ClaimMock
+	: EntityMock<long>, IClaim
 {
 	public required string Value { get; init; }
 	public string? Schema { get; init; }
