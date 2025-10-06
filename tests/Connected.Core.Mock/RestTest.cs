@@ -1,8 +1,9 @@
-﻿using Connected.Core.Services.Mock;
-using Connected.Entities;
-using Connected.Services;
+﻿using Connected.Core.Entities.Mock;
+using Connected.Core.Services.Mock;
 using Microsoft.AspNetCore.Http;
+using System.Collections;
 using System.Net.Http.Headers;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
@@ -28,72 +29,74 @@ public abstract class RestTest(string serviceUrl)
 
 	protected string ServiceUrl { get; set; } = serviceUrl;
 
-	protected async Task Post(string operation, object? instance)
+	protected async Task Post<TDto>(string operation, TDto? dto)
+		where TDto : DtoMock
 	{
 		using var client = PrepareClient();
 
-		await HandleResponse(await client.PostAsync(TestConfiguration.ParseUrl(ServiceUrl, operation), CreateContent(instance)));
+		await HandleResponse(await client.PostAsync(TestConfiguration.ParseUrl(ServiceUrl, operation), CreateContent(dto)));
 	}
 
-	protected async Task<T?> Post<T>(string operation, object? instance)
+	protected async Task<TReturnValue?> Post<TDto, TReturnValue>(string operation, TDto? dto)
+		where TDto : DtoMock
 	{
 		using var client = PrepareClient();
 
-		return await HandleResponse<T>(await client.PostAsync(TestConfiguration.ParseUrl(ServiceUrl, operation), CreateContent(instance)));
+		return await HandleResponse<TReturnValue>(await client.PostAsync(TestConfiguration.ParseUrl(ServiceUrl, operation), CreateContent(dto)));
 	}
 
-	protected async Task Put(string operation, object? instance)
+	protected async Task Put<TDto>(string operation, TDto? dto)
+		where TDto : DtoMock
 	{
 		using var client = PrepareClient();
 
-		await HandleResponse(await client.PutAsync(TestConfiguration.ParseUrl(ServiceUrl, operation), CreateContent(instance)));
+		await HandleResponse(await client.PutAsync(TestConfiguration.ParseUrl(ServiceUrl, operation), CreateContent(dto)));
 	}
 
-	protected async Task Delete(string operation, Dictionary<string, object?>? properties)
+	protected async Task Delete<TDto>(string operation, TDto? dto)
+		where TDto : DtoMock
 	{
 		using var client = PrepareClient();
-		var url = TestConfiguration.ParseUrl(ServiceUrl, operation);
-
-		if (properties is not null && properties.Count > 0)
-			url = $"{TestConfiguration.ParseUrl(ServiceUrl, operation)}{CreateQueryString(properties)}";
+		var url = $"{TestConfiguration.ParseUrl(ServiceUrl, operation)}{CreateQueryString(dto)}";
 
 		await HandleResponse(await client.DeleteAsync(url));
 	}
 
-	protected async Task Patch<T>(string operation, PatchDtoMock<T> dto)
-		where T : notnull
+	protected async Task Patch<TPrimaryKey>(string operation, PatchDtoMock<TPrimaryKey> dto)
+		where TPrimaryKey : notnull
 	{
 		using var client = PrepareClient();
 
 		await HandleResponse(await client.PatchAsync(TestConfiguration.ParseUrl(ServiceUrl, operation), CreateContent(dto)));
 	}
-	protected async Task<T?> Put<T>(string operation, object? instance)
+
+	protected async Task<TEntity?> Put<TDto, TEntity>(string operation, TDto? dto)
+		where TEntity : EntityMock
+		where TDto : DtoMock
 	{
 		using var client = PrepareClient();
 
-		return await HandleResponse<T>(await client.PutAsync(TestConfiguration.ParseUrl(ServiceUrl, operation), CreateContent(instance)));
+		return await HandleResponse<TEntity>(await client.PutAsync(TestConfiguration.ParseUrl(ServiceUrl, operation), CreateContent(dto)));
 	}
 
-	protected async Task<T?> Get<T>(string operation, Dictionary<string, object?>? properties)
+	protected async Task<List<TEntity>> GetList<TDto, TEntity>(string operation, TDto? dto)
+		where TEntity : EntityMock
+		where TDto : DtoMock
 	{
 		using var client = PrepareClient();
-		var url = TestConfiguration.ParseUrl(ServiceUrl, operation);
+		var url = $"{TestConfiguration.ParseUrl(ServiceUrl, operation)}{CreateQueryString(dto)}";
 
-		if (properties is not null && properties.Count > 0)
-			url = $"{TestConfiguration.ParseUrl(ServiceUrl, operation)}{CreateQueryString(properties)}";
-
-		return await HandleResponse<T>(await client.GetAsync(url));
+		return await HandleResponse<List<TEntity>>(await client.GetAsync(url)) ?? [];
 	}
 
-	protected async Task<T?> Get<T>(string operation, List<KeyValuePair<string, object?>>? properties)
+	protected async Task<TEntity?> Get<TDto, TEntity>(string operation, TDto? dto)
+		where TEntity : EntityMock
+		where TDto : DtoMock
 	{
 		using var client = PrepareClient();
-		var url = TestConfiguration.ParseUrl(ServiceUrl, operation);
+		var url = $"{TestConfiguration.ParseUrl(ServiceUrl, operation)}{CreateQueryString(dto)}";
 
-		if (properties is not null && properties.Count > 0)
-			url = $"{TestConfiguration.ParseUrl(ServiceUrl, operation)}{CreateQueryString(properties)}";
-
-		return await HandleResponse<T>(await client.GetAsync(url));
+		return await HandleResponse<TEntity>(await client.GetAsync(url));
 	}
 
 	protected async Task Upload(string operation, string directory, string fileName)
@@ -145,27 +148,34 @@ public abstract class RestTest(string serviceUrl)
 		return new StringContent(instance is null ? string.Empty : JsonSerializer.Serialize(instance), Encoding.UTF8, "application/json");
 	}
 
-	private static QueryString CreateQueryString(Dictionary<string, object?>? properties)
+	private static QueryString CreateQueryString<TDto>(TDto? dto)
+		where TDto : DtoMock
 	{
+		if (dto is null)
+			return new QueryString();
+
 		var result = new QueryString();
+		var properties = dto.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.GetProperty);
 
-		if (properties is not null)
+		foreach (var property in properties)
 		{
-			foreach (var property in properties)
-				result = result.Add(property.Key, property.Value?.ToString() ?? string.Empty);
-		}
+			var value = property.GetValue(dto, null);
 
-		return result;
-	}
+			if (value is null)
+				result = result.Add(property.Name, string.Empty);
+			else if (value is IEnumerable enumerable && value is not string)
+			{
+				var enumerator = enumerable.GetEnumerator();
 
-	private static QueryString CreateQueryString(List<KeyValuePair<string, object?>>? properties)
-	{
-		var result = new QueryString();
+				while (enumerator.MoveNext())
+				{
+					var itemValue = enumerator.Current?.ToString() ?? string.Empty;
 
-		if (properties is not null)
-		{
-			foreach (var property in properties)
-				result = result.Add(property.Key, property.Value?.ToString() ?? string.Empty);
+					result = result.Add(property.Name, itemValue);
+				}
+			}
+			else
+				result = result.Add(property.Name, value.ToString() ?? string.Empty);
 		}
 
 		return result;
@@ -177,46 +187,34 @@ public abstract class RestTest(string serviceUrl)
 	}
 
 	protected async Task<TReturnValue?> Insert<TDto, TReturnValue>(TDto dto)
-		where TDto : IDto
+		where TDto : DtoMock
 	{
-		return await Post<TReturnValue>(InsertOperation, dto);
+		return await Post<TDto, TReturnValue>(InsertOperation, dto);
 	}
 
 	protected async Task Update<TDto>(TDto dto)
-		where TDto : IDto
+		where TDto : DtoMock
 	{
 		await Put(UpdateOperation, dto);
 	}
 
-	protected async Task<List<TEntity>> Query<TEntity>(Dictionary<string, object?> properties)
+	protected async Task<List<TEntity>> Query<TDto, TEntity>(TDto? dto)
+		where TDto : DtoMock
+		where TEntity : EntityMock
 	{
-		return await Get<List<TEntity>>(QueryOperation, properties) ?? new List<TEntity>();
+		return await GetList<TDto, TEntity>(QueryOperation, dto);
 	}
 
-	protected async Task<TEntity?> Select<TEntity>(Dictionary<string, object?> properties)
+	protected async Task<TEntity?> Select<TDto, TEntity>(TDto? dto)
+		where TDto : DtoMock
+		where TEntity : EntityMock
 	{
-		return await Get<TEntity?>(SelectOperation, properties);
+		return await Get<TDto, TEntity>(SelectOperation, dto);
 	}
 
-	protected async Task<TEntity?> Select<TEntity>(object id)
+	protected async Task Delete<TDto>(TDto dto)
+		where TDto : DtoMock
 	{
-		return await Get<TEntity?>(SelectOperation, new Dictionary<string, object?>
-		{
-			{ "id", id }
-		});
-	}
-
-	protected async Task<List<TEntity>> Query<TEntity>()
-		where TEntity : IEntity
-	{
-		return await Get<List<TEntity>>(QueryOperation, new Dictionary<string, object?>()) ?? new List<TEntity>();
-	}
-
-	protected async Task Delete<TPrimaryKey>(TPrimaryKey id)
-	{
-		await Delete(DeleteOperation, new Dictionary<string, object?>
-		{
-			{ "id", id }
-		});
+		await Delete(DeleteOperation, dto);
 	}
 }

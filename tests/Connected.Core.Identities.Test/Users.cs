@@ -1,9 +1,8 @@
 ﻿using Connected.Core.Identities.Mock;
 using Connected.Core.Identities.Mock.Dto;
 using Connected.Core.Mock;
+using Connected.Core.Services.Mock;
 using Connected.Identities;
-using Connected.Identities.Dtos;
-using Connected.Services;
 
 namespace Connected.Core.Identities.Test;
 
@@ -11,16 +10,46 @@ namespace Connected.Core.Identities.Test;
 public class Users()
 	: RestTest(IdentitiesUrls.Users)
 {
-	private long Id { get; set; }
-	private string? Password { get; set; }
-	private string? Token { get; set; }
-	private string? Email { get; set; }
-
-	[TestInitialize]
-	public async Task Initialize()
+	[TestMethod]
+	public async Task Crud()
 	{
-		Password = ValueGenerator.Generate(32);
+		var dto = new InsertUserDtoMock
+		{
+			FirstName = ValueGenerator.Generate(16),
+			LastName = ValueGenerator.Generate(32),
+			Email = $"{ValueGenerator.Generate(8)}@{ValueGenerator.Generate(4)}.com",
+			Password = ValueGenerator.Generate(10)
+		};
 
+		var id = await Insert<InsertUserDtoMock, long>(dto);
+
+		Assert.IsTrue(id > 0);
+
+		var updateDto = new UpdateUserDtoMock
+		{
+			Id = id,
+			FirstName = ValueGenerator.Generate(16),
+			LastName = ValueGenerator.Generate(32),
+			Email = $"{ValueGenerator.Generate(8)}@{ValueGenerator.Generate(4)}.com",
+			Status = UserStatus.Disabled
+		};
+
+		await Update(updateDto);
+
+		var entity = await Select<PrimaryKeyDtoMock<long>, UserMock>(id);
+
+		Assert.IsNotNull(entity);
+		Assert.AreEqual(entity.FirstName, updateDto.FirstName);
+		Assert.AreEqual(entity.LastName, updateDto.LastName);
+		Assert.AreEqual(entity.Email, updateDto.Email);
+		Assert.AreEqual(entity.Status, updateDto.Status);
+
+		await Delete<PrimaryKeyDtoMock<long>>(id);
+	}
+
+	[TestMethod]
+	public async Task QueryLookup()
+	{
 		var dto = new InsertUserDtoMock
 		{
 			FirstName = ValueGenerator.Generate(16),
@@ -28,126 +57,119 @@ public class Users()
 			Email = $"{ValueGenerator.Generate(8)}@{ValueGenerator.Generate(4)}.com"
 		};
 
-		Email = dto.Email;
-
-		Id = await Insert<InsertUserDtoMock, long>(dto);
-
-		Assert.IsTrue(Id > 0);
-	}
-
-	[TestCleanup]
-	public async Task Cleanup()
-	{
-		await Delete(Id);
-
-		var entity = await Select<UserMock>(Id);
-
-		Assert.IsNull(entity);
-	}
-
-	[TestMethod]
-	public async Task Update()
-	{
-		var dto = new UpdateUserDtoMock
-		{
-			Id = Id,
-			FirstName = ValueGenerator.Generate(16),
-			LastName = ValueGenerator.Generate(32),
-			Email = $"{ValueGenerator.Generate(8)}@{ValueGenerator.Generate(4)}.com",
-			Status = UserStatus.Disabled
-		};
-
-		Email = dto.Email;
-
-		await Update(dto);
-
-		var entity = await Select<UserMock>(Id);
-
-		Assert.IsNotNull(entity);
-		Assert.AreEqual(entity.FirstName, dto.FirstName);
-		Assert.AreEqual(entity.LastName, dto.LastName);
-		Assert.AreEqual(entity.Email, dto.Email);
-		Assert.AreEqual(entity.Status, dto.Status);
-	}
-
-	[TestMethod]
-	public async Task Query()
-	{
-		var entities = await Query<UserMock>();
+		var id = await Insert<InsertUserDtoMock, long>(dto);
+		var entities = await Query<DtoMock, UserMock>(null);
 
 		Assert.IsNotNull(entities);
 		Assert.IsTrue(entities.Count > 0);
-	}
 
-	[TestMethod]
-	public async Task Lookup()
-	{
-		var entities = await Get<List<UserMock>>(IdentitiesUrls.LookupOperation,
-		[
-			new(nameof(IPrimaryKeyListDto<int>.Items), Id)
-		]);
+		entities = await GetList<PrimaryKeyListDtoMock<long>, UserMock>(IdentitiesUrls.LookupOperation, new(id));
 
 		Assert.IsNotNull(entities);
 		Assert.IsTrue(entities.Count > 0);
+
+		await Delete<PrimaryKeyDtoMock<long>>(id);
 	}
 
 	[TestMethod]
 	public async Task LookupByToken()
 	{
-		var entity = await Select<UserMock>(new Dictionary<string, object?>
+		var dto = new InsertUserDtoMock
 		{
-			{nameof(IUser.Id), Id }
-		});
+			FirstName = ValueGenerator.Generate(16),
+			LastName = ValueGenerator.Generate(32),
+			Email = $"{ValueGenerator.Generate(8)}@{ValueGenerator.Generate(4)}.com"
+		};
+
+		var id = await Insert<InsertUserDtoMock, long>(dto);
+
+		Assert.IsTrue(id > 0);
+
+		var entity = await Select<PrimaryKeyDtoMock<long>, UserMock>(id);
 
 		Assert.IsNotNull(entity);
 
-		var entities = await Get<List<UserMock>>(IdentitiesUrls.LookupByTokenOperation,
-		[
-			new (nameof(IPrimaryKeyListDto<int>.Items), entity.Token)
-		]);
+		var entities = await GetList<ValueListDtoMock<string>, UserMock>(IdentitiesUrls.LookupByTokenOperation, new(entity.Token));
 
 		Assert.IsNotNull(entities);
 		Assert.IsTrue(entities.Count > 0);
+
+		await Delete<PrimaryKeyDtoMock<long>>(id);
 	}
 
 	[TestMethod]
 	public async Task UpdatePassword()
 	{
-		var dto = new UpdateUserDtoMock
+		var dto = new InsertUserDtoMock
 		{
-			Id = Id,
 			FirstName = ValueGenerator.Generate(16),
 			LastName = ValueGenerator.Generate(32),
-			Email = $"{ValueGenerator.Generate(8)}@{ValueGenerator.Generate(4)}.com",
+			Email = $"{ValueGenerator.Generate(8)}@{ValueGenerator.Generate(4)}.com"
+		};
+
+		var id = await Insert<InsertUserDtoMock, long>(dto);
+
+		Assert.IsTrue(id > 0);
+
+		var email = $"{ValueGenerator.Generate(8)}@{ValueGenerator.Generate(4)}.com";
+
+		var updateDto = new UpdateUserDtoMock
+		{
+			Id = id,
+			FirstName = ValueGenerator.Generate(16),
+			LastName = ValueGenerator.Generate(32),
+			Email = email,
 			Status = UserStatus.Active
 		};
 
-		Email = dto.Email;
+		await Update(updateDto);
 
-		await Update(dto);
+		var password = ValueGenerator.Generate(10);
 
 		await Put(IdentitiesUrls.UpdatePasswordOperation, new UpdatePasswordDtoMock
 		{
-			Id = Id,
-			Password = Password
+			Id = id,
+			Password = password
 		});
 
-		var entity = await Put<UserMock>(IdentitiesUrls.SelectByCredentialsOperation, new Dictionary<string, object?>
+		var entity = await Put<SelectUserDtoMock, UserMock>(IdentitiesUrls.SelectByCredentialsOperation, new()
 		{
-			{nameof(ISelectUserDto.User), Email },
-			{nameof(ISelectUserDto.Password), Password }
+			User = email,
+			Password = password
 		});
 
 		Assert.IsNotNull(entity);
+
+		await Delete<PrimaryKeyDtoMock<long>>(id);
 	}
 
 	[TestMethod]
 	public async Task Resolve()
 	{
-		var entity = await Get<UserMock>(IdentitiesUrls.ResolveOperation, new Dictionary<string, object?>
+		var dto = new InsertUserDtoMock
 		{
-			{nameof(IValueDto<int>.Value),  Email}
-		});
+			FirstName = ValueGenerator.Generate(16),
+			LastName = ValueGenerator.Generate(32),
+			Email = $"{ValueGenerator.Generate(8)}@{ValueGenerator.Generate(4)}.com"
+		};
+
+		var id = await Insert<InsertUserDtoMock, long>(dto);
+
+		Assert.IsTrue(id > 0);
+
+		var entity = await Select<PrimaryKeyDtoMock<long>, UserMock>(id);
+
+		Assert.IsNotNull(entity);
+
+		entity = await Get<ValueDtoMock<string>, UserMock>(IdentitiesUrls.ResolveOperation, entity.Email!);
+
+		Assert.IsNotNull(entity);
+
+		entity = await Get<ValueDtoMock<string>, UserMock>(IdentitiesUrls.ResolveOperation, entity.Token);
+
+		Assert.IsNotNull(entity);
+
+		entity = await Get<ValueDtoMock<string>, UserMock>(IdentitiesUrls.ResolveOperation, entity.Id.ToString());
 
 		Assert.IsNotNull(entity);
 	}

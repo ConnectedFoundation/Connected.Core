@@ -5,7 +5,7 @@ namespace Connected.Identities.Ops;
 internal sealed class Resolve(IUserCache cache)
   : ServiceFunction<IValueDto<string>, IUser?>
 {
-	protected override async Task<IUser> OnInvoke()
+	protected override async Task<IUser?> OnInvoke()
 	{
 		if (await SelectByEmail() is IUser emailUser)
 			return emailUser;

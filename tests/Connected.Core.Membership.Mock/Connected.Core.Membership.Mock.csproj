@@ -12,4 +12,8 @@
     <ProjectReference Include="..\Connected.Core.Services.Mock\Connected.Core.Services.Mock.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Claims\Dtos\" />
+  </ItemGroup>
+
 </Project>
