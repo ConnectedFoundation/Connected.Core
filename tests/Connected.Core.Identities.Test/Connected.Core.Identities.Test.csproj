@@ -12,9 +12,4 @@
     <TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Connected.Core.Identities.Mock\Connected.Core.Identities.Mock.csproj" />
-    <ProjectReference Include="..\Connected.Core.Mock.Sdk\Connected.Core.Mock.Sdk.csproj" />
-  </ItemGroup>
-
 </Project>

@@ -1,0 +1,96 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ApplicationDefinition Include="Net\Grpc\Routing.proto">
+			<Access>Internal</Access>
+			<GrpcServices>Server</GrpcServices>
+		</ApplicationDefinition>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Protobuf Include="Net\Grpc\Routing.proto" ProtoCompile="True" GrpcServices="Both" Access="Public" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Update="Caching\CacheStrings.Designer.cs">
+	    <DependentUpon>CacheStrings.resx</DependentUpon>
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	  </Compile>
+	  <Compile Update="Collections\Queues\QueueStrings.Designer.cs">
+	    <DependentUpon>QueueStrings.resx</DependentUpon>
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	  </Compile>
+	  <Compile Update="Membership\Roles\SR.Designer.cs">
+	    <DependentUpon>SR.resx</DependentUpon>
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	  </Compile>
+	  <Compile Update="Net\Routing\Client\SR.Designer.cs">
+	    <DependentUpon>SR.resx</DependentUpon>
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	  </Compile>
+	  <Compile Update="Services\SR.Designer.cs">
+	    <DependentUpon>SR.resx</DependentUpon>
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	  </Compile>
+	  <Compile Update="Storage\Sql\SR.Designer.cs">
+	    <DependentUpon>SR.resx</DependentUpon>
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	  </Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Update="Caching\CacheStrings.resx">
+	    <LastGenOutput>CacheStrings.Designer.cs</LastGenOutput>
+	    <Generator>ResXFileCodeGenerator</Generator>
+	  </EmbeddedResource>
+	  <EmbeddedResource Update="Collections\Queues\QueueStrings.resx">
+	    <LastGenOutput>QueueStrings.Designer.cs</LastGenOutput>
+	    <Generator>ResXFileCodeGenerator</Generator>
+	  </EmbeddedResource>
+	  <EmbeddedResource Update="Membership\Roles\SR.resx">
+	    <LastGenOutput>SR.Designer.cs</LastGenOutput>
+	    <Generator>ResXFileCodeGenerator</Generator>
+	  </EmbeddedResource>
+	  <EmbeddedResource Update="Net\Routing\Client\SR.resx">
+	    <LastGenOutput>SR.Designer.cs</LastGenOutput>
+	    <Generator>ResXFileCodeGenerator</Generator>
+	  </EmbeddedResource>
+	  <EmbeddedResource Update="Services\SR.resx">
+	    <LastGenOutput>SR.Designer.cs</LastGenOutput>
+	    <Generator>ResXFileCodeGenerator</Generator>
+	  </EmbeddedResource>
+	  <EmbeddedResource Update="Storage\Sql\SR.resx">
+	    <LastGenOutput>SR.Designer.cs</LastGenOutput>
+	    <Generator>ResXFileCodeGenerator</Generator>
+	  </EmbeddedResource>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Identities\Users\Validation\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Connected.Sdk\Connected.Sdk.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Grpc.AspNetCore" Version="2.67.0" />
+		<PackageReference Include="Grpc.Tools" Version="2.69.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+</Project>

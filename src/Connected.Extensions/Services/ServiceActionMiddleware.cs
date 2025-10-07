@@ -1,0 +1,21 @@
+﻿using Connected.Services.Middlewares;
+
+namespace Connected.Services;
+
+public abstract class ServiceActionMiddleware<TDto> : Connected.Middleware, IServiceActionMiddleware<TDto>
+	where TDto : IDto
+{
+	protected IAction<TDto> Operation { get; private set; } = default!;
+
+	public async Task Invoke(IAction<TDto> operation)
+	{
+		Operation = operation;
+
+		await OnInvoke();
+	}
+
+	protected virtual async Task OnInvoke()
+	{
+		await Task.CompletedTask;
+	}
+}

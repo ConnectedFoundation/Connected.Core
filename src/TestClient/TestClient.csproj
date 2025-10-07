@@ -9,10 +9,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Connected.Core.Identities.Runtime\Connected.Core.Identities.Runtime.csproj" />
-		<ProjectReference Include="..\Connected.Core.Membership.Runtime\Connected.Core.Membership.Runtime.csproj" />
 		<ProjectReference Include="..\Connected.Runtime\Connected.Runtime.csproj" />
-		<ProjectReference Include="..\Connected.Sdk\Connected.Sdk.csproj" />
 	</ItemGroup>
 
 </Project>

@@ -203,31 +203,9 @@ public static class Application
 
 		RegisterMicroService(typeof(Application).Assembly);
 
-		RegisterCoreMicroService("Authentication");
-		RegisterCoreMicroService("Authentication.Extensions");
-		RegisterCoreMicroService("Authorization");
-		RegisterCoreMicroService("Authorization.Default");
-		RegisterCoreMicroService("Authorization.Extensions");
-		RegisterCoreMicroService("Caching");
-		RegisterCoreMicroService("Collections.Extensions");
-		RegisterCoreMicroService("Collections.Queues");
-		RegisterCoreMicroService("Configuration");
-		RegisterCoreMicroService("Configuration.Settings");
-		RegisterCoreMicroService("Entities");
-		RegisterCoreMicroService("Globalization.Languages");
-		RegisterCoreMicroService("Services");
-		RegisterCoreMicroService("Net");
-		RegisterCoreMicroService("Net.Extensions");
-		RegisterCoreMicroService("Net.Routing");
-		RegisterCoreMicroService("Notifications");
-		RegisterCoreMicroService("Services.Extensions");
-		RegisterCoreMicroService("Storage.Extensions");
-		RegisterCoreMicroService("Storage.Sql");
-	}
-
-	private static void RegisterCoreMicroService(string name)
-	{
-		RegisterMicroService($"Connected.Core.{name}.dll");
+		RegisterMicroService("Connected.dll");
+		RegisterMicroService("Connected.Extensions.dll");
+		RegisterMicroService("Connected.Authorization.Default.dll");
 	}
 
 	public static async Task StartDefaultApplication(string[] args)

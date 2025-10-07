@@ -63,25 +63,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Connected.Core.Authentication\Connected.Core.Authentication.csproj" />
-		<ProjectReference Include="..\Connected.Core.Authorization.Default\Connected.Core.Authorization.Default.csproj" />
-		<ProjectReference Include="..\Connected.Core.Authorization\Connected.Core.Authorization.csproj" />
-		<ProjectReference Include="..\Connected.Core.Caching\Connected.Core.Caching.csproj" />
-		<ProjectReference Include="..\Connected.Core.Collections.Queues\Connected.Core.Collections.Queues.csproj" />
-		<ProjectReference Include="..\Connected.Core.Configuration.Settings\Connected.Core.Configuration.Settings.csproj" />
-		<ProjectReference Include="..\Connected.Core.Configuration\Connected.Core.Configuration.csproj" />
-		<ProjectReference Include="..\Connected.Core.Entities\Connected.Core.Entities.csproj" />
-		<ProjectReference Include="..\Connected.Core.Globalization.Languages\Connected.Core.Globalization.Languages.csproj" />
-		<ProjectReference Include="..\Connected.Core.Net.Grpc\Connected.Core.Net.Grpc.csproj" />
-		<ProjectReference Include="..\Connected.Core.Net.Routing.Grpc\Connected.Core.Net.Routing.Grpc.csproj" />
-		<ProjectReference Include="..\Connected.Core.Net.Routing\Connected.Core.Net.Routing.csproj" />
-		<ProjectReference Include="..\Connected.Core.Net\Connected.Core.Net.csproj" />
-		<ProjectReference Include="..\Connected.Core.Notifications\Connected.Core.Notifications.csproj" />
-		<ProjectReference Include="..\Connected.Core.Services\Connected.Core.Services.csproj" />
-		<ProjectReference Include="..\Connected.Core.Storage.Sharding.Nodes\Connected.Core.Storage.Sharding.Nodes.csproj" />
-		<ProjectReference Include="..\Connected.Core.Storage.Sharding\Connected.Core.Storage.Sharding.csproj" />
-		<ProjectReference Include="..\Connected.Core.Storage.Sql\Connected.Core.Storage.Sql.csproj" />
+		<ProjectReference Include="..\Connected.Authorization.Default\Connected.Authorization.Default.csproj" />
+		<ProjectReference Include="..\Connected.Core.Authorization.Default\Connected.Authorization.Default.csproj" />
+		<ProjectReference Include="..\Connected.Core\Connected.csproj" />
 		<ProjectReference Include="..\Connected.Sdk\Connected.Sdk.csproj" />
+		<ProjectReference Include="..\Connected\Connected.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
