@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Connected.Core.Mock\Connected.Mock.csproj" />
+    <ProjectReference Include="..\Connected.Mock\Connected.Mock.csproj" />
   </ItemGroup>
 
 </Project>

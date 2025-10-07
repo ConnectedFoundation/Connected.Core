@@ -6,7 +6,7 @@ using Connected.Entities;
 using Connected.Membership;
 using Connected.Services;
 
-namespace Connected.Core.Membership.Test;
+namespace Connected.Tests.Membership;
 
 [TestClass]
 public class Roles()

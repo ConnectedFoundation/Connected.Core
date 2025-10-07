@@ -6,7 +6,7 @@ using Connected.Core.Services.Mock;
 using Connected.Membership;
 using Connected.Membership.Claims;
 
-namespace Connected.Core.Membership.Test;
+namespace Connected.Tests.Membership;
 
 [TestClass]
 public class Claims()

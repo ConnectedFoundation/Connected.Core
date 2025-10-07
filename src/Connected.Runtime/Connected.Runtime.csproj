@@ -64,8 +64,6 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Connected.Authorization.Default\Connected.Authorization.Default.csproj" />
-		<ProjectReference Include="..\Connected.Core.Authorization.Default\Connected.Authorization.Default.csproj" />
-		<ProjectReference Include="..\Connected.Core\Connected.csproj" />
 		<ProjectReference Include="..\Connected.Sdk\Connected.Sdk.csproj" />
 		<ProjectReference Include="..\Connected\Connected.csproj" />
 	</ItemGroup>
