@@ -4,7 +4,11 @@ using Microsoft.Extensions.Configuration;
 using System.Text;
 
 namespace Connected.Authentication;
-internal sealed class MaintenanceAuthenticationProvider(IConfiguration configuration, IHttpContextAccessor http, IAuthenticationService authentication) : BearerAuthenticationProvider
+internal sealed class MaintenanceAuthenticationProvider(
+	IConfiguration configuration,
+	IHttpContextAccessor http,
+	IAuthenticationService authentication)
+	: BearerAuthenticationProvider
 {
 	protected override async Task OnAuthenticate()
 	{

@@ -28,187 +28,10 @@ public static class Application
 	public static event DependencyTypeDiscoveryEventHandler? DiscoverType;
 
 	private static object _lastException = new();
-	public static bool IsErrorServerStarted { get; private set; }
+	private static bool IsErrorServerStarted { get; set; }
 	public static bool HasStarted { get; private set; }
-	public static void AddOutOfMemoryExceptionHandler()
-	{
-		AppDomain.CurrentDomain.FirstChanceException += OnFirstChanceException;
-	}
 
-	public static void AddAutoRestart()
-	{
-		AppDomain.CurrentDomain.UnhandledException += OnUnhandledExceptionThrown;
-	}
-
-	public static void AddDependenciess(this WebApplicationBuilder builder)
-	{
-		foreach (var dependency in Dependencies.All)
-			builder.Services.AddDependency(dependency);
-
-		builder.Services.RegisterServices();
-	}
-
-	public static void ConfigureDependenciesServices(this IHostApplicationBuilder builder)
-	{
-		var startups = Dependencies.Startups;
-
-		foreach (var startup in startups)
-			startup.ConfigureServices(builder.Services);
-	}
-
-	public static void ConfigureDependencies(this IApplicationBuilder builder, IWebHostEnvironment environment)
-	{
-		var startups = Dependencies.Startups;
-
-		if (builder is WebApplication web)
-		{
-			foreach (var dependency in Dependencies.All)
-				web.MapDependency(dependency);
-		}
-
-		foreach (var startup in startups)
-			startup.Configure(builder, environment);
-	}
-
-	private static async Task RegisterGrpcRoutes()
-	{
-		using var scope = Scope.Create();
-		var routing = scope.ServiceProvider.GetService<IRoutingService>();
-		var configuration = scope.ServiceProvider.GetService<IConfigurationService>();
-		var baseUrl = configuration?.Routing.BaseUrl;
-
-		if (routing is null || baseUrl is null)
-			return;
-
-		foreach (var type in RuntimeExtensions.GrpcServices)
-		{
-			var serviceName = ResolveGrpcProxyName(type);
-
-			if (serviceName is null)
-				continue;
-
-			var dto = Dto.Factory.Create<IInsertRouteDto>();
-
-			dto.Protocol = RouteProtocol.Grpc;
-			dto.Service = serviceName;
-			dto.Url = baseUrl;
-
-			await routing.Insert(dto);
-		}
-
-		await scope.Commit();
-	}
-
-	private static string? ResolveGrpcProxyName(Type type)
-	{
-		if (type.FullName is null)
-			return null;
-
-		string? serviceName = null;
-		var proxyType = typeof(ServiceProxyAttribute<>);
-
-		foreach (var att in type.GetCustomAttributes())
-		{
-			if (att.GetType().IsGenericType && att.GetType().GetGenericTypeDefinition() == proxyType)
-			{
-				serviceName = att.GetType().GetGenericArguments()[0].FullName;
-				break;
-			}
-		}
-
-		return serviceName;
-	}
-
-	public static async Task InitializeDependencies(IHost host)
-	{
-		var startups = Dependencies.Startups;
-
-		await RegisterGrpcRoutes();
-
-		foreach (var startup in startups)
-			await startup.Initialize(host);
-	}
-
-	public static async Task StartDependencies()
-	{
-		var startups = Dependencies.Startups;
-
-		foreach (var startup in startups)
-			await startup.Start();
-	}
-
-	private static void OnFirstChanceException(object? sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
-	{
-		if (e.Exception is OutOfMemoryException)
-		{
-			Console.WriteLine("Out of memory exception caught, shutting down");
-			Environment.Exit(101);
-		}
-	}
-
-	private static void OnUnhandledExceptionThrown(object sender, UnhandledExceptionEventArgs e)
-	{
-		StartErrorServer(e.ExceptionObject);
-	}
-
-	private static void StartErrorServer(object exception)
-	{
-		_lastException = exception;
-
-		if (IsErrorServerStarted)
-			return;
-
-		IsErrorServerStarted = true;
-
-		var app = WebApplication.CreateBuilder().Build();
-
-		app.MapGet("/shutdown", () => { Environment.Exit(100); });
-		app.MapGet("{**catchAll}", (httpContext) =>
-		{
-			var html = $"""
-				<a href="/shutdown">Shutdown instance</a>
-				<div>Error starting application:</div>
-				<div><code>{_lastException}</code></div>
-				""";
-
-			httpContext.Response.ContentType = MediaTypeNames.Text.Html;
-			httpContext.Response.ContentLength = Encoding.UTF8.GetByteCount(html);
-			httpContext.Response.StatusCode = 500;
-
-			return httpContext.Response.WriteAsync(html);
-
-		});
-
-		app.Run();
-	}
-
-	internal static void RegisterDependency(Assembly assembly)
-	{
-		Dependencies.Register(assembly);
-	}
-
-	internal static void RegisterDependency(string assemblyName)
-	{
-		var fileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, assemblyName);
-
-		Dependencies.Register(AssemblyLoadContext.Default.LoadFromAssemblyPath(fileName));
-	}
-
-	internal static void RegisterCoreDependencies()
-	{
-		var entry = Assembly.GetEntryAssembly();
-
-		if (entry is not null)
-			RegisterDependency(entry);
-
-		RegisterDependency(typeof(Application).Assembly);
-
-		RegisterDependency("Connected.dll");
-		RegisterDependency("Connected.Extensions.dll");
-		RegisterDependency("Connected.Authorization.Default.dll");
-	}
-
-	public static async Task StartDefaultApplication(string[] args)
+	public static async Task Start(string[] args)
 	{
 		try
 		{
@@ -274,6 +97,183 @@ public static class Application
 					Thread.Sleep(1000);
 			}
 		}
+	}
+	private static void AddOutOfMemoryExceptionHandler()
+	{
+		AppDomain.CurrentDomain.FirstChanceException += OnFirstChanceException;
+	}
+
+	private static void AddAutoRestart()
+	{
+		AppDomain.CurrentDomain.UnhandledException += OnUnhandledExceptionThrown;
+	}
+
+	private static void AddDependenciess(this WebApplicationBuilder builder)
+	{
+		foreach (var dependency in Dependencies.All)
+			builder.Services.AddDependency(dependency);
+
+		builder.Services.RegisterServices();
+	}
+
+	private static void ConfigureDependenciesServices(this IHostApplicationBuilder builder)
+	{
+		var startups = Dependencies.Startups;
+
+		foreach (var startup in startups)
+			startup.ConfigureServices(builder.Services);
+	}
+
+	private static void ConfigureDependencies(this IApplicationBuilder builder, IWebHostEnvironment environment)
+	{
+		var startups = Dependencies.Startups;
+
+		if (builder is WebApplication web)
+		{
+			foreach (var dependency in Dependencies.All)
+				web.MapDependency(dependency);
+		}
+
+		foreach (var startup in startups)
+			startup.Configure(builder, environment);
+	}
+
+	private static async Task RegisterGrpcRoutes()
+	{
+		using var scope = Scope.Create();
+		var routing = scope.ServiceProvider.GetService<IRoutingService>();
+		var configuration = scope.ServiceProvider.GetService<IConfigurationService>();
+		var baseUrl = configuration?.Routing.BaseUrl;
+
+		if (routing is null || baseUrl is null)
+			return;
+
+		foreach (var type in RuntimeExtensions.GrpcServices)
+		{
+			var serviceName = ResolveGrpcProxyName(type);
+
+			if (serviceName is null)
+				continue;
+
+			var dto = Dto.Factory.Create<IInsertRouteDto>();
+
+			dto.Protocol = RouteProtocol.Grpc;
+			dto.Service = serviceName;
+			dto.Url = baseUrl;
+
+			await routing.Insert(dto);
+		}
+
+		await scope.Commit();
+	}
+
+	private static string? ResolveGrpcProxyName(Type type)
+	{
+		if (type.FullName is null)
+			return null;
+
+		string? serviceName = null;
+		var proxyType = typeof(ServiceProxyAttribute<>);
+
+		foreach (var att in type.GetCustomAttributes())
+		{
+			if (att.GetType().IsGenericType && att.GetType().GetGenericTypeDefinition() == proxyType)
+			{
+				serviceName = att.GetType().GetGenericArguments()[0].FullName;
+				break;
+			}
+		}
+
+		return serviceName;
+	}
+
+	private static async Task InitializeDependencies(IHost host)
+	{
+		var startups = Dependencies.Startups;
+
+		await RegisterGrpcRoutes();
+
+		foreach (var startup in startups)
+			await startup.Initialize(host);
+	}
+
+	private static async Task StartDependencies()
+	{
+		var startups = Dependencies.Startups;
+
+		foreach (var startup in startups)
+			await startup.Start();
+	}
+
+	private static void OnFirstChanceException(object? sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
+	{
+		if (e.Exception is OutOfMemoryException)
+		{
+			Console.WriteLine("Out of memory exception caught, shutting down");
+			Environment.Exit(101);
+		}
+	}
+
+	private static void OnUnhandledExceptionThrown(object sender, UnhandledExceptionEventArgs e)
+	{
+		StartErrorServer(e.ExceptionObject);
+	}
+
+	private static void StartErrorServer(object exception)
+	{
+		_lastException = exception;
+
+		if (IsErrorServerStarted)
+			return;
+
+		IsErrorServerStarted = true;
+
+		var app = WebApplication.CreateBuilder().Build();
+
+		app.MapGet("/shutdown", () => { Environment.Exit(100); });
+		app.MapGet("{**catchAll}", (httpContext) =>
+		{
+			var html = $"""
+				<a href="/shutdown">Shutdown instance</a>
+				<div>Error starting application:</div>
+				<div><code>{_lastException}</code></div>
+				""";
+
+			httpContext.Response.ContentType = MediaTypeNames.Text.Html;
+			httpContext.Response.ContentLength = Encoding.UTF8.GetByteCount(html);
+			httpContext.Response.StatusCode = 500;
+
+			return httpContext.Response.WriteAsync(html);
+
+		});
+
+		app.Run();
+	}
+
+	private static void RegisterDependency(Assembly assembly)
+	{
+		Dependencies.Register(assembly);
+	}
+
+	private static void RegisterDependency(string assemblyName)
+	{
+		var fileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, assemblyName);
+
+		Dependencies.Register(AssemblyLoadContext.Default.LoadFromAssemblyPath(fileName));
+	}
+
+	private static void RegisterCoreDependencies()
+	{
+		var entry = Assembly.GetEntryAssembly();
+
+		if (entry is not null)
+			RegisterDependency(entry);
+
+		RegisterDependency(typeof(Application).Assembly);
+
+		RegisterDependency("Connected.dll");
+		RegisterDependency("Connected.Extensions.dll");
+		RegisterDependency("Connected.Authorization.Default.dll");
 	}
 
 	private static void RegisterConfiguredDependencies(IConfiguration configuration)

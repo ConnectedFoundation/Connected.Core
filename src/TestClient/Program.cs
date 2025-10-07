@@ -1,3 +1,3 @@
 ﻿using Connected;
 
-await Application.StartDefaultApplication(args);
+await Application.Start(args);

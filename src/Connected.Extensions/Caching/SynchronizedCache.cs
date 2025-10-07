@@ -26,9 +26,6 @@ public abstract class SynchronizedCache<TEntry, TKey>(ICachingService cachingSer
 
 			lock (Lock)
 			{
-				if (Initializers.Contains(Key))
-					return;
-
 				Initializers.Add(Key);
 			}
 		}
