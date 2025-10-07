@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace Connected;
 
-internal static class MicroServices
+internal static class Dependencies
 {
 	private static readonly List<Assembly> _all;
 	private static readonly List<Runtime.IStartup> _startups;
@@ -32,7 +32,7 @@ internal static class MicroServices
 		_all.Add(assembly);
 	}
 
-	static MicroServices()
+	static Dependencies()
 	{
 		_all = [];
 		_startups = [];

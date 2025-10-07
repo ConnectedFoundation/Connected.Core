@@ -10,9 +10,9 @@ namespace Connected;
  */
 internal sealed class RuntimeService(IConfiguration configuration) : IRuntimeService
 {
-	public async Task<IImmutableList<Assembly>> QueryMicroServices()
+	public async Task<IImmutableList<Assembly>> QueryDependencies()
 	{
-		return await Task.FromResult(MicroServices.All);
+		return await Task.FromResult(Dependencies.All);
 	}
 
 	public async Task<IImmutableList<Type>> QueryMiddlewares()
@@ -22,10 +22,10 @@ internal sealed class RuntimeService(IConfiguration configuration) : IRuntimeSer
 
 	public async Task<IImmutableList<IStartup>> QueryStartups()
 	{
-		return await Task.FromResult(MicroServices.Startups);
+		return await Task.FromResult(Dependencies.Startups);
 	}
 
-	public Task<IImmutableList<Assembly>> QueryUpdatedMicroServices()
+	public Task<IImmutableList<Assembly>> QueryUpdatedDependencies()
 	{
 		throw new NotImplementedException();
 	}

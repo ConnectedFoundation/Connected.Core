@@ -106,7 +106,7 @@ internal sealed class ResolutionService(IRuntimeService runtimeService, IRouting
 
 		IsInitialized = true;
 
-		var startups = await runtimeService.QueryMicroServices();
+		var startups = await runtimeService.QueryDependencies();
 
 		foreach (var startup in startups)
 		{

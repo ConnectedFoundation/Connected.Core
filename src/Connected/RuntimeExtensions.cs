@@ -41,7 +41,7 @@ public static class RuntimeExtensions
 
 		Services.Clear();
 	}
-	public static IServiceCollection AddMicroService(this IServiceCollection services, Assembly assembly)
+	public static IServiceCollection AddDependency(this IServiceCollection services, Assembly assembly)
 	{
 		foreach (var type in assembly.GetTypes())
 		{
@@ -67,7 +67,7 @@ public static class RuntimeExtensions
 		return services;
 	}
 
-	public static void MapMicroService(this WebApplication app, Assembly assembly)
+	public static void MapDependency(this WebApplication app, Assembly assembly)
 	{
 		foreach (var type in assembly.GetTypes())
 		{

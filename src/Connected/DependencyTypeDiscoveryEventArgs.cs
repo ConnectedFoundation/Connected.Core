@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 
 namespace Connected;
-public class MicroServiceTypeDiscoveryEventArgs(IServiceCollection services, Type type)
+public class DependencyTypeDiscoveryEventArgs(IServiceCollection services, Type type)
 	: EventArgs
 {
 	public Type Type { get; } = type;

@@ -22,10 +22,10 @@ using System.Text;
 
 namespace Connected;
 
-public delegate void MicroServiceTypeDiscoveryEventHandler(object sender, MicroServiceTypeDiscoveryEventArgs e);
+public delegate void DependencyTypeDiscoveryEventHandler(object sender, DependencyTypeDiscoveryEventArgs e);
 public static class Application
 {
-	public static event MicroServiceTypeDiscoveryEventHandler? DiscoverType;
+	public static event DependencyTypeDiscoveryEventHandler? DiscoverType;
 
 	private static object _lastException = new();
 	public static bool IsErrorServerStarted { get; private set; }
@@ -40,30 +40,30 @@ public static class Application
 		AppDomain.CurrentDomain.UnhandledException += OnUnhandledExceptionThrown;
 	}
 
-	public static void AddMicroServices(this WebApplicationBuilder builder)
+	public static void AddDependenciess(this WebApplicationBuilder builder)
 	{
-		foreach (var microService in MicroServices.All)
-			builder.Services.AddMicroService(microService);
+		foreach (var dependency in Dependencies.All)
+			builder.Services.AddDependency(dependency);
 
 		builder.Services.RegisterServices();
 	}
 
-	public static void ConfigureMicroServicesServices(this IHostApplicationBuilder builder)
+	public static void ConfigureDependenciesServices(this IHostApplicationBuilder builder)
 	{
-		var startups = MicroServices.Startups;
+		var startups = Dependencies.Startups;
 
 		foreach (var startup in startups)
 			startup.ConfigureServices(builder.Services);
 	}
 
-	public static void ConfigureMicroServices(this IApplicationBuilder builder, IWebHostEnvironment environment)
+	public static void ConfigureDependencies(this IApplicationBuilder builder, IWebHostEnvironment environment)
 	{
-		var startups = MicroServices.Startups;
+		var startups = Dependencies.Startups;
 
 		if (builder is WebApplication web)
 		{
-			foreach (var microService in MicroServices.All)
-				web.MapMicroService(microService);
+			foreach (var dependency in Dependencies.All)
+				web.MapDependency(dependency);
 		}
 
 		foreach (var startup in startups)
@@ -119,9 +119,9 @@ public static class Application
 		return serviceName;
 	}
 
-	public static async Task InitializeMicroServices(IHost host)
+	public static async Task InitializeDependencies(IHost host)
 	{
-		var startups = MicroServices.Startups;
+		var startups = Dependencies.Startups;
 
 		await RegisterGrpcRoutes();
 
@@ -129,9 +129,9 @@ public static class Application
 			await startup.Initialize(host);
 	}
 
-	public static async Task StartMicroServices()
+	public static async Task StartDependencies()
 	{
-		var startups = MicroServices.Startups;
+		var startups = Dependencies.Startups;
 
 		foreach (var startup in startups)
 			await startup.Start();
@@ -182,30 +182,30 @@ public static class Application
 		app.Run();
 	}
 
-	public static void RegisterMicroService(Assembly assembly)
+	internal static void RegisterDependency(Assembly assembly)
 	{
-		MicroServices.Register(assembly);
+		Dependencies.Register(assembly);
 	}
 
-	public static void RegisterMicroService(string assemblyName)
+	internal static void RegisterDependency(string assemblyName)
 	{
 		var fileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, assemblyName);
 
-		MicroServices.Register(AssemblyLoadContext.Default.LoadFromAssemblyPath(fileName));
+		Dependencies.Register(AssemblyLoadContext.Default.LoadFromAssemblyPath(fileName));
 	}
 
-	public static void RegisterCoreMicroServices()
+	internal static void RegisterCoreDependencies()
 	{
 		var entry = Assembly.GetEntryAssembly();
 
 		if (entry is not null)
-			RegisterMicroService(entry);
+			RegisterDependency(entry);
 
-		RegisterMicroService(typeof(Application).Assembly);
+		RegisterDependency(typeof(Application).Assembly);
 
-		RegisterMicroService("Connected.dll");
-		RegisterMicroService("Connected.Extensions.dll");
-		RegisterMicroService("Connected.Authorization.Default.dll");
+		RegisterDependency("Connected.dll");
+		RegisterDependency("Connected.Extensions.dll");
+		RegisterDependency("Connected.Authorization.Default.dll");
 	}
 
 	public static async Task StartDefaultApplication(string[] args)
@@ -223,11 +223,11 @@ public static class Application
 
 			var services = builder.Services;
 
-			RegisterConfiguredMicroServices(builder.Configuration);
+			RegisterConfiguredDependencies(builder.Configuration);
 			RegisterImages(builder.Configuration);
-			RegisterCoreMicroServices();
+			RegisterCoreDependencies();
 
-			foreach (var startup in MicroServices.Startups)
+			foreach (var startup in Dependencies.Startups)
 				startup.Prepare(builder.Configuration);
 
 			AddOutOfMemoryExceptionHandler();
@@ -240,8 +240,8 @@ public static class Application
 			builder.AddHttpServices();
 			builder.AddCors();
 			builder.Services.AddRouting();
-			builder.AddMicroServices();
-			builder.ConfigureMicroServicesServices();
+			builder.AddDependenciess();
+			builder.ConfigureDependenciesServices();
 
 			services.AddSignalR(o =>
 			{
@@ -255,12 +255,12 @@ public static class Application
 			webApp.ActivateLocalization();
 			webApp.ActivateCors();
 			webApp.UseRouting();
-			webApp.ConfigureMicroServices(builder.Environment);
+			webApp.ConfigureDependencies(builder.Environment);
 			webApp.ActivateHttpServices();
 			webApp.ActivateRest();
 
-			await InitializeMicroServices(webApp);
-			await StartMicroServices();
+			await InitializeDependencies(webApp);
+			await StartDependencies();
 
 			HasStarted = true;
 
@@ -276,16 +276,16 @@ public static class Application
 		}
 	}
 
-	private static void RegisterConfiguredMicroServices(IConfiguration configuration)
+	private static void RegisterConfiguredDependencies(IConfiguration configuration)
 	{
-		var section = configuration.GetSection("microServices");
+		var section = configuration.GetSection("dependencies");
 
 		foreach (var child in section.GetChildren())
 		{
 			var value = child.Value;
 
 			if (!string.IsNullOrWhiteSpace(value))
-				RegisterMicroService(value);
+				RegisterDependency(value);
 		}
 	}
 
@@ -305,6 +305,8 @@ public static class Application
 			var assembly = AppDomain.CurrentDomain.Load(name);
 			var types = assembly.GetTypes();
 
+			Dependencies.Register(assembly);
+
 			foreach (var type in types)
 			{
 				if (type.IsClass && !type.IsAbstract && type.ImplementsInterface<IRuntimeImage>())
@@ -313,6 +315,9 @@ public static class Application
 						continue;
 
 					instance.Register();
+
+					foreach (var dependency in instance.Dependencies)
+						RegisterDependency(dependency);
 				}
 			}
 		}
@@ -320,6 +325,6 @@ public static class Application
 
 	internal static void TriggerDiscoverType(IServiceCollection services, Type type)
 	{
-		DiscoverType?.Invoke(services, new MicroServiceTypeDiscoveryEventArgs(services, type));
+		DiscoverType?.Invoke(services, new DependencyTypeDiscoveryEventArgs(services, type));
 	}
 }

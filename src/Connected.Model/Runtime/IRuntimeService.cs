@@ -40,9 +40,9 @@ public enum Optimization
 [Service(ServiceRegistrationScope.Singleton)]
 public interface IRuntimeService
 {
-	Task<IImmutableList<Assembly>> QueryMicroServices();
+	Task<IImmutableList<Assembly>> QueryDependencies();
 	Task<IImmutableList<IStartup>> QueryStartups();
-	Task<IImmutableList<Assembly>> QueryUpdatedMicroServices();
+	Task<IImmutableList<Assembly>> QueryUpdatedDependencies();
 	Task<StartOptions> SelectStartOptions();
 	Task<Platform> SelectPlatform();
 	Task<Connectivity> SelectConnectivity();

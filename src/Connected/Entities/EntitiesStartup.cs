@@ -24,7 +24,7 @@ public sealed class EntitiesStartup : Startup
 
 		var types = new List<Type>();
 
-		foreach (var assembly in await rt.QueryMicroServices())
+		foreach (var assembly in await rt.QueryDependencies())
 		{
 			var all = assembly.GetTypes();
 
