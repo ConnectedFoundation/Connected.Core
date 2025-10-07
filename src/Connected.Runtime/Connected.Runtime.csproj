@@ -42,20 +42,6 @@
 			</PackageVersion>
 		</PropertyGroup>
 	</Target>
-	<ItemGroup>
-		<None Include="..\..\ConnectedLogo.png" Link="ConnectedLogo.png">
-			<PackagePath>\</PackagePath>
-			<Pack>True</Pack>
-		</None>
-		<None Include="..\..\LICENSE.txt">
-			<Pack>True</Pack>
-			<PackagePath>\</PackagePath>
-		</None>
-		<None Include="..\..\README.md">
-			<Pack>True</Pack>
-			<PackagePath>\</PackagePath>
-		</None>
-	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Grpc.AspNetCore" Version="2.67.0" />
@@ -66,21 +52,6 @@
 		<ProjectReference Include="..\Connected.Authorization.Default\Connected.Authorization.Default.csproj" />
 		<ProjectReference Include="..\Connected.Sdk\Connected.Sdk.csproj" />
 		<ProjectReference Include="..\Connected\Connected.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Compile Update="SR.Designer.cs">
-			<DesignTime>True</DesignTime>
-			<AutoGen>True</AutoGen>
-			<DependentUpon>SR.resx</DependentUpon>
-		</Compile>
-	</ItemGroup>
-
-	<ItemGroup>
-		<EmbeddedResource Update="SR.resx">
-			<Generator>ResXFileCodeGenerator</Generator>
-			<LastGenOutput>SR.Designer.cs</LastGenOutput>
-		</EmbeddedResource>
 	</ItemGroup>
 
 </Project>

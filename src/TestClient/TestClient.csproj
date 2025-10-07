@@ -9,7 +9,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Connected.Runtime\Connected.Runtime.csproj" />
+	  <ProjectReference Include="..\Connected\Connected.csproj" />
 	</ItemGroup>
 
 </Project>
