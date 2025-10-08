@@ -13,7 +13,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Connected.Core.Mock\Connected.Mock.csproj" />
+    <ProjectReference Include="..\..\src\Connected.Model\Connected.Model.csproj" />
+    <ProjectReference Include="..\..\src\Connected.Sdk\Connected.Sdk.csproj" />
     <ProjectReference Include="..\Connected.Mock\Connected.Mock.csproj" />
   </ItemGroup>
 

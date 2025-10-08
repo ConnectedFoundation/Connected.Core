@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Connected.Model\Connected.Model.csproj" />
     <ProjectReference Include="..\..\src\Connected.Sdk\Connected.Sdk.csproj" />
   </ItemGroup>
 
