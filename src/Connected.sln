@@ -3,17 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.12.35527.113
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connected.Sdk", "src\Connected.Sdk\Connected.Sdk.csproj", "{5B7639A0-194F-4F2E-826B-C7EA03CCEAAE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connected.Sdk", "Connected.Sdk\Connected.Sdk.csproj", "{5B7639A0-194F-4F2E-826B-C7EA03CCEAAE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestClient", "src\TestClient\TestClient.csproj", "{18EFE5DA-9CE0-498A-9CE0-A258DDD222C4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestClient", "TestClient\TestClient.csproj", "{18EFE5DA-9CE0-498A-9CE0-A258DDD222C4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connected", "src\Connected\Connected.csproj", "{81F5FF03-6E73-80F2-110C-9B437E7F6B79}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connected", "Connected\Connected.csproj", "{81F5FF03-6E73-80F2-110C-9B437E7F6B79}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connected.Extensions", "src\Connected.Extensions\Connected.Extensions.csproj", "{AEC74758-35AF-6CE3-C754-58539DB03205}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connected.Extensions", "Connected.Extensions\Connected.Extensions.csproj", "{AEC74758-35AF-6CE3-C754-58539DB03205}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connected.Model", "src\Connected.Model\Connected.Model.csproj", "{78ECD46E-ED78-D15D-386C-E72AEC51A4C2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connected.Model", "Connected.Model\Connected.Model.csproj", "{78ECD46E-ED78-D15D-386C-E72AEC51A4C2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connected.Authorization.Default", "src\Connected.Authorization.Default\Connected.Authorization.Default.csproj", "{09EA9128-E507-2694-7B26-506935246F17}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connected.Authorization", "Connected.Authorization\Connected.Authorization.csproj", "{8DE366CC-5495-5B3A-0B4E-7DE2AC58F06B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,10 +41,10 @@ Global
 		{78ECD46E-ED78-D15D-386C-E72AEC51A4C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{78ECD46E-ED78-D15D-386C-E72AEC51A4C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{78ECD46E-ED78-D15D-386C-E72AEC51A4C2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{09EA9128-E507-2694-7B26-506935246F17}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{09EA9128-E507-2694-7B26-506935246F17}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{09EA9128-E507-2694-7B26-506935246F17}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{09EA9128-E507-2694-7B26-506935246F17}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8DE366CC-5495-5B3A-0B4E-7DE2AC58F06B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8DE366CC-5495-5B3A-0B4E-7DE2AC58F06B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8DE366CC-5495-5B3A-0B4E-7DE2AC58F06B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8DE366CC-5495-5B3A-0B4E-7DE2AC58F06B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

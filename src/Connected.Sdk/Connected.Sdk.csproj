@@ -61,8 +61,6 @@
 	</Target>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Connected.Core.Model.Extensions\Connected.Extensions.csproj" />
-		<ProjectReference Include="..\Connected.Core.Model\Connected.Model.csproj" />
 		<ProjectReference Include="..\Connected.Extensions\Connected.Extensions.csproj" />
 		<ProjectReference Include="..\Connected.Model\Connected.Model.csproj" />
 	</ItemGroup>
