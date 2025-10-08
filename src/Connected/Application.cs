@@ -273,7 +273,7 @@ public static class Application
 
 		RegisterDependency("Connected.dll");
 		RegisterDependency("Connected.Extensions.dll");
-		RegisterDependency("Connected.Authorization.Default.dll");
+		RegisterDependency("Connected.Authorization.dll");
 	}
 
 	private static void RegisterConfiguredDependencies(IConfiguration configuration)
