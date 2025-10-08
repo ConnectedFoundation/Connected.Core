@@ -50,9 +50,30 @@ internal sealed class ObjectMerger : Merger
 			}
 			else
 			{
-				var converted = Types.Convert(source, property.PropertyType);
+				if (source.GetType().IsTypePrimitive())
+				{
+					var converted = Types.Convert(source, property.PropertyType);
 
-				property.SetValue(destination, converted);
+					property.SetValue(destination, converted);
+				}
+				else
+				{
+					var sourceProperty = source.GetType().GetProperty(property.Name);
+
+					if (sourceProperty is not null)
+					{
+						var value = sourceProperty.GetValue(source);
+
+						if (value is null)
+							property.SetValue(destination, null);
+						else
+						{
+							var converted = Types.Convert(value, property.PropertyType);
+
+							property.SetValue(destination, converted);
+						}
+					}
+				}
 			}
 		}
 		else if (IsArray(property))
