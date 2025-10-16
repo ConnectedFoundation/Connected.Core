@@ -2,9 +2,9 @@
 
 internal sealed class Client : IClient
 {
-	public required string Id { get; set; }
+	public required Guid Id { get; set; }
 	public required string Connection { get; set; }
-	public long User { get; set; }
+	public string? Identity { get; set; }
 	public DateTime RetentionDeadline { get; set; }
 
 	public int CompareTo(IClient? other)
@@ -12,7 +12,7 @@ internal sealed class Client : IClient
 		if (other is null)
 			return 1;
 
-		if (User != other.User)
+		if (!string.Equals(Identity, other.Identity, StringComparison.Ordinal))
 			return 1;
 
 		return 0;

@@ -1,24 +1,16 @@
-﻿using System;
-using System.Threading;
+﻿using Connected.Services;
 
 namespace Connected.Net.Messaging;
 
-internal sealed class Message<TDto> : IMessage<TDto>
+public abstract class Message(IClient client, IDto dto)
+		: IMessage
 {
 	private static ulong _identity = 0UL;
 
-	public Message(IClient client, TDto? dto)
-	{
-		Client = client;
-		Dto = dto;
-		Id = Interlocked.Increment(ref _identity);
-		Expire = DateTime.UtcNow.AddMinutes(5);
-	}
-
-	public IClient Client { get; }
-	public ulong Id { get; }
-	public string? Key { get; }
-	public TDto? Dto { get; }
+	public IClient Client { get; } = client;
+	public ulong Id { get; } = Interlocked.Increment(ref _identity);
+	public string? Key { get; protected set; }
+	public IDto Dto { get; } = dto;
 	public DateTime NextVisible { get; set; } = DateTime.UtcNow.AddSeconds(5);
-	public DateTime Expire { get; }
+	public DateTime Expire { get; protected set; } = DateTime.UtcNow.AddMinutes(5);
 }

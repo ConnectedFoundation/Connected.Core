@@ -3,14 +3,10 @@ using System.Collections.Immutable;
 
 namespace Connected.Net.Messaging;
 
-internal sealed class Clients : IClients
+public abstract class Clients
+	: IClients
 {
-	public Clients()
-	{
-		Items = new(StringComparer.OrdinalIgnoreCase);
-	}
-
-	private ConcurrentDictionary<string, IClient> Items { get; set; }
+	private ConcurrentDictionary<Guid, IClient> Items { get; set; } = [];
 
 	public void AddOrUpdate(IClient client)
 	{
@@ -37,10 +33,10 @@ internal sealed class Clients : IClients
 
 	public void Remove(string connectionId)
 	{
-		if (!Items.TryGetValue(connectionId, out IClient? client))
+		if (Select(connectionId) is not IClient client)
 			return;
 
-		client.RetentionDeadline = DateTime.UtcNow.AddMinutes(5);
+		Items.TryRemove(client.Id, out _);
 	}
 
 	public IImmutableList<IClient> Query()
@@ -48,12 +44,15 @@ internal sealed class Clients : IClients
 		return Items.Values.ToImmutableList();
 	}
 
-	public IClient? Select(string id)
+	public IClient? Select(Guid id)
 	{
-		return Items.FirstOrDefault(f => string.Equals(f.Value.Id, id, StringComparison.OrdinalIgnoreCase)).Value;
+		if (Items.TryGetValue(id, out IClient? client))
+			return client;
+
+		return null;
 	}
 
-	public IClient? SelectByConnection(string connection)
+	public IClient? Select(string connection)
 	{
 		return Items.FirstOrDefault(f => string.Equals(f.Value.Connection, connection, StringComparison.OrdinalIgnoreCase)).Value;
 	}

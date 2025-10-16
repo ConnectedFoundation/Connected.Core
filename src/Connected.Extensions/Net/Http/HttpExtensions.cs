@@ -1,5 +1,5 @@
-﻿using Connected.Identities;
-using Connected.Identities.Dtos;
+﻿using Connected.Authentication;
+using Connected.Identities;
 using Connected.Reflection;
 using Connected.Services;
 using Microsoft.AspNetCore.Http;
@@ -194,7 +194,7 @@ public static class HttpExtensions
 		return context.HttpContext.User.Identity;
 	}
 
-	public static async Task<IUser?> ResolveUser(this HttpContext context)
+	public static async Task<IIdentity?> ResolveIdentity(this HttpContext context)
 	{
 		if (context.User?.Identity is null)
 			return null;
@@ -205,16 +205,12 @@ public static class HttpExtensions
 		if (context.User.Identity is not IIdentityAccessor accessor || accessor.Identity?.Token is null)
 			return null;
 
-		using var scope = Scope.Create();
+		using var scope = await Scope.Create().WithSystemIdentity();
 
 		try
 		{
-			var users = scope.ServiceProvider.GetRequiredService<IUserService>();
-			var dto = scope.ServiceProvider.GetRequiredService<ISelectUserDto>();
-
-			dto.User = accessor.Identity.Token;
-
-			var result = await users.Select(dto);
+			var identities = scope.ServiceProvider.GetRequiredService<IIdentityExtensions>();
+			var result = await identities.Select(Dto.Factory.CreateValue(accessor.Identity.Token));
 
 			await scope.Commit();
 

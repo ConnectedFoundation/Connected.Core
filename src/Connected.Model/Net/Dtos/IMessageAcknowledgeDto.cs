@@ -1,6 +1,6 @@
 ﻿using Connected.Services;
 
-namespace Connected.Net;
+namespace Connected.Net.Dtos;
 
 public interface IMessageAcknowledgeDto : IDto
 {

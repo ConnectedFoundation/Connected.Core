@@ -15,7 +15,7 @@ public sealed class EntitiesStartup : Startup
 
 	private async Task SynchronizeSchemas()
 	{
-		using var scope = Scope.Create().WithSystemIdentity();
+		using var scope = await Scope.Create().WithSystemIdentity();
 
 		var rt = scope.ServiceProvider.GetRequiredService<IRuntimeService>();
 

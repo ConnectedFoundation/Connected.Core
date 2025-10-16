@@ -1,11 +1,13 @@
-﻿namespace Connected.Net.Messaging;
+﻿using Connected.Services;
 
-public interface IMessage<TDto>
+namespace Connected.Net.Messaging;
+
+public interface IMessage
 {
 	IClient Client { get; }
 	ulong Id { get; }
 	string? Key { get; }
-	TDto? Dto { get; }
+	IDto Dto { get; }
 	DateTime NextVisible { get; set; }
 	DateTime Expire { get; }
 }

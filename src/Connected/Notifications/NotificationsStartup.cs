@@ -1,4 +1,5 @@
-﻿using Connected.Notifications.Net;
+﻿using Connected.Net.Events;
+using Connected.Net.Messaging;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;

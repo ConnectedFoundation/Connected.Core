@@ -69,7 +69,7 @@ public static class Application
 			services.AddSignalR(o =>
 			{
 				o.EnableDetailedErrors = true;
-				o.DisableImplicitFromServicesParameters = false;
+				o.DisableImplicitFromServicesParameters = true;
 			});
 
 			var webApp = builder.Build();
@@ -81,6 +81,13 @@ public static class Application
 			webApp.ConfigureDependencies(builder.Environment);
 			webApp.ActivateHttpServices();
 			webApp.ActivateRest();
+
+			var socketOptions = new WebSocketOptions();
+
+			foreach (var origin in builder.Configuration.GetSection("net:sockets:allowedOrigins").Get<string[]>() ?? [])
+				socketOptions.AllowedOrigins.Add(origin);
+
+			webApp.UseWebSockets(socketOptions);
 
 			await InitializeDependencies(webApp);
 			await StartDependencies();

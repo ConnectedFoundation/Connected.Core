@@ -3,7 +3,8 @@ using Connected.Services;
 
 namespace Connected.Authorization.Services;
 
-internal sealed class ServiceOperationAuthorizationDto<TDto> : Dto, IServiceOperationAuthorizationDto<TDto>
+internal sealed class ServiceOperationAuthorizationDto<TDto>
+	: Dto, IServiceOperationAuthorizationDto<TDto>
 	where TDto : IDto
 {
 	[NonDefault]

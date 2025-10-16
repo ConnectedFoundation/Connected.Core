@@ -12,7 +12,7 @@ internal sealed class BasicAuthentication : BasicAuthenticationProvider
 		if (UserName is null || Password is null)
 			return;
 
-		using var scope = Scope.Create().WithSystemIdentity();
+		using var scope = await Scope.Create().WithSystemIdentity();
 
 		var authentication = scope.ServiceProvider.GetRequiredService<IAuthenticationService>();
 		var users = scope.ServiceProvider.GetRequiredService<IUserService>();

@@ -1,8 +1,10 @@
-﻿using Connected.Services;
+﻿using Connected.Net.Dtos;
+using Connected.Services;
 
 namespace Connected.Net;
 
-internal sealed class MessageAcknowledgeDto : Dto, IMessageAcknowledgeDto
+internal class MessageAcknowledgeDto
+	: Dto, IMessageAcknowledgeDto
 {
 	public ulong Id { get; set; }
 }

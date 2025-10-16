@@ -39,7 +39,7 @@ public abstract class QueueHost : ScheduledWorker
 		if (Dispatcher.Available <= 0)
 			return;
 
-		using var scope = Scope.Create().WithSystemIdentity();
+		using var scope = await Scope.Create().WithSystemIdentity();
 		var service = scope.ServiceProvider.GetRequiredService<IQueueService>();
 
 		try

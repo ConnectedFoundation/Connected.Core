@@ -1,17 +1,20 @@
 ﻿using Connected.Collections;
+using Connected.Net.Dtos;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 
 namespace Connected.Net.Messaging;
 
-internal sealed class ClientMessages<TDto> : IClientMessages<TDto>
+public abstract class ClientMessages<TMessage>
+	: IClientMessages<TMessage>
+	where TMessage : IMessage
 {
 	public ClientMessages()
 	{
 		Clients = new(StringComparer.OrdinalIgnoreCase);
 	}
 
-	private ConcurrentDictionary<string, Messages<TDto>> Clients { get; }
+	private ConcurrentDictionary<string, Messages<TMessage>> Clients { get; }
 
 	public void Clean()
 	{
@@ -24,9 +27,9 @@ internal sealed class ClientMessages<TDto> : IClientMessages<TDto>
 		}
 	}
 
-	public IImmutableList<IMessage<TDto>> Dequeue()
+	public IImmutableList<TMessage> Dequeue()
 	{
-		var result = new List<IMessage<TDto>>();
+		var result = new List<TMessage>();
 
 		foreach (var client in Clients)
 		{
@@ -52,7 +55,7 @@ internal sealed class ClientMessages<TDto> : IClientMessages<TDto>
 
 	public void Remove(string connection, IMessageAcknowledgeDto dto)
 	{
-		if (!Clients.TryGetValue(connection, out Messages<TDto>? items))
+		if (!Clients.TryGetValue(connection, out Messages<TMessage>? items))
 			return;
 
 		items.Remove(dto.Id);
@@ -66,7 +69,7 @@ internal sealed class ClientMessages<TDto> : IClientMessages<TDto>
 		if (string.IsNullOrEmpty(connection))
 			return;
 
-		if (!Clients.TryGetValue(connection, out Messages<TDto>? items))
+		if (!Clients.TryGetValue(connection, out Messages<TMessage>? items))
 			return;
 
 		items.Remove(connection, key);
@@ -75,11 +78,11 @@ internal sealed class ClientMessages<TDto> : IClientMessages<TDto>
 			Clients.Remove(connection, out _);
 	}
 
-	public void Add(string client, IMessage<TDto> message)
+	public void Add(string client, TMessage message)
 	{
-		if (!Clients.TryGetValue(client, out Messages<TDto>? items))
+		if (!Clients.TryGetValue(client, out Messages<TMessage>? items))
 		{
-			items = new Messages<TDto>();
+			items = new Messages<TMessage>();
 
 			if (!Clients.TryAdd(client, items))
 				Clients.TryGetValue(client, out items);

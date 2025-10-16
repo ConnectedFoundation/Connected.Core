@@ -11,7 +11,7 @@ internal sealed class TokenAuthentication : BearerAuthenticationProvider
 		if (Token is null)
 			return;
 
-		using var scope = Scope.Create().WithSystemIdentity();
+		using var scope = await Scope.Create().WithSystemIdentity();
 
 		var authentication = scope.ServiceProvider.GetRequiredService<IAuthenticationService>();
 		var tokens = scope.ServiceProvider.GetRequiredService<IIdentityAuthenticationTokenService>();

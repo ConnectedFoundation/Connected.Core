@@ -18,7 +18,7 @@ internal class RequestAuthentication(RequestDelegate next)
 	{
 		Context = context;
 
-		using var scope = Scope.Create();
+		using var scope = await Scope.Create().WithSystemIdentity();
 		var middlewares = scope.ServiceProvider.GetRequiredService<IMiddlewareService>();
 
 		if (middlewares is null)

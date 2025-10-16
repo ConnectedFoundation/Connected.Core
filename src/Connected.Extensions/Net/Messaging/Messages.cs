@@ -3,16 +3,12 @@ using System.Collections.Immutable;
 
 namespace Connected.Net.Messaging;
 
-internal sealed class Messages<TArgs>
+internal sealed class Messages<TMessage>
+	where TMessage : IMessage
 {
-	public Messages()
-	{
-		Items = new();
-	}
-
-	private List<IMessage<TArgs>> Items { get; }
-	public bool IsEmpty => !Items.Any();
-	public IImmutableList<IMessage<TArgs>> All() => Items.ToImmutableList(true);
+	private List<TMessage> Items { get; } = [];
+	public bool IsEmpty => Items.Count == 0;
+	public IImmutableList<TMessage> All() => Items.ToImmutableList(true);
 
 	public void Scave()
 	{
@@ -22,12 +18,12 @@ internal sealed class Messages<TArgs>
 			Items.Remove(item);
 	}
 
-	public IImmutableList<IMessage<TArgs>> Dequeue()
+	public IImmutableList<TMessage> Dequeue()
 	{
 		var items = All().Where(f => f.NextVisible <= DateTime.UtcNow).ToImmutableList(true);
 
 		if (!items.Any())
-			return ImmutableList<IMessage<TArgs>>.Empty;
+			return ImmutableList<TMessage>.Empty;
 
 		foreach (var item in items)
 			item.NextVisible = item.NextVisible.AddSeconds(5);
@@ -45,7 +41,7 @@ internal sealed class Messages<TArgs>
 
 	public void Remove(ulong id)
 	{
-		if (All().FirstOrDefault(f => f.Id == id) is Message<TArgs> message)
+		if (All().FirstOrDefault(f => f.Id == id) is TMessage message)
 			Items.Remove(message);
 	}
 
@@ -64,7 +60,7 @@ internal sealed class Messages<TArgs>
 			Items.Remove(o);
 	}
 
-	public void Add(IMessage<TArgs> message)
+	public void Add(TMessage message)
 	{
 		Items.Add(message);
 	}

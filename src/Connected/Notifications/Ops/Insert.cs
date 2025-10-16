@@ -1,12 +1,14 @@
+using Connected.Net.Events;
+using Connected.Net.Events.Dtos;
 using Connected.Net.Messaging;
-using Connected.Notifications.Net;
+using Connected.Net.Messaging.Dtos;
 using Connected.Reflection;
 using Connected.Services;
 using System.Reflection;
 
 namespace Connected.Notifications.Ops;
 
-internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, EventServer server)
+internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEventServer server, EventSubscriptions subscriptions, IServerExtensions extensions)
 	: ServiceAction<IInsertEventDto<TService, TDto>>
 	where TDto : IDto
 {
@@ -41,15 +43,24 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, Eve
 		if (url is null)
 			return;
 
-		var dto = Dto.Create<ISendContextDto>();
+		var key = $"{url}/{Dto.Event}".ToLowerInvariant();
+		var clients = subscriptions.Items.TryGetValue(key, out List<IClient>? list) && list is not null ? list : [];
 
-		dto.Method = "Notify";
+		var ctx = new Dto<ISendContextDto>().Value;
 
-		await server.Send(dto, new EventNotificationDescriptor
+		ctx.Method = "Notify";
+
+		foreach (var client in clients)
 		{
-			Dto = Dto.Dto,
-			Event = Dto.Event.ToCamelCase(),
-			Service = url.TrimStart('/')
-		});
+			var dto = new Dto<ISendEventDto>().Value;
+
+			dto.Client = client;
+			dto.Event = Dto.Event;
+			dto.Service = url;
+			dto.Dto = Dto.Dto;
+			dto.Context = ctx;
+
+			await server.Send(dto);
+		}
 	}
 }

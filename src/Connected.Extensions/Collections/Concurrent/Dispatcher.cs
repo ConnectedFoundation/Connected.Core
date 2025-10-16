@@ -45,16 +45,16 @@ public abstract class Dispatcher<TDto, TJob> : IDispatcher<TDto, TJob>
 		return Queue.TryDequeue(out item);
 	}
 
-	public bool Enqueue(TDto item)
+	public async Task<bool> Enqueue(TDto item)
 	{
 		Queue.Enqueue(item);
 
-		RunJob();
+		await RunJob();
 
 		return true;
 	}
 
-	private void RunJob()
+	private async Task RunJob()
 	{
 		if (Queue.IsEmpty)
 			return;
@@ -67,7 +67,7 @@ public abstract class Dispatcher<TDto, TJob> : IDispatcher<TDto, TJob>
 		/*
 		 * Dispatcher jobs should be transient so it's safe to request a service from the root collection.
 		 */
-		var scope = Scope.Create().WithSystemIdentity();
+		var scope = await Scope.Create().WithSystemIdentity();
 
 		if (scope.ServiceProvider.GetService<TJob>() is not DispatcherJob<TDto> job)
 			throw new NullReferenceException($"{Strings.ErrCreateService} ({typeof(DispatcherJob<TDto>).Name})");
@@ -78,13 +78,14 @@ public abstract class Dispatcher<TDto, TJob> : IDispatcher<TDto, TJob>
 		{
 			await job.Invoke(item, CancellationToken);
 			await job.Scope.Commit();
-
 			await scope.DisposeAsync();
 			await job.Scope.Value.DisposeAsync();
+
+
 			job.Dispose();
 
 			if (!Queue.IsEmpty)
-				RunJob();
+				await RunJob();
 
 		}, CancellationToken);
 	}
@@ -104,8 +105,7 @@ public abstract class Dispatcher<TDto, TJob> : IDispatcher<TDto, TJob>
 					_tokenSource = null;
 				}
 
-				if (Queue is not null)
-					Queue.Clear();
+				Queue?.Clear();
 			}
 
 			IsDisposed = true;

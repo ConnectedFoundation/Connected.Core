@@ -9,6 +9,6 @@ public interface IClients
 	void Remove(string connectionId);
 
 	IImmutableList<IClient> Query();
-	IClient? Select(string id);
-	IClient? SelectByConnection(string connection);
+	IClient? Select(Guid id);
+	IClient? Select(string connection);
 }

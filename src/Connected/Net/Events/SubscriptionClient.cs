@@ -1,4 +1,4 @@
-namespace Connected.Notifications.Net;
+namespace Connected.Net.Events;
 
 internal sealed class SubscriptionClient
 {
