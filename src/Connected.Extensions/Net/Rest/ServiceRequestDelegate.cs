@@ -178,9 +178,14 @@ internal sealed class ServiceRequestDelegate : RestRequest
 				if (requestArgs is null || !requestArgs.Any())
 				{
 					if (!parameter.IsOptional && !parameter.IsNullable())
-						throw new ValidationException($"{RestStrings.ValParseRequestArguments} ('{parameter.ParameterType.ShortName()}')");
+					{
+						if (parameter.HasNonNullableProperties())
+							throw new ValidationException($"{RestStrings.ValParseRequestArguments} ('{parameter.ParameterType.ShortName()}')");
 
-					arguments.Add(null);
+						arguments.Add(Dto.Factory.Create(parameter.ParameterType));
+					}
+					else
+						arguments.Add(null);
 				}
 				else
 				{

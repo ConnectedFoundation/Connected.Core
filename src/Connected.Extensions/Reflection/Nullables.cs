@@ -96,4 +96,17 @@ public static class Nullables
 	{
 		return Expression.Constant(null, type.GetNullAssignableType());
 	}
+
+	public static bool HasNonNullableProperties(this ParameterInfo parameter)
+	{
+		var props = parameter.ParameterType.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.GetProperty);
+
+		foreach (var property in props)
+		{
+			if (!property.IsNullable())
+				return true;
+		}
+
+		return false;
+	}
 }
