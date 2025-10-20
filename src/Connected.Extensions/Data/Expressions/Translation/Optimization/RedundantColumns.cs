@@ -1,21 +1,18 @@
-using System.Collections;
-using System.Linq.Expressions;
-using System.Collections.Generic;
-using System;
-using System.Linq;
 using Connected.Data.Expressions.Expressions;
 using Connected.Data.Expressions.Visitors;
+using System.Collections;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation.Optimization;
 
-internal sealed class RedundantColumns : DatabaseVisitor
+internal sealed class RedundantColumns
+	: DatabaseVisitor
 {
 	private RedundantColumns()
 	{
-		Map = new();
 	}
 
-	private Dictionary<ColumnExpression, ColumnExpression> Map { get; set; }
+	private Dictionary<ColumnExpression, ColumnExpression> Map { get; set; } = [];
 
 	public static Expression Remove(Expression expression)
 	{

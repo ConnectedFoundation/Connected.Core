@@ -2,7 +2,7 @@ namespace Connected.Storage.Sql.Schemas;
 
 internal abstract class SynchronizationTransaction : SynchronizationCommand
 {
-	protected SchemaExecutionContext Context { get; private set; }
+	protected SchemaExecutionContext Context { get; private set; } = default!;
 
 	public async Task Execute(SchemaExecutionContext context)
 	{

@@ -3,18 +3,8 @@ using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation.Projections;
 
-internal sealed class ProjectedColumns
+internal sealed class ProjectedColumns(Expression? projector, ReadOnlyCollection<ColumnDeclaration> columns)
 {
-	private readonly Expression _projector;
-	private readonly ReadOnlyCollection<ColumnDeclaration> _columns;
-
-	public ProjectedColumns(Expression projector, ReadOnlyCollection<ColumnDeclaration> columns)
-	{
-		_projector = projector;
-		_columns = columns;
-	}
-
-	public Expression Projector => _projector;
-	public ReadOnlyCollection<ColumnDeclaration> Columns => _columns;
-
+	public Expression? Projector => projector;
+	public ReadOnlyCollection<ColumnDeclaration> Columns => columns;
 }

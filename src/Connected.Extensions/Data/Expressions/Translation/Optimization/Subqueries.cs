@@ -1,18 +1,15 @@
-using System.Linq.Expressions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Connected.Data.Expressions.Expressions;
 using Connected.Data.Expressions.Visitors;
-using Connected.Data.Expressions.Translation;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation.Optimization;
 
-internal sealed class Subqueries : DatabaseVisitor
+internal sealed class Subqueries
+	: DatabaseVisitor
 {
 	private Subqueries(IEnumerable<SelectExpression> selectsToRemove)
 	{
-		SelectsToRemove = new HashSet<SelectExpression>(selectsToRemove);
+		SelectsToRemove = [.. selectsToRemove];
 		Map = SelectsToRemove.ToDictionary(d => d.Alias, d => d.Columns.ToDictionary(d2 => d2.Name, d2 => d2.Expression));
 	}
 

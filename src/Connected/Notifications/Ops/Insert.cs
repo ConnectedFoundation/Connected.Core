@@ -8,7 +8,7 @@ using System.Reflection;
 
 namespace Connected.Notifications.Ops;
 
-internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEventServer server, EventSubscriptions subscriptions, IServerExtensions extensions)
+internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEventServer server, EventSubscriptions subscriptions)
 	: ServiceAction<IInsertEventDto<TService, TDto>>
 	where TDto : IDto
 {

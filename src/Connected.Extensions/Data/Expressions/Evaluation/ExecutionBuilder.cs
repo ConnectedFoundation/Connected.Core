@@ -74,10 +74,9 @@ public sealed class ExecutionBuilder : DatabaseVisitor
 
 	private Expression ExecuteProjection(ProjectionExpression projection, IStorageOperation operation)
 	{
-		var method = nameof(IStorageExecutor.Execute);
 		/*
-	  * call low-level execute directly on supplied DbQueryProvider
-	  */
+		 * call low-level execute directly on supplied DbQueryProvider
+		 */
 		Type typeArgument;
 
 		if (projection.Type.IsEnumerable())

@@ -6,13 +6,14 @@ using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation.Optimization;
 
-internal sealed class RedundantJoins : DatabaseVisitor
+internal sealed class RedundantJoins
+	: DatabaseVisitor
 {
 	private RedundantJoins()
 	{
-		Map = new Dictionary<Alias, Alias>();
 	}
-	private Dictionary<Alias, Alias> Map { get; }
+
+	private Dictionary<Alias, Alias> Map { get; } = [];
 
 	public static Expression Remove(Expression expression)
 	{
@@ -48,7 +49,7 @@ internal sealed class RedundantJoins : DatabaseVisitor
 		return result;
 	}
 
-	private Expression? FindSimilarRight(JoinExpression? join, JoinExpression compareTo)
+	private static Expression? FindSimilarRight(JoinExpression? join, JoinExpression compareTo)
 	{
 		if (join is null)
 			return null;

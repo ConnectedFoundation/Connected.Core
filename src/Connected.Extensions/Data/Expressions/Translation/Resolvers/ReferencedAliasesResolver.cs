@@ -1,15 +1,15 @@
-using System.Linq.Expressions;
-using System.Collections.Generic;
-using Connected.Data.Expressions.Visitors;
 using Connected.Data.Expressions.Expressions;
+using Connected.Data.Expressions.Visitors;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation.Resolvers;
 
-internal sealed class ReferencedAliasesResolver : DatabaseVisitor
+internal sealed class ReferencedAliasesResolver
+	: DatabaseVisitor
 {
 	private ReferencedAliasesResolver()
 	{
-		Aliases = new();
+		Aliases = [];
 	}
 
 	private HashSet<Alias> Aliases { get; }

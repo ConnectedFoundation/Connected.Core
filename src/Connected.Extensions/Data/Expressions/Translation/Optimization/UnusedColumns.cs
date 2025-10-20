@@ -1,16 +1,15 @@
-using System.Linq.Expressions;
-using System.Collections.Generic;
-using System;
 using Connected.Data.Expressions.Expressions;
 using Connected.Data.Expressions.Visitors;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation.Optimization;
 
-internal sealed class UnusedColumns : DatabaseVisitor
+internal sealed class UnusedColumns
+	: DatabaseVisitor
 {
 	private UnusedColumns()
 	{
-		AllUsed = new();
+		AllUsed = [];
 	}
 	private Dictionary<Alias, HashSet<string>> AllUsed { get; set; }
 
@@ -28,7 +27,7 @@ internal sealed class UnusedColumns : DatabaseVisitor
 	{
 		if (!AllUsed.TryGetValue(alias, out HashSet<string>? columns))
 		{
-			columns = new HashSet<string>();
+			columns = [];
 
 			AllUsed.Add(alias, columns);
 		}
@@ -49,7 +48,7 @@ internal sealed class UnusedColumns : DatabaseVisitor
 
 	private void ClearUsed(Alias alias)
 	{
-		AllUsed[alias] = new HashSet<string>();
+		AllUsed[alias] = [];
 	}
 
 	protected override Expression VisitColumn(ColumnExpression expression)
@@ -96,7 +95,7 @@ internal sealed class UnusedColumns : DatabaseVisitor
 
 			if (decl != select.Columns[i] && alternate is null)
 			{
-				alternate = new List<ColumnDeclaration>();
+				alternate = [];
 
 				for (var j = 0; j < i; j++)
 					alternate.Add(select.Columns[j]);

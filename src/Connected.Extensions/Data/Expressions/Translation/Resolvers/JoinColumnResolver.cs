@@ -1,6 +1,5 @@
-using System.Linq.Expressions;
-using System.Collections.Generic;
 using Connected.Data.Expressions.Expressions;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation.Resolvers;
 
@@ -9,7 +8,7 @@ internal sealed class JoinColumnResolver
 	private JoinColumnResolver(HashSet<Alias> aliases)
 	{
 		Aliases = aliases;
-		Columns = new HashSet<ColumnExpression>();
+		Columns = [];
 	}
 
 	private HashSet<Alias> Aliases { get; }

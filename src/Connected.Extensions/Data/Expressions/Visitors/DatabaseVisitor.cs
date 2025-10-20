@@ -77,7 +77,7 @@ public abstract class DatabaseVisitor : ExpressionVisitor
 		return UpdateSelect(expression, from, where, orderBy, groupBy, skip, take, expression.IsDistinct, expression.IsReverse, columns);
 	}
 
-	protected virtual Expression VisitWhere(Expression whereExpression)
+	protected virtual Expression? VisitWhere(Expression? whereExpression)
 	{
 		return whereExpression;
 	}
@@ -192,12 +192,7 @@ public abstract class DatabaseVisitor : ExpressionVisitor
 	protected static RowNumberExpression UpdateRowNumber(RowNumberExpression expression, IEnumerable<OrderExpression>? orderBy)
 	{
 		if (orderBy != expression.OrderBy)
-		{
-			if (orderBy is null)
-				throw new ArgumentNullException(nameof(orderBy));
-
-			return new RowNumberExpression(orderBy);
-		}
+			return orderBy is null ? throw new ArgumentNullException(nameof(orderBy)) : new RowNumberExpression(orderBy);
 
 		return expression;
 	}
@@ -471,7 +466,7 @@ public abstract class DatabaseVisitor : ExpressionVisitor
 			var assignment = VisitColumnAssignment(current);
 
 			if (alternate is null && assignment != current)
-				alternate = assignments.Take(i).ToList();
+				alternate = [.. assignments.Take(i)];
 
 			alternate?.Add(assignment);
 		}
@@ -494,7 +489,7 @@ public abstract class DatabaseVisitor : ExpressionVisitor
 				throw new NullReferenceException(nameof(columnDeclarationExpression));
 
 			if (alternate is null && columnDeclarationExpression != column.Expression)
-				alternate = columns.Take(i).ToList();
+				alternate = [.. columns.Take(i)];
 
 			alternate?.Add(new ColumnDeclaration(column.Name, columnDeclarationExpression, column.DataType));
 		}
@@ -517,7 +512,7 @@ public abstract class DatabaseVisitor : ExpressionVisitor
 				throw new NullReferenceException(nameof(declarationExpression));
 
 			if (alternate is null && declarationExpression != decl.Expression)
-				alternate = declarations.Take(i).ToList();
+				alternate = [.. declarations.Take(i)];
 
 			alternate?.Add(new VariableDeclaration(decl.Name, decl.DataType, declarationExpression));
 		}
@@ -542,7 +537,7 @@ public abstract class DatabaseVisitor : ExpressionVisitor
 					throw new NullReferenceException(nameof(orderByExpression));
 
 				if (alternate is null && orderByExpression != expr.Expression)
-					alternate = expressions.Take(i).ToList();
+					alternate = [.. expressions.Take(i)];
 
 				alternate?.Add(new OrderExpression(expr.OrderType, orderByExpression));
 			}

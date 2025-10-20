@@ -60,8 +60,8 @@ internal class Entries
 		foreach (var i in instances)
 		{
 			if (i is not T t)
-				throw new InvalidCastException($"{Exceptions.ExInvalidCacheEntry} ({i.GetType().ShortName()}->{typeof(T).ShortName()})");
-            
+				throw new InvalidCastException($"{Exceptions.ExInvalidCacheEntry} ({i?.GetType().ShortName()}->{typeof(T).ShortName()})");
+
 			r.Add(t);
 		}
 

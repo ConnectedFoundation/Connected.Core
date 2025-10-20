@@ -1,12 +1,12 @@
-using System.Linq.Expressions;
-using System;
 using Connected.Data.Expressions.Expressions;
 using Connected.Data.Expressions.Translation.Resolvers;
 using Connected.Data.Expressions.Visitors;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation.Optimization;
 
-internal sealed class RedundantSubqueries : DatabaseVisitor
+internal sealed class RedundantSubqueries
+	: DatabaseVisitor
 {
 	private RedundantSubqueries()
 	{

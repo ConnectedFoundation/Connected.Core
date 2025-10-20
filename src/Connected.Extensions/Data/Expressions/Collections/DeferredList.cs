@@ -2,21 +2,16 @@ using System.Collections;
 
 namespace Connected.Data.Expressions.Collections;
 
-internal sealed class DeferredList<T> : IDeferredList<T>, ICollection<T>, IEnumerable<T>, IList, ICollection, IEnumerable, IDeferLoadable
+internal sealed class DeferredList<T>(IEnumerable<T> source)
+	: IDeferredList<T>, ICollection<T>, IEnumerable<T>, IList, ICollection, IEnumerable, IDeferLoadable
 {
-	private readonly IEnumerable<T> _source;
-
-	public DeferredList(IEnumerable<T> source)
-	{
-		_source = source;
-	}
-	private IEnumerable<T> Source => _source;
-	private List<T> Values { get; set; }
+	private IEnumerable<T> Source => source;
+	private List<T> Values { get; set; } = [];
 
 	public void Load()
 	{
 		if (!IsLoaded)
-			Values = new List<T>(Source);
+			Values = [.. Source];
 	}
 
 	public bool IsLoaded => Values is not null;
@@ -165,14 +160,14 @@ internal sealed class DeferredList<T> : IDeferredList<T>, ICollection<T>, IEnume
 
 	public bool IsFixedSize => false;
 
-	public void Remove(object value)
+	public void Remove(object? value)
 	{
 		Load();
 
 		((IList)Values).Remove(value);
 	}
 
-	object IList.this[int index]
+	object? IList.this[int index]
 	{
 		get
 		{
@@ -200,7 +195,7 @@ internal sealed class DeferredList<T> : IDeferredList<T>, ICollection<T>, IEnume
 	}
 
 	public bool IsSynchronized => false;
-	public object? SyncRoot => default;
+	public object SyncRoot => new();
 
 	#endregion
 }

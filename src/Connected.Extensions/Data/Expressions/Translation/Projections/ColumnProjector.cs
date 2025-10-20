@@ -1,10 +1,8 @@
-using System.Linq.Expressions;
-using System.Collections.Generic;
-using System.Linq;
-using Connected.Data.Expressions.Languages;
 using Connected.Data.Expressions.Evaluation;
 using Connected.Data.Expressions.Expressions;
+using Connected.Data.Expressions.Languages;
 using Connected.Data.Expressions.Visitors;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation.Projections;
 
@@ -14,7 +12,8 @@ internal enum ProjectionAffinity
 	Server
 }
 
-internal sealed class ColumnProjector : DatabaseVisitor
+internal sealed class ColumnProjector
+	: DatabaseVisitor
 {
 	private readonly QueryLanguage _language;
 	private readonly Dictionary<ColumnExpression, ColumnExpression> _map;
@@ -24,22 +23,22 @@ internal sealed class ColumnProjector : DatabaseVisitor
 	private readonly HashSet<Alias> _existingAliases;
 	private readonly Alias _newAlias;
 
-	private ColumnProjector(QueryLanguage language, ProjectionAffinity affinity, Expression expression, IEnumerable<ColumnDeclaration> existingColumns, Alias newAlias, IEnumerable<Alias> existingAliases)
+	private ColumnProjector(QueryLanguage language, ProjectionAffinity affinity, Expression expression, IEnumerable<ColumnDeclaration>? existingColumns, Alias newAlias, IEnumerable<Alias> existingAliases)
 	{
 		_language = language;
 		_newAlias = newAlias;
-		_existingAliases = new HashSet<Alias>(existingAliases);
-		_map = new Dictionary<ColumnExpression, ColumnExpression>();
+		_existingAliases = [.. existingAliases];
+		_map = [];
 
 		if (existingColumns is not null)
 		{
-			_columns = new List<ColumnDeclaration>(existingColumns);
-			_columnNames = new HashSet<string>(existingColumns.Select(c => c.Name));
+			_columns = [.. existingColumns];
+			_columnNames = [.. existingColumns.Select(c => c.Name)];
 		}
 		else
 		{
-			_columns = new List<ColumnDeclaration>();
-			_columnNames = new HashSet<string>();
+			_columns = [];
+			_columnNames = [];
 		}
 
 		_candidates = ExpressionNominator.Nominate(Language, affinity, expression);
@@ -74,13 +73,16 @@ internal sealed class ColumnProjector : DatabaseVisitor
 		return ProjectColumns(language, affinity, expression, existingColumns, newAlias, (IEnumerable<Alias>)existingAliases);
 	}
 
-	public static ProjectedColumns ProjectColumns(QueryLanguage language, Expression expression, IEnumerable<ColumnDeclaration> existingColumns, Alias newAlias, params Alias[] existingAliases)
+	public static ProjectedColumns ProjectColumns(QueryLanguage language, Expression expression, IEnumerable<ColumnDeclaration>? existingColumns, Alias newAlias, params Alias[] existingAliases)
 	{
 		return ProjectColumns(language, expression, existingColumns, newAlias, (IEnumerable<Alias>)existingAliases);
 	}
 
 	protected override Expression? Visit(Expression? expression)
 	{
+		if (expression is null)
+			return null;
+
 		if (Candidates.Contains(expression))
 		{
 			if (expression.NodeType == (ExpressionType)DatabaseExpressionType.Column)
@@ -98,7 +100,6 @@ internal sealed class ColumnProjector : DatabaseVisitor
 
 				if (ExistingAliases.Contains(column.Alias))
 				{
-					var ordinal = Columns.Count;
 					var columnName = GetUniqueColumnName(column.Name);
 
 					Columns.Add(new ColumnDeclaration(columnName, column, column.QueryType));
@@ -137,6 +138,7 @@ internal sealed class ColumnProjector : DatabaseVisitor
 
 		while (IsColumnNameInUse(name))
 			name = baseName + suffix++;
+
 		return name;
 	}
 

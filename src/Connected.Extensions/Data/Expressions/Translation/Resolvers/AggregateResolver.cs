@@ -1,15 +1,15 @@
-using System.Linq.Expressions;
-using System.Collections.Generic;
 using Connected.Data.Expressions.Expressions;
 using Connected.Data.Expressions.Visitors;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation.Resolvers;
 
-internal sealed class AggregateResolver : DatabaseVisitor
+internal sealed class AggregateResolver
+	: DatabaseVisitor
 {
 	private AggregateResolver()
 	{
-		Aggregates = new();
+		Aggregates = [];
 	}
 
 	private List<AggregateSubqueryExpression> Aggregates { get; }

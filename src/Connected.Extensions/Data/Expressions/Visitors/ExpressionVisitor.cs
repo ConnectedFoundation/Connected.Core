@@ -1,7 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Linq.Expressions;
-using System;
-using System.Collections.Generic;
 using System.Reflection;
 
 namespace Connected.Data.Expressions.Visitors;
@@ -241,7 +239,7 @@ public abstract class ExpressionVisitor : IDisposable
 	protected virtual ReadOnlyCollection<Expression> VisitMemberAndExpressionList(ReadOnlyCollection<MemberInfo>? members, ReadOnlyCollection<Expression>? expressions)
 	{
 		if (expressions is null)
-			return new ReadOnlyCollection<Expression>(new List<Expression>());
+			return new ReadOnlyCollection<Expression>([]);
 
 		List<Expression>? result = null;
 
@@ -275,7 +273,7 @@ public abstract class ExpressionVisitor : IDisposable
 	protected virtual ReadOnlyCollection<Expression> VisitExpressionList(ReadOnlyCollection<Expression>? expressions)
 	{
 		if (expressions is null)
-			return new ReadOnlyCollection<Expression>(new List<Expression>());
+			return new ReadOnlyCollection<Expression>([]);
 
 		List<Expression>? result = null;
 

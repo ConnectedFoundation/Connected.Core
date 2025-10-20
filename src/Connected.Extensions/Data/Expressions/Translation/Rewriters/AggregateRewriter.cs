@@ -5,13 +5,14 @@ using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation.Rewriters;
 
-public sealed class AggregateRewriter : DatabaseVisitor
+public sealed class AggregateRewriter
+	: DatabaseVisitor
 {
 	private AggregateRewriter(ExpressionCompilationContext context, Expression expr)
 	{
 		Context = context;
 
-		Map = new();
+		Map = [];
 		Lookup = AggregateResolver.Resolve(expr).ToLookup(a => a.GroupByAlias);
 	}
 
@@ -54,9 +55,9 @@ public sealed class AggregateRewriter : DatabaseVisitor
 
 	protected override Expression VisitAggregateSubquery(AggregateSubqueryExpression expression)
 	{
-		if (Map.TryGetValue(expression, out Expression mapped))
+		if (Map.TryGetValue(expression, out Expression? mapped))
 			return mapped;
 
-		return Visit(expression.AggregateAsSubquery);
+		return Visit(expression.AggregateAsSubquery) ?? throw new NullReferenceException();
 	}
 }

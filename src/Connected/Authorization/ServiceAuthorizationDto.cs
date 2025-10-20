@@ -6,8 +6,8 @@ namespace Connected.Authorization;
 internal sealed class ServiceAuthorizationDto : Dto, IServiceAuthorizationDto
 {
 	[SkipValidation]
-	public ICallerContext? Caller { get; set; }
+	public required ICallerContext Caller { get; set; }
 
 	[SkipValidation]
-	public IDto? Dto { get; set; }
+	public required IDto Dto { get; set; }
 }

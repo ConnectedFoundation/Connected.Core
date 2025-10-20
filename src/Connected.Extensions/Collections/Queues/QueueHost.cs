@@ -76,7 +76,7 @@ public abstract class QueueHost : ScheduledWorker
 				/*
 				 * It's accepted. Enqueue it which will trigger the invoke on the queue client.
 				 */
-				Dispatcher.Enqueue(item);
+				await Dispatcher.Enqueue(item);
 			}
 		}
 		catch

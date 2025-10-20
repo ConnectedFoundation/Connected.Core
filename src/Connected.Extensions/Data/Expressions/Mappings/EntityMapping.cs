@@ -14,11 +14,11 @@ namespace Connected.Data.Expressions.Mappings;
 
 internal sealed class EntityMapping
 {
-	private List<MemberMapping> _members;
+	private readonly List<MemberMapping> _members;
 	public EntityMapping(Type entityType)
 	{
 		EntityType = entityType;
-		_members = new();
+		_members = [];
 
 		InitializeSchema();
 		InitializeMembers();
@@ -114,50 +114,6 @@ internal sealed class EntityMapping
 			result = newExpression;
 
 		return result;
-	}
-
-	private ConstructorBindResult BindConstructor(ConstructorInfo cons, IList<EntityAssignment> assignments)
-	{
-		var ps = cons.GetParameters();
-		var args = new Expression[ps.Length];
-		var mis = new MemberInfo[ps.Length];
-		var members = new HashSet<EntityAssignment>(assignments);
-		var used = new HashSet<EntityAssignment>();
-
-		for (var i = 0; i < ps.Length; i++)
-		{
-			var p = ps[i];
-			var assignment = members.FirstOrDefault(a => string.Equals(p.Name, a.Mapping.Name, StringComparison.OrdinalIgnoreCase) && p.ParameterType.IsAssignableFrom(a.Expression.Type));
-
-			if (assignment is null)
-				assignment = members.FirstOrDefault(a => string.Equals(p.Name, a.Mapping.Name, StringComparison.OrdinalIgnoreCase) && p.ParameterType.IsAssignableFrom(a.Expression.Type));
-
-			if (assignment is not null)
-			{
-				args[i] = assignment.Expression;
-
-				if (mis is not null)
-					mis[i] = assignment.Mapping.MemberInfo;
-
-				used.Add(assignment);
-			}
-			else
-			{
-				var mem = Members.Where(m => string.Equals(m.Name, p.Name, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
-
-				if (mem is not null)
-				{
-					args[i] = Expression.Constant(Types.GetDefault(p.ParameterType), p.ParameterType);
-					mis[i] = mem.MemberInfo;
-				}
-				else
-					return null;
-			}
-		}
-
-		members.ExceptWith(used);
-
-		return new ConstructorBindResult(Expression.New(cons, args, mis), members);
 	}
 
 	private IEnumerable<EntityAssignment> RemapAssignments(IEnumerable<EntityAssignment> assignments, Type entityType)
