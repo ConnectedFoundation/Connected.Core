@@ -14,7 +14,6 @@ internal class ValueDto<T> : Dto, IValueDto<T>
 		Value = value;
 	}
 
-	[Required, NonDefault]
 	public T Value { get; set; } = default!;
 
 	public static implicit operator ValueDto<T>(T value)
