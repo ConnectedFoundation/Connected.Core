@@ -4,7 +4,7 @@ using System.Collections.Immutable;
 
 namespace Connected.Identities;
 
-[Service, ServiceUrl(ExtensionsUrls.Identities)]
+[Service, ServiceUrl(IdentitiesUrls.Identities)]
 public interface IIdentityExtensions
 {
 	[ServiceOperation(ServiceOperationVerbs.Get)]

@@ -1,10 +1,12 @@
 ﻿using Connected.Identities;
 using Connected.Identities.Authentication;
 using Connected.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Connected.Authentication;
-internal sealed class TokenAuthentication : BearerAuthenticationProvider
+internal sealed class TokenAuthentication(IHttpContextAccessor http)
+	: BearerAuthenticationProvider
 {
 	protected override async Task OnAuthenticate()
 	{
@@ -39,7 +41,19 @@ internal sealed class TokenAuthentication : BearerAuthenticationProvider
 		identityDto.Identity = await extensions.Select(dto);
 
 		if (identityDto.Identity is not null)
+		{
 			await authentication.UpdateIdentity(identityDto);
+
+
+			if (http.HttpContext is not null)
+			{
+				http.HttpContext.User = new DefaultPrincipal(new HttpIdentity(identityDto.Identity)
+				{
+					IsAuthenticated = true
+				});
+			}
+
+		}
 
 		await scope.Flush();
 	}

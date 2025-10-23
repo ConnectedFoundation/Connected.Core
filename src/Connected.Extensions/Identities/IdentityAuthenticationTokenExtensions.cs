@@ -33,7 +33,10 @@ public static class IdentityAuthenticationTokenExtensions
 			if (target is null)
 				return null;
 
-			return target.Token;
+			if (target.Expire is not null && target.Expire.Value <= DateTimeOffset.UtcNow)
+				return target.Token;
+			else
+				return null;
 		}
 		catch
 		{
@@ -44,6 +47,43 @@ public static class IdentityAuthenticationTokenExtensions
 		finally
 		{
 			await scope.Commit();
+		}
+	}
+
+	public static async Task Ensure(this IIdentityAuthenticationTokenService service, string identity, string token, bool permanent)
+	{
+		var dto = new Dto<IQueryIdentityAuthenticationTokensDto>().Value;
+
+		dto.Identity = identity;
+		dto.Key = IdentityAuthenticationTokens.AuthenticationToken;
+
+		var existingKey = (await service.Query(dto)).FirstOrDefault(f => string.Equals(f.Key, IdentityAuthenticationTokens.AuthenticationToken, StringComparison.Ordinal));
+
+		if (existingKey is not null)
+		{
+			var tokensDto = new Dto<IUpdateIdentityAuthenticationTokenDto>().Value;
+			DateTimeOffset? expire = permanent ? null : DateTimeOffset.UtcNow.AddMinutes(30);
+
+			tokensDto.Patch<IUpdateIdentityAuthenticationTokenDto, IIdentityAuthenticationToken>(existingKey, new
+			{
+				token,
+				expire
+			});
+		}
+		else
+		{
+			var tokensDto = new Dto<IInsertIdentityAuthenticationTokenDto>().Value;
+
+			tokensDto.Identity = identity;
+			tokensDto.Key = IdentityAuthenticationTokens.AuthenticationToken;
+			tokensDto.Token = token;
+
+			if (permanent)
+				tokensDto.Expire = null;
+			else
+				tokensDto.Expire = DateTimeOffset.UtcNow.AddMinutes(30);
+
+			await service.Insert(tokensDto);
 		}
 	}
 }
