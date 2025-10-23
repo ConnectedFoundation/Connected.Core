@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace Connected.Identities.MetaData;
 
+[Table(Schema = SchemaAttribute.CoreSchema)]
 internal sealed record IdentityMetaData : Entity, IIdentityMetaData
 {
 	[Ordinal(0), Length(256), PrimaryKey(false)]
