@@ -196,7 +196,12 @@ public static class ServicesExtensions
 	public static TEntity Merge<TEntity>(this TEntity existing, IDto? modifier, State state, params object[] sources)
 		where TEntity : IEntity
 	{
-		var newEntity = Activator.CreateInstance<TEntity>();
+		TEntity? newEntity;
+
+		if (typeof(TEntity).IsInterface && existing.GetType().IsAssignableTo(typeof(TEntity)))
+			newEntity = (TEntity)(Activator.CreateInstance(existing.GetType()) ?? throw new NullReferenceException());
+		else
+			newEntity = Activator.CreateInstance<TEntity>();
 
 		return Serializer.Merge(newEntity, existing, modifier, new StateModifier { State = state }, sources);
 	}
