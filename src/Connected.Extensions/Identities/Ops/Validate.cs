@@ -1,13 +1,16 @@
-﻿using Connected.Identities.Authentication;
+﻿using Connected.Authentication;
+using Connected.Identities.Authentication;
 using Connected.Identities.Dtos;
 using Connected.Services;
 
 namespace Connected.Identities.Ops;
-internal sealed class Validate(IUserService users, IIdentityAuthenticationTokenService tokens)
+internal sealed class Validate(IUserService users, IIdentityAuthenticationTokenService tokens, IAuthenticationService authentication)
 	 : ServiceFunction<IValidateUserDto, string?>
 {
 	protected override async Task<string?> OnInvoke()
 	{
+		await authentication.WithSystemIdentity();
+
 		var user = await users.Select(Dto);
 
 		if (user is null)

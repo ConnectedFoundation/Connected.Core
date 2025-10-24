@@ -87,10 +87,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="Identities\Users\Validation\" />
-	</ItemGroup>
-
-	<ItemGroup>
 	  <None Include="..\..\ConnectedLogo.png" Link="ConnectedLogo.png">
 	    <PackagePath>\</PackagePath>
 	    <Pack>True</Pack>
