@@ -10,7 +10,7 @@ public abstract class ServerHub(IClients clients)
 {
 	public override async Task OnConnectedAsync()
 	{
-		await HubAuthentication.Authenticate(Context);
+		await HubAuthentication.Authenticate(Context, clients);
 		/*
 		 * Reliable messaging is based on a static client id which must be passed
 		 * when connecting. If the connection is lost and the client reconnects,
@@ -21,10 +21,17 @@ public abstract class ServerHub(IClients clients)
 		string? identityToken = null;
 
 		if (string.IsNullOrEmpty(clientId))
-			throw new NullReferenceException("'client' header expected.");
+		{
+			clientId = Context.GetHttpContext()?.Request.Query["client"].ToString();
+
+			if (string.IsNullOrWhiteSpace(clientId))
+				throw new NullReferenceException("'client' header expected.");
+		}
 
 		if (!Guid.TryParse(clientId, out Guid id))
 			throw new InvalidOperationException("'client' header is not a valid GUID.");
+
+		await HubAuthentication.Authenticate(Context, clients);
 
 		var ctx = Context.GetHttpContext();
 

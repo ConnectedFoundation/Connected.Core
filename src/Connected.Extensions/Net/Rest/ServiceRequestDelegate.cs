@@ -277,6 +277,9 @@ internal sealed class ServiceRequestDelegate : RestRequest
 			 */
 			var result = new Dictionary<string, object?>();
 
+			foreach (var value in HttpContext.Request.RouteValues)
+				result.Add(value.Key, value.Value);
+
 			foreach (var i in HttpContext.Request.Query.Keys)
 			{
 				var value = HttpContext.Request.Query[i];

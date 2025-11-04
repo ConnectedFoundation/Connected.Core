@@ -109,23 +109,13 @@ internal class MiddlewareService : IMiddlewareService
 	public async Task<TEndpoint?> First<TEndpoint>()
 		where TEndpoint : IMiddleware
 	{
-		var key = typeof(TEndpoint).FullName;
+		return await First<TEndpoint>(null);
+	}
 
-		if (key is null || Endpoints is null)
-			return default;
-
-		if (!Endpoints.TryGetValue(key, out List<Type>? items) || items is null)
-			return default;
-
-		var types = new List<Type>();
-
-		foreach (var type in items)
-			types.Add(type);
-
-		if (types.Count == 0)
-			return default;
-
-		types.SortByPriority();
+	public async Task<TEndpoint?> First<TEndpoint>(string? id)
+		where TEndpoint : IMiddleware
+	{
+		var types = Resolve(typeof(TEndpoint), id);
 
 		foreach (var type in types)
 		{
@@ -146,23 +136,12 @@ internal class MiddlewareService : IMiddlewareService
 
 	public async Task<IMiddleware?> First(Type type)
 	{
-		var key = type.FullName;
+		return await First(type, null);
+	}
 
-		if (key is null || Endpoints is null)
-			return default;
-
-		if (!Endpoints.TryGetValue(key, out List<Type>? items) || items is null)
-			return default;
-
-		var types = new List<Type>();
-
-		foreach (var t in items)
-			types.Add(t);
-
-		if (types.Count == 0)
-			return default;
-
-		types.SortByPriority();
+	public async Task<IMiddleware?> First(Type type, string? id)
+	{
+		var types = Resolve(type, id);
 
 		foreach (var t in types)
 		{
@@ -178,6 +157,39 @@ internal class MiddlewareService : IMiddlewareService
 		}
 
 		return default;
+	}
+
+	private static List<Type> Resolve(Type type, string? id)
+	{
+		var key = type.FullName;
+
+		if (key is null || Endpoints is null)
+			return [];
+
+		if (!Endpoints.TryGetValue(key, out List<Type>? items) || items is null)
+			return [];
+
+		var types = new List<Type>();
+
+		foreach (var t in items)
+		{
+			if (id is not null)
+			{
+				var attr = type.GetCustomAttribute<MiddlewareIdAttribute>();
+
+				if (attr is null || !string.Equals(attr.Id, id, StringComparison.Ordinal))
+					continue;
+			}
+
+			types.Add(t);
+		}
+
+		if (types.Count == 0)
+			return [];
+
+		types.SortByPriority();
+
+		return types;
 	}
 
 	private static bool Validate(ICallerContext? context, Type type)

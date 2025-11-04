@@ -6,14 +6,15 @@ using Connected.Services;
 
 namespace Connected.Net.Events;
 
-internal sealed class EventHub(IEventServer server, EventClients clients)
+internal sealed class EventHub(IAuthenticationService authentication, IEventServer server, EventClients clients)
 	: ServerHub(clients)
 {
 	public override async Task OnDisconnectedAsync(Exception? ex)
 	{
-		await base.OnDisconnectedAsync(ex);
+		await HubAuthentication.Authenticate(Context, clients);
 
-		await HubAuthentication.Authenticate(Context);
+		await base.OnDisconnectedAsync(ex);
+		await authentication.WithSystemIdentity();
 
 		var dto = new Dto<IUnsubscribeEventDto>().Value;
 
@@ -24,7 +25,7 @@ internal sealed class EventHub(IEventServer server, EventClients clients)
 
 	public async Task Subscribe(List<EventSubscription> subscriptions)
 	{
-		await HubAuthentication.Authenticate(Context);
+		await HubAuthentication.Authenticate(Context, clients);
 
 		foreach (var subscription in subscriptions)
 		{
@@ -40,7 +41,7 @@ internal sealed class EventHub(IEventServer server, EventClients clients)
 
 	public async Task Unsubscribe(List<EventSubscription> subscriptions)
 	{
-		await HubAuthentication.Authenticate(Context);
+		await HubAuthentication.Authenticate(Context, clients);
 
 		foreach (var subscription in subscriptions)
 		{
@@ -56,7 +57,7 @@ internal sealed class EventHub(IEventServer server, EventClients clients)
 
 	public async Task Acknowledge(MessageAcknowledgeDto dto)
 	{
-		await HubAuthentication.Authenticate(Context);
+		await HubAuthentication.Authenticate(Context, clients);
 
 		var boundDto = new Dto<IBoundMessageAcknowledgeDto>().Value;
 

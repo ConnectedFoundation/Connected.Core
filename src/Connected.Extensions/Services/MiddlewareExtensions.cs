@@ -1,4 +1,7 @@
-﻿namespace Connected.Services;
+﻿using Connected.Annotations;
+using System.Reflection;
+
+namespace Connected.Services;
 
 public static class MiddlewareExtensions
 {
@@ -18,5 +21,18 @@ public static class MiddlewareExtensions
 		}
 
 		return result;
+	}
+
+	public static string? ResolveMiddlewareId(this Type type)
+	{
+		if (type.GetCustomAttribute<MiddlewareIdAttribute>() is MiddlewareIdAttribute attribute)
+			return attribute.Id;
+
+		return default;
+	}
+
+	public static string? ResolveMiddlewareId(this IMiddleware middleware)
+	{
+		return middleware?.GetType().ResolveMiddlewareId();
 	}
 }

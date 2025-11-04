@@ -32,7 +32,7 @@ internal class JsonFormatter : Formatter
 		if (JsonNode.Parse(text, new JsonNodeOptions { PropertyNameCaseInsensitive = true }) is not JsonNode node)
 			return default;
 
-		return node.ToDictionary();
+		return WithRouteValues(node.ToDictionary());
 	}
 
 	protected override async Task OnRenderResult(object? content)

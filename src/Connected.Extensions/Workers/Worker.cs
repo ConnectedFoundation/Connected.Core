@@ -3,7 +3,7 @@ using System.Threading;
 using System;
 using Microsoft.Extensions.Hosting;
 
-namespace Connected.Runtime;
+namespace Connected.Workers;
 /// <summary>
 /// This component acts as a background worker.
 /// </summary>

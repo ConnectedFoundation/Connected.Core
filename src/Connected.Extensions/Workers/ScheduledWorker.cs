@@ -2,7 +2,7 @@
 using System.Threading;
 using System;
 
-namespace Connected.Runtime;
+namespace Connected.Workers;
 
 public abstract class ScheduledWorker : Worker
 {

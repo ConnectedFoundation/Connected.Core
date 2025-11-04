@@ -25,9 +25,12 @@ internal class RequestAuthentication(RequestDelegate next)
 			return;
 
 		var providers = await middlewares.Query<IAuthenticationProvider>();
-		var header = Context.Request.Headers.Authorization.ToString();
+		var header = Context?.Request.Headers.Authorization.ToString();
 		string? schema = null;
 		string? token = null;
+
+		if (string.IsNullOrWhiteSpace(header))
+			header = Context?.Request.Query["access_token"].ToString();
 
 		if (!string.IsNullOrWhiteSpace(header))
 		{

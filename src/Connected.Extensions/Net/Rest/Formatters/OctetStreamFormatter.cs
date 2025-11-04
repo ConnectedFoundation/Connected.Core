@@ -25,7 +25,7 @@ internal class OctetStreamFormatter : Formatter
 
 		await Task.CompletedTask;
 
-		return items;
+		return WithRouteValues(items);
 	}
 
 	protected override async Task OnRenderResult(object? content)

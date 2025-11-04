@@ -27,7 +27,7 @@ internal class FormFormatter : Formatter
 		foreach (var q in qs)
 			result.Add(q.Key, q.Value);
 
-		return result;
+		return WithRouteValues(result);
 	}
 
 	protected override async Task OnRenderResult(object? content)

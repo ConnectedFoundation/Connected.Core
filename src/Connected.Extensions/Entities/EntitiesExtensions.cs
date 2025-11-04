@@ -32,7 +32,7 @@ public static class EntitiesExtensions
 	}
 
 	public static TEntity WithState<TEntity>(this TEntity existing, State state)
-		where TEntity : IEntity, new()
+		where TEntity : IEntity
 	{
 		var newEntity = Activator.CreateInstance<TEntity>();
 

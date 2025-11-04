@@ -31,4 +31,15 @@ internal abstract class Formatter
 	{
 		await Task.CompletedTask;
 	}
+
+	protected IDictionary<string, object?> WithRouteValues(IDictionary<string, object?> arguments)
+	{
+		if (Context is null)
+			return arguments;
+
+		foreach (var value in Context.Request.RouteValues)
+			arguments.Add(value.Key, value.Value);
+
+		return arguments;
+	}
 }
