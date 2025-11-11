@@ -536,8 +536,10 @@ public abstract class ExpressionVisitor : IDisposable
 	/// </summary>
 	/// <param name="expressions">Expressions to visit.</param>
 	/// <returns>A read-only collection of visited expressions.</returns>
-	protected virtual ReadOnlyCollection<Expression> VisitExpressionList(ReadOnlyCollection<Expression> expressions)
+	protected virtual ReadOnlyCollection<Expression> VisitExpressionList(ReadOnlyCollection<Expression>? expressions)
 	{
+		if (expressions is null)
+			return new ReadOnlyCollection<Expression>([]);
 		/*
 		 * Sequentially visit each expression; allocate alternate list only on
 		 * first difference to minimize allocations.

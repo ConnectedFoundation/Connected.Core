@@ -1,6 +1,6 @@
-using System.Linq.Expressions;
 using Connected.Data.Expressions.Expressions;
 using Connected.Data.Expressions.Visitors;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation;
 
@@ -31,7 +31,9 @@ public sealed class AggregateChecker : DatabaseVisitor
 
 	protected override Expression VisitSelect(SelectExpression select)
 	{
-		Visit(select.Where);
+		if (select.Where is not null)
+			Visit(select.Where);
+
 		VisitOrderBy(select.OrderBy);
 		VisitColumnDeclarations(select.Columns);
 

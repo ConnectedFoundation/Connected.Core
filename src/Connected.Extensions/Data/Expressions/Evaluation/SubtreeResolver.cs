@@ -14,14 +14,11 @@ public sealed class SubtreeResolver : ExpressionVisitor
 	private Type Type { get; }
 	private Expression? Found { get; set; }
 
-	public static Expression Resolve(Expression expression, Type type)
+	public static Expression? Resolve(Expression expression, Type type)
 	{
 		var finder = new SubtreeResolver(type);
 
 		finder.Visit(expression);
-
-		if (finder.Found is null)
-			throw new NullReferenceException(SR.ErrExpectedExpression);
 
 		return finder.Found;
 	}

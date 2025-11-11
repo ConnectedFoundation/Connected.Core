@@ -1,9 +1,7 @@
-using System.Linq.Expressions;
-using System;
-using System.Collections.Generic;
 using Connected.Data.Expressions.Expressions;
 using Connected.Data.Expressions.Translation.Projections;
 using Connected.Data.Expressions.Visitors;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation;
 
@@ -36,11 +34,11 @@ internal sealed class RelationshipBinder : DatabaseVisitor
 
 		try
 		{
-			var where = Visit(select.Where);
+			var where = select.Where is null ? null : Visit(select.Where);
 			var orderBy = VisitOrderBy(select.OrderBy);
 			var groupBy = VisitExpressionList(select.GroupBy);
-			var skip = Visit(select.Skip);
-			var take = Visit(select.Take);
+			var skip = select.Skip is null ? null : Visit(select.Skip);
+			var take = select.Take is null ? null : Visit(select.Take);
 			var columns = VisitColumnDeclarations(select.Columns);
 
 			return UpdateSelect(select, CurrentFrom, where, orderBy, groupBy, skip, take, select.IsDistinct, select.IsReverse, columns);
@@ -105,8 +103,8 @@ internal sealed class RelationshipBinder : DatabaseVisitor
 
 	protected override Expression VisitMemberAccess(MemberExpression expression)
 	{
-		var source = Visit(expression.Expression);
-		var result = Binder.Bind(source, expression.Member);
+		var source = expression.Expression is null ? null : Visit(expression.Expression);
+		var result = source is null ? null : Binder.Bind(source, expression.Member);
 		var mex = result as MemberExpression;
 
 		if (mex is not null && mex.Member == expression.Member && mex.Expression == expression.Expression)

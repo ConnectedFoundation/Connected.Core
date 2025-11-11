@@ -58,7 +58,7 @@ internal sealed class SqlStorage(IStorageProvider storage)
 	/// <summary>
 	/// Find the expression of the specified type, either in the specified expression or parameters.
 	/// </summary>
-	private static Expression Resolve(Expression expression, IList<ParameterExpression> parameters, Type type)
+	private static Expression? Resolve(Expression expression, IList<ParameterExpression> parameters, Type type)
 	{
 		if (parameters is not null)
 		{

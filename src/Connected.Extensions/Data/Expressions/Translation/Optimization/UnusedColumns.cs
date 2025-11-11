@@ -108,11 +108,11 @@ internal sealed class UnusedColumns
 		if (alternate is not null)
 			columns = alternate.AsReadOnly();
 
-		var take = Visit(select.Take);
-		var skip = Visit(select.Skip);
+		var take = select.Take is null ? null : Visit(select.Take);
+		var skip = select.Skip is null ? null : Visit(select.Skip);
 		var groupbys = VisitExpressionList(select.GroupBy);
 		var orderbys = VisitOrderBy(select.OrderBy);
-		var where = Visit(select.Where);
+		var where = select.Where is null ? null : Visit(select.Where);
 
 		if (Visit(select.From) is not Expression fromExpression)
 			throw new NullReferenceException(nameof(fromExpression));
@@ -178,20 +178,20 @@ internal sealed class UnusedColumns
 				return leftOuterExpression;
 			}
 
-			if (Visit(expression.Condition) is not Expression conditionExpression)
+			if (expression.Condition is null || Visit(expression.Condition) is not Expression conditionExpression)
 				throw new NullReferenceException(nameof(conditionExpression));
 
-			if (Visit(expression.Left) is not Expression leftExpression)
+			if (expression.Left is null || Visit(expression.Left) is not Expression leftExpression)
 				throw new NullReferenceException(nameof(leftExpression));
 
-			if (Visit(expression.Right) is not Expression rightExpression)
+			if (expression.Right is null || Visit(expression.Right) is not Expression rightExpression)
 				throw new NullReferenceException(nameof(rightExpression));
 
 			return UpdateJoin(expression, expression.Join, leftExpression, rightExpression, conditionExpression);
 		}
 		else
 		{
-			if (Visit(expression.Condition) is not Expression conditionExpression)
+			if (expression.Condition is null || Visit(expression.Condition) is not Expression conditionExpression)
 				throw new NullReferenceException(nameof(conditionExpression));
 
 			var right = VisitSource(expression.Right);
