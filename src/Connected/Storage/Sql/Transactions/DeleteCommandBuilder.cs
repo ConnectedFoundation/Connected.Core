@@ -4,7 +4,8 @@ using System.Reflection;
 
 namespace Connected.Storage.Sql.Transactions;
 
-internal class DeleteCommandBuilder : CommandBuilder
+internal class DeleteCommandBuilder
+	: CommandBuilder
 {
 	private static readonly ConcurrentDictionary<string, SqlStorageOperation> _cache;
 

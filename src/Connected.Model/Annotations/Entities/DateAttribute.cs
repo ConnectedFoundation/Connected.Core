@@ -45,6 +45,10 @@ public sealed class DateAttribute : Attribute
 	/// not be supported by all storage providers.</param>
 	public DateAttribute(DateKind kind, int precision = 0)
 	{
+		/*
+		 * Capture both the desired storage kind and precision so providers can emit
+		 * an appropriate date/time column definition including scale where supported.
+		 */
 		Kind = kind;
 		Precision = precision;
 	}

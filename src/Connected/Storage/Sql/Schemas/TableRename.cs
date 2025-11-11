@@ -2,7 +2,8 @@ using System.Text;
 
 namespace Connected.Storage.Sql.Schemas;
 
-internal class TableRename(string temporaryName) : TableTransaction
+internal class TableRename(string temporaryName)
+	: TableTransaction
 {
 	protected override async Task OnExecute()
 	{

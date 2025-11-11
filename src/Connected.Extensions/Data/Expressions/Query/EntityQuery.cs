@@ -4,7 +4,8 @@ using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Query;
 
-internal sealed class EntityQuery<TEntity>(IQueryProvider provider, Expression expression) : IQueryable<TEntity>, IAsyncEnumerable<TEntity>, IOrderedQueryable<TEntity>
+internal sealed class EntityQuery<TEntity>(IQueryProvider provider, Expression expression)
+	: IQueryable<TEntity>, IAsyncEnumerable<TEntity>, IOrderedQueryable<TEntity>
 {
 	public Type ElementType => typeof(TEntity);
 
@@ -29,11 +30,21 @@ internal sealed class EntityQuery<TEntity>(IQueryProvider provider, Expression e
 
 	public IEnumerator<TEntity> GetEnumerator()
 	{
-		return ((IEnumerable<TEntity>)Provider.Execute(Expression)).GetEnumerator();
+		var result = Provider.Execute(Expression) ?? throw new NullReferenceException(SR.ErrExpectedEnumerator);
+
+		if (result is not IEnumerable<TEntity> en)
+			throw new NullReferenceException(SR.ErrExpectedEnumerator);
+
+		return en.GetEnumerator();
 	}
 
 	IEnumerator IEnumerable.GetEnumerator()
 	{
-		return ((IEnumerable)Provider.Execute(Expression)).GetEnumerator();
+		var result = Provider.Execute(Expression) ?? throw new NullReferenceException(SR.ErrExpectedEnumerator);
+
+		if (result is not IEnumerable en)
+			throw new NullReferenceException(SR.ErrExpectedEnumerator);
+
+		return en.GetEnumerator();
 	}
 }

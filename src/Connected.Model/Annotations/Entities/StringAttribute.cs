@@ -22,19 +22,16 @@ public enum StringKind
 	NChar = 3
 }
 
+/// <summary>
+/// Creates a new instance of the StringAttribute class.
+/// </summary>
+/// <param name="kind">Specifies how string value will be treated by a storage provider.</param>
 [AttributeUsage(AttributeTargets.Property)]
-public sealed class StringAttribute : Attribute
+public sealed class StringAttribute(StringKind kind)
+		: Attribute
 {
-	/// <summary>
-	/// Creates a new instance of the StringAttribute class.
-	/// </summary>
-	/// <param name="kind">Specifies how string value will be treated by a storage provider.</param>
-	public StringAttribute(StringKind kind)
-	{
-		Kind = kind;
-	}
 	/// <summary>
 	/// Get a value indicating how a storage provider should treat a string value.
 	/// </summary>
-	public StringKind Kind { get; }
+	public StringKind Kind { get; } = kind;
 }

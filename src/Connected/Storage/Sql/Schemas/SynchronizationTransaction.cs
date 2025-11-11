@@ -1,6 +1,7 @@
 namespace Connected.Storage.Sql.Schemas;
 
-internal abstract class SynchronizationTransaction : SynchronizationCommand
+internal abstract class SynchronizationTransaction
+	: SynchronizationCommand
 {
 	protected SchemaExecutionContext Context { get; private set; } = default!;
 

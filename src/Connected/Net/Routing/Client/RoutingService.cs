@@ -5,7 +5,7 @@ using Connected.Services;
 
 namespace Connected.Net.Routing.Client;
 
-[Priority(1)]
+[Priority(1), ServiceRegistration(ServiceRegistrationMode.Manual)]
 internal sealed class RoutingService(IServiceProvider services)
 	: Service(services), IRoutingService
 {

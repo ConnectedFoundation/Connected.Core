@@ -1,6 +1,4 @@
 using System.Collections.Concurrent;
-using System;
-using System.Linq;
 using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Mappings;
@@ -17,7 +15,7 @@ internal static class MappingsCache
 	public static EntityMapping Get(Type entityType)
 	{
 		if (entityType.FullName is not string key)
-			throw new ArgumentNullException(nameof(entityType.FullName));
+			throw new ArgumentNullException(entityType.Name);
 
 		if (Items.TryGetValue(key, out EntityMapping? existing))
 			return existing;

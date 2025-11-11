@@ -8,14 +8,8 @@ public enum OrderType
 	Descending
 }
 
-public sealed class OrderExpression
+public sealed class OrderExpression(OrderType orderType, Expression expression)
 {
-	public OrderExpression(OrderType orderType, Expression expression)
-	{
-		OrderType = orderType;
-		Expression = expression;
-	}
-
-	public OrderType OrderType { get; }
-	public Expression Expression { get; }
+	public OrderType OrderType { get; } = orderType;
+	public Expression Expression { get; } = expression;
 }

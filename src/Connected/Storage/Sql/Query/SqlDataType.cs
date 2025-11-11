@@ -3,7 +3,8 @@ using System.Data;
 
 namespace Connected.Storage.Sql.Query;
 
-internal sealed class SqlDataType : DataType
+internal sealed class SqlDataType
+	: DataType
 {
 	public SqlDataType(SqlDbType dbType, bool notNull, int length, short precision, short scale)
 	{

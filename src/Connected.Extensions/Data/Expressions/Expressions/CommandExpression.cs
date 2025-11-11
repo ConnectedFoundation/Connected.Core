@@ -1,11 +1,6 @@
-using System;
-
 namespace Connected.Data.Expressions.Expressions;
 
-public abstract class CommandExpression : DatabaseExpression
+public abstract class CommandExpression(DatabaseExpressionType eType, Type type)
+		: DatabaseExpression(eType, type)
 {
-	protected CommandExpression(DatabaseExpressionType eType, Type type)
-		 : base(eType, type)
-	{
-	}
 }

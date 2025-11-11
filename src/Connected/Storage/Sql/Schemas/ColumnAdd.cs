@@ -3,7 +3,8 @@ using System.Text;
 
 namespace Connected.Storage.Sql.Schemas;
 
-internal class ColumnAdd(ISchemaColumn column) : ColumnTransaction(column)
+internal class ColumnAdd(ISchemaColumn column)
+	: ColumnTransaction(column)
 {
 	protected override async Task OnExecute()
 	{

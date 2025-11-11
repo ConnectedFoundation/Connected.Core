@@ -11,13 +11,17 @@
 /// </remarks>
 /// <typeparam name="TComponent">A component's type to which a middleware is bound to.</typeparam>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public sealed class MiddlewareAttribute<TComponent> : Attribute
+public sealed class MiddlewareAttribute<TComponent>
+	: Attribute
 {
 	/// <summary>
 	/// Creates a new instance of the MiddlewareAttribute class.
 	/// </summary>
 	public MiddlewareAttribute()
 	{
+		/*
+		 * Default constructor: middleware binds to the component type as a whole.
+		 */
 	}
 	/// <summary>
 	/// Creates a new instance of the MiddlewareAttribute class with a specific method attached.
@@ -25,6 +29,9 @@ public sealed class MiddlewareAttribute<TComponent> : Attribute
 	/// <param name="method">A method name in the component to which a middleware will be bound.</param>
 	public MiddlewareAttribute(string? method)
 	{
+		/*
+		 * Allow targeting a specific method within the component for fine-grained pipeline injection.
+		 */
 		Method = method;
 	}
 	/// <summary>

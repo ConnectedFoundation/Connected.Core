@@ -1,8 +1,11 @@
-﻿using Connected.Net.Routing.Dtos;
+﻿using Connected.Annotations;
+using Connected.Net.Routing.Dtos;
 using Connected.Net.Routing.Server.Ops;
 using Connected.Services;
 
 namespace Connected.Net.Routing.Server;
+
+[ServiceRegistration(ServiceRegistrationMode.Manual)]
 internal sealed class RoutingService(IServiceProvider services)
 	: Service(services), IRoutingService
 {

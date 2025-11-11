@@ -3,7 +3,8 @@
 /// Specifies that a property should use a special serializer when storing its value
 /// and reading it from the storage provider.
 /// </summary>
-public sealed class SerializerAttribute : Attribute
+public sealed class SerializerAttribute
+	: Attribute
 {
 	/// <summary>
 	/// Creates a new instance of the SerializerAttribute class.
@@ -12,10 +13,14 @@ public sealed class SerializerAttribute : Attribute
 	/// Type should implement IEntityPropertySerializer.</param>
 	public SerializerAttribute(Type type)
 	{
+		/*
+		 * Persist the serializer type so providers can plug-in custom serialization logic
+		 * for the annotated property.
+		 */
 		Type = type;
 	}
 	/// <summary>
-	/// gets the serializer type used when reading and writing property value to and from the storage.
+	/// Gets the serializer type used when reading and writing property value to and from the storage.
 	/// </summary>
 	public Type Type { get; }
 }

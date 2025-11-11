@@ -1,6 +1,6 @@
 namespace Connected.Storage.Sql.Schemas;
 
-internal class ObjectFileGroup
+internal sealed class ObjectFileGroup
 {
-	public string FileGroup { get; set; }
+	public string? FileGroup { get; set; }
 }

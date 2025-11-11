@@ -2,15 +2,9 @@ using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Expressions;
 
-public sealed class ColumnAssignment
+public sealed class ColumnAssignment(ColumnExpression column, Expression expression)
 {
-	public ColumnAssignment(ColumnExpression column, Expression expression)
-	{
-		Column = column;
-		Expression = expression;
-	}
-
-	public ColumnExpression Column { get; }
-	public Expression Expression { get; }
+	public ColumnExpression Column { get; } = column;
+	public Expression Expression { get; } = expression;
 }
 

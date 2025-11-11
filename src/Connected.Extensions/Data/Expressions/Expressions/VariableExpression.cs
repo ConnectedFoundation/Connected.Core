@@ -1,20 +1,13 @@
-using System;
-using System.Linq.Expressions;
 using Connected.Data.Expressions.Languages;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Expressions;
 
-public sealed class VariableExpression : Expression
+public sealed class VariableExpression(string name, Type type, DataType dataType)
+		: Expression
 {
-	public VariableExpression(string name, Type type, DataType dataType)
-	{
-		Name = name;
-		Type = type;
-		DataType = dataType;
-	}
-
-	public string Name { get; }
-	public override Type Type { get; }
-	public DataType DataType { get; }
+	public string Name { get; } = name;
+	public override Type Type { get; } = type;
+	public DataType DataType { get; } = dataType;
 	public override ExpressionType NodeType => (ExpressionType)DatabaseExpressionType.Variable;
 }

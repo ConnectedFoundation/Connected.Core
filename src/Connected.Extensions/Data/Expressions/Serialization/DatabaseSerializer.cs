@@ -1,11 +1,9 @@
-using System.Linq.Expressions;
-using System.IO;
-using System.Collections.Generic;
-using Connected.Data.Expressions.Expressions;
-using Connected.Data.Expressions.Languages;
 using Connected.Data.Expressions.Evaluation;
+using Connected.Data.Expressions.Expressions;
 using Connected.Data.Expressions.Formatters;
+using Connected.Data.Expressions.Languages;
 using Connected.Data.Expressions.Translation;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Serialization;
 
@@ -44,11 +42,8 @@ internal sealed class DatabaseSerializer : ExpressionSerializer
 		return writer.ToString();
 	}
 
-	protected override Expression? Visit(Expression? expression)
+	protected override Expression Visit(Expression expression)
 	{
-		if (expression is null)
-			return default;
-
 		switch ((DatabaseExpressionType)expression.NodeType)
 		{
 			case DatabaseExpressionType.Projection:
@@ -89,7 +84,7 @@ internal sealed class DatabaseSerializer : ExpressionSerializer
 			Aliases.Add(alias, Aliases.Count);
 	}
 
-	private Expression VisitProjection(ProjectionExpression projection)
+	private ProjectionExpression VisitProjection(ProjectionExpression projection)
 	{
 		AddAlias(projection.Select.Alias);
 		Write("Project(");
@@ -192,7 +187,7 @@ internal sealed class DatabaseSerializer : ExpressionSerializer
 		Write("FUNCTION ");
 		Write(function.Name);
 
-		if (function.Arguments.Count > 0)
+		if (function.Arguments?.Count > 0)
 		{
 			Write("(");
 			VisitExpressionList(function.Arguments);
@@ -230,7 +225,7 @@ internal sealed class DatabaseSerializer : ExpressionSerializer
 		return base.VisitConstant(c);
 	}
 
-	private Expression VisitColumn(ColumnExpression column)
+	private ColumnExpression VisitColumn(ColumnExpression column)
 	{
 		var aliasName = Aliases.TryGetValue(column.Alias, out int iAlias) ? "A" + iAlias : "A" + (column.Alias is not null ? column.Alias.GetHashCode().ToString() : "") + "?";
 

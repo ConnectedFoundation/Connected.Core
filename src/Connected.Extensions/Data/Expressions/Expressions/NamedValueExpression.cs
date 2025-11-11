@@ -2,23 +2,10 @@ using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Expressions;
 
-public sealed class NamedValueExpression : DatabaseExpression
+public sealed class NamedValueExpression(string name, Languages.DataType dataType, Expression value)
+		: DatabaseExpression(DatabaseExpressionType.NamedValue, value.Type)
 {
-	public NamedValueExpression(string name, Languages.DataType dataType, Expression value)
-		 : base(DatabaseExpressionType.NamedValue, value.Type)
-	{
-		if (name is null)
-			throw new ArgumentNullException(nameof(name));
-
-		if (value is null)
-			throw new ArgumentNullException(nameof(value));
-
-		Name = name;
-		DataType = dataType;
-		Value = value;
-	}
-
-	public string Name { get; }
-	public Languages.DataType DataType { get; }
-	public Expression Value { get; }
+	public string Name { get; } = name;
+	public Languages.DataType DataType { get; } = dataType;
+	public Expression Value { get; } = value;
 }

@@ -8,15 +8,10 @@ using System.Linq.Expressions;
 
 namespace Connected.Storage.Sql.Query;
 
-internal sealed class TSqlFormatter : SqlFormatter
+internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryLanguage? language)
+		: SqlFormatter(language)
 {
-
-	public TSqlFormatter(ExpressionCompilationContext context, QueryLanguage? language)
-		  : base(language)
-	{
-		Context = context;
-	}
-	public ExpressionCompilationContext Context { get; }
+	public ExpressionCompilationContext Context { get; } = context;
 
 	public static string Format(ExpressionCompilationContext context, Expression expression)
 	{
@@ -46,7 +41,12 @@ internal sealed class TSqlFormatter : SqlFormatter
 			{
 				case "Length":
 					Write("LEN(");
+
+					if (m.Expression is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Expression);
+
 					Write(")");
 					return m;
 			}
@@ -57,48 +57,102 @@ internal sealed class TSqlFormatter : SqlFormatter
 			{
 				case "Day":
 					Write("DAY(");
+
+					if (m.Expression is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Expression);
+
 					Write(")");
+
 					return m;
 				case "Month":
 					Write("MONTH(");
+
+					if (m.Expression is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Expression);
+
 					Write(")");
+
 					return m;
 				case "Year":
 					Write("YEAR(");
+
+					if (m.Expression is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Expression);
+
 					Write(")");
+
 					return m;
 				case "Hour":
 					Write("DATEPART(hour, ");
+
+					if (m.Expression is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Expression);
+
 					Write(")");
+
 					return m;
 				case "Minute":
 					Write("DATEPART(minute, ");
+
+					if (m.Expression is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Expression);
+
 					Write(")");
+
 					return m;
 				case "Second":
 					Write("DATEPART(second, ");
+
+					if (m.Expression is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Expression);
+
 					Write(")");
+
 					return m;
 				case "Millisecond":
 					Write("DATEPART(millisecond, ");
+
+					if (m.Expression is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Expression);
+
 					Write(")");
+
 					return m;
 				case "DayOfWeek":
 					Write("(DATEPART(weekday, ");
+
+					if (m.Expression is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Expression);
+
 					Write(") - 1)");
+
 					return m;
 				case "DayOfYear":
 					Write("(DATEPART(dayofyear, ");
+
+					if (m.Expression is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Expression);
+
 					Write(") - 1)");
+
 					return m;
 			}
 		}
@@ -114,30 +168,48 @@ internal sealed class TSqlFormatter : SqlFormatter
 			{
 				case "StartsWith":
 					Write("(");
+
+					if (m.Object is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Object);
+
 					Write(" LIKE ");
 					Visit(m.Arguments[0]);
 					Write(" + '%')");
+
 					return m;
 				case "EndsWith":
 					Write("(");
+
+					if (m.Object is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Object);
+
 					Write(" LIKE '%' + ");
 					Visit(m.Arguments[0]);
 					Write(")");
+
 					return m;
 				case "Contains":
 					Write("(");
+
+					if (m.Object is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Object);
 					Write(" LIKE '%' + ");
 					Visit(m.Arguments[0]);
 					Write(" + '%')");
+
 					return m;
 				case "Concat":
 					var args = m.Arguments;
 
 					if (args.Count == 1 && args[0].NodeType == ExpressionType.NewArrayInit)
 						args = ((NewArrayExpression)args[0]).Expressions;
+
 					for (var i = 0; i < args.Count; i++)
 					{
 						if (i > 0)
@@ -155,26 +227,47 @@ internal sealed class TSqlFormatter : SqlFormatter
 					return m;
 				case "ToUpper":
 					Write("UPPER(");
+
+					if (m.Object is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Object);
 					Write(")");
+
 					return m;
 				case "ToLower":
 					Write("LOWER(");
+
+					if (m.Object is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Object);
 					Write(")");
+
 					return m;
 				case "Replace":
 					Write("REPLACE(");
+
+					if (m.Object is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Object);
+
 					Write(", ");
 					Visit(m.Arguments[0]);
 					Write(", ");
 					Visit(m.Arguments[1]);
 					Write(")");
+
 					return m;
 				case "Substring":
 					Write("SUBSTRING(");
+
+					if (m.Object is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Object);
+
 					Write(", ");
 					Visit(m.Arguments[0]);
 					Write(" + 1, ");
@@ -185,10 +278,16 @@ internal sealed class TSqlFormatter : SqlFormatter
 						Write("8000");
 
 					Write(")");
+
 					return m;
 				case "Remove":
 					Write("STUFF(");
+
+					if (m.Object is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Object);
+
 					Write(", ");
 					Visit(m.Arguments[0]);
 					Write(" + 1, ");
@@ -199,11 +298,16 @@ internal sealed class TSqlFormatter : SqlFormatter
 						Write("8000");
 
 					Write(", '')");
+
 					return m;
 				case "IndexOf":
 					Write("(CHARINDEX(");
 					Visit(m.Arguments[0]);
 					Write(", ");
+
+					if (m.Object is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Object);
 
 					if (m.Arguments.Count == 2 && m.Arguments[1].Type == typeof(int))
@@ -214,11 +318,17 @@ internal sealed class TSqlFormatter : SqlFormatter
 					}
 
 					Write(") - 1)");
+
 					return m;
 				case "Trim":
 					Write("RTRIM(LTRIM(");
+
+					if (m.Object is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Object);
 					Write("))");
+
 					return m;
 			}
 		}
@@ -241,50 +351,85 @@ internal sealed class TSqlFormatter : SqlFormatter
 					Write("DATEADD(YYYY,");
 					Visit(m.Arguments[0]);
 					Write(",");
+
+					if (m.Object is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Object);
 					Write(")");
+
 					return m;
 				case "AddMonths":
 					Write("DATEADD(MM,");
 					Visit(m.Arguments[0]);
 					Write(",");
+
+					if (m.Object is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Object);
 					Write(")");
+
 					return m;
 				case "AddDays":
 					Write("DATEADD(DAY,");
 					Visit(m.Arguments[0]);
 					Write(",");
+
+					if (m.Object is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Object);
 					Write(")");
+
 					return m;
 				case "AddHours":
 					Write("DATEADD(HH,");
 					Visit(m.Arguments[0]);
 					Write(",");
+
+					if (m.Object is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Object);
 					Write(")");
+
 					return m;
 				case "AddMinutes":
 					Write("DATEADD(MI,");
 					Visit(m.Arguments[0]);
 					Write(",");
+
+					if (m.Object is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Object);
 					Write(")");
+
 					return m;
 				case "AddSeconds":
 					Write("DATEADD(SS,");
 					Visit(m.Arguments[0]);
 					Write(",");
+
+					if (m.Object is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Object);
 					Write(")");
+
 					return m;
 				case "AddMilliseconds":
 					Write("DATEADD(MS,");
 					Visit(m.Arguments[0]);
 					Write(",");
+
+					if (m.Object is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					Visit(m.Object);
 					Write(")");
+
 					return m;
 			}
 		}
@@ -410,10 +555,15 @@ internal sealed class TSqlFormatter : SqlFormatter
 		}
 		if (m.Method.Name == "ToString")
 		{
-			if (m.Object.Type != typeof(string))
+			if (m.Object?.Type != typeof(string))
 			{
 				Write("CONVERT(NVARCHAR, ");
+
+				if (m.Object is null)
+					throw new NullReferenceException(SR.ErrExpectedExpression);
+
 				Visit(m.Object);
+
 				Write(")");
 			}
 			else
@@ -424,7 +574,12 @@ internal sealed class TSqlFormatter : SqlFormatter
 		else if (!m.Method.IsStatic && string.Equals(m.Method.Name, "CompareTo", StringComparison.Ordinal) && m.Method.ReturnType == typeof(int) && m.Arguments.Count == 1)
 		{
 			Write("(CASE WHEN ");
+
+			if (m.Object is null)
+				throw new NullReferenceException(SR.ErrExpectedExpression);
+
 			Visit(m.Object);
+
 			Write(" = ");
 			Visit(m.Arguments[0]);
 			Write(" THEN 0 WHEN ");
@@ -453,7 +608,12 @@ internal sealed class TSqlFormatter : SqlFormatter
 			{
 				Visit(m.Arguments[0]);
 				Write(" IN (");
+
+				if (m.Object is null)
+					throw new NullReferenceException(SR.ErrExpectedExpression);
+
 				Visit(m.Object);
+
 				Write(")");
 
 				return m;
@@ -466,12 +626,13 @@ internal sealed class TSqlFormatter : SqlFormatter
 			Visit(m.Arguments[1]);
 			return m;
 		}
+
 		return base.VisitMethodCall(m);
 	}
 
 	protected override NewExpression VisitNew(NewExpression nex)
 	{
-		if (nex.Constructor.DeclaringType == typeof(DateTime))
+		if (nex.Constructor?.DeclaringType == typeof(DateTime))
 		{
 			if (nex.Arguments.Count == 3)
 			{
@@ -671,7 +832,7 @@ internal sealed class TSqlFormatter : SqlFormatter
 	{
 		Write("ROW_NUMBER() OVER(");
 
-		if (rowNumber.OrderBy is not null && rowNumber.OrderBy.Any())
+		if (rowNumber.OrderBy is not null && rowNumber.OrderBy.Count != 0)
 		{
 			Write("ORDER BY ");
 
@@ -696,7 +857,7 @@ internal sealed class TSqlFormatter : SqlFormatter
 
 	protected override Expression VisitIf(IfCommandExpression ifx)
 	{
-		if (!Language.AllowsMultipleCommands)
+		if (Language is not null && !Language.AllowsMultipleCommands)
 			return base.VisitIf(ifx);
 
 		Write("IF ");
@@ -722,7 +883,7 @@ internal sealed class TSqlFormatter : SqlFormatter
 
 	protected override Expression VisitBlock(Data.Expressions.Expressions.BlockExpression block)
 	{
-		if (!Language.AllowsMultipleCommands)
+		if (Language is not null && !Language.AllowsMultipleCommands)
 			return base.VisitBlock(block);
 
 		for (var i = 0; i < block.Commands.Count; i++)
@@ -741,7 +902,7 @@ internal sealed class TSqlFormatter : SqlFormatter
 
 	protected override Expression VisitDeclaration(DeclarationExpression decl)
 	{
-		if (!Language.AllowsMultipleCommands)
+		if (Language is not null && !Language.AllowsMultipleCommands)
 			return base.VisitDeclaration(decl);
 
 		for (var i = 0; i < decl.Variables.Count; i++)
@@ -754,7 +915,9 @@ internal sealed class TSqlFormatter : SqlFormatter
 			Write("DECLARE @");
 			Write(v.Name);
 			Write(" ");
-			Write(Language.TypeSystem.Format(v.DataType, false));
+
+			if (Language is not null)
+				Write(Language.TypeSystem.Format(v.DataType, false));
 		}
 
 		if (decl.Source is not null)

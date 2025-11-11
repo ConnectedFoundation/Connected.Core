@@ -15,7 +15,8 @@ internal enum Indentation
 	Outer = 2
 }
 
-internal class ExpressionSerializer : ExpressionVisitor
+internal class ExpressionSerializer
+	: ExpressionVisitor
 {
 	private const char NewLine = '\n';
 	private const char Space = ' ';
@@ -411,6 +412,9 @@ internal class ExpressionSerializer : ExpressionVisitor
 
 	protected override Expression VisitMemberAccess(MemberExpression expression)
 	{
+		if (expression.Expression is null)
+			throw new NullReferenceException(SR.ErrExpectedExpression);
+
 		Visit(expression.Expression);
 		Write('.');
 		Write(expression.Member.Name);

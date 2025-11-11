@@ -1,19 +1,12 @@
-using System.Linq.Expressions;
 using Connected.Data.Expressions.Translation;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Expressions;
 
-public sealed class AggregateSubqueryExpression : DatabaseExpression
+public sealed class AggregateSubqueryExpression(Alias groupByAlias, Expression aggregateInGroupSelect, ScalarExpression aggregateAsSubquery)
+		: DatabaseExpression(DatabaseExpressionType.AggregateSubquery, aggregateAsSubquery.Type)
 {
-	public AggregateSubqueryExpression(Alias groupByAlias, Expression aggregateInGroupSelect, ScalarExpression aggregateAsSubquery)
-		  : base(DatabaseExpressionType.AggregateSubquery, aggregateAsSubquery.Type)
-	{
-		AggregateInGroupSelect = aggregateInGroupSelect;
-		GroupByAlias = groupByAlias;
-		AggregateAsSubquery = aggregateAsSubquery;
-	}
-
-	public Alias GroupByAlias { get; }
-	public Expression AggregateInGroupSelect { get; }
-	public ScalarExpression AggregateAsSubquery { get; }
+	public Alias GroupByAlias { get; } = groupByAlias;
+	public Expression AggregateInGroupSelect { get; } = aggregateInGroupSelect;
+	public ScalarExpression AggregateAsSubquery { get; } = aggregateAsSubquery;
 }

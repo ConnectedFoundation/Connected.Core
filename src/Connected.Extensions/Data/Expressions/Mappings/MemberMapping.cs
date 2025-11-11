@@ -10,20 +10,6 @@ internal sealed class MemberMapping
 	{
 		Property = property;
 
-		Initialize();
-	}
-
-	private PropertyInfo Property { get; }
-
-	public MemberInfo MemberInfo => Property;
-	public bool IsValid { get; private set; }
-	public bool IsPrimaryKey { get; private set; }
-	public bool IsReadOnly { get; private set; }
-	public string Name { get; private set; }
-
-	public Type Type => Property.PropertyType;
-	private void Initialize()
-	{
 		var persistence = Property.GetCustomAttribute<PersistenceAttribute>();
 
 		if (persistence is null || persistence.Mode.HasFlag(PersistenceMode.Read))
@@ -39,5 +25,14 @@ internal sealed class MemberMapping
 		else
 			Name = MemberInfo.Name.ToCamelCase();
 	}
+
+	private PropertyInfo Property { get; }
+
+	public MemberInfo MemberInfo => Property;
+	public bool IsValid { get; private set; }
+	public bool IsPrimaryKey { get; private set; }
+	public bool IsReadOnly { get; private set; }
+	public string Name { get; private set; }
+	public Type Type => Property.PropertyType;
 }
 

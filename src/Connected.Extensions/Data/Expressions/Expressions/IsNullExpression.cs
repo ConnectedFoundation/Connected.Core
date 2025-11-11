@@ -2,13 +2,8 @@ using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Expressions;
 
-public sealed class IsNullExpression : DatabaseExpression
+public sealed class IsNullExpression(Expression expression)
+		: DatabaseExpression(DatabaseExpressionType.IsNull, typeof(bool))
 {
-	public IsNullExpression(Expression expression)
-		 : base(DatabaseExpressionType.IsNull, typeof(bool))
-	{
-		Expression = expression;
-	}
-
-	public Expression Expression { get; }
+	public Expression Expression { get; } = expression;
 }

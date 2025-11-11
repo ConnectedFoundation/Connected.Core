@@ -1,14 +1,14 @@
 
-using System.Linq.Expressions;
-using System.Collections.Generic;
-using Connected.Data.Expressions.Languages;
 using Connected.Data.Expressions.Expressions;
+using Connected.Data.Expressions.Languages;
 using Connected.Data.Expressions.Translation.Projections;
 using Connected.Data.Expressions.Visitors;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Evaluation;
 
-internal sealed class ExpressionNominator : DatabaseVisitor
+internal sealed class ExpressionNominator
+	: DatabaseVisitor
 {
 	private ExpressionNominator(QueryLanguage language, ProjectionAffinity affinity)
 	{

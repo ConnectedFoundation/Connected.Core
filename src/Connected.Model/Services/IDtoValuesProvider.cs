@@ -1,25 +1,28 @@
 ﻿using System.Threading.Tasks;
 
 namespace Connected.Services;
+
 /// <summary>
-/// Middleware representing opportunity to set or modify values on the <see cref="IDto"/> objects.
+/// Middleware representing an opportunity to set or modify values on <see cref="IDto"/> objects.
 /// </summary>
+/// <typeparam name="TDto">The type of the data transfer object for which values are provided.</typeparam>
 /// <remarks>
-/// Some dtos provide properties that are not mandatory by the caller but must be set before
-/// the operation is executed. This Middleware is called before the Validation phase occurs.
+/// Some DTOs provide properties that are not mandatory for the caller but must be set before
+/// the operation is executed. This middleware is called before the validation phase occurs,
+/// allowing the platform to supply required values automatically. For example, a serial value
+/// of a stock item might not be provided by the client but is needed before goods can be
+/// stored in stock. The platform expects that a process will provide it before validation
+/// occurs. Depending on the process implementation, it can create a new serial or use an
+/// existing one.
 /// </remarks>
-/// <example>
-/// Serial value of the Stock item is not provided by the client but is needed before the goods can be
-/// stored in the stock. The platform expects that a process will provide it before the Validation
-/// occurs. Depending of the process implementation, it can create a new Serial or use existing one. 
-/// </example>
-/// <typeparam name="TDto">The type of the arguments to be used by the middleware.</typeparam>
-public interface IDtoValuesProvider<TDto> : IMiddleware
+public interface IDtoValuesProvider<TDto>
+	: IMiddleware
 	where TDto : IDto
 {
 	/// <summary>
-	/// This method gets called by the platform at the time when the values should be provided.
+	/// Asynchronously provides or modifies values on the specified data transfer object.
 	/// </summary>
-	/// <param name="dto">The arguments instance on which values can be provided.</param>
+	/// <param name="dto">The data transfer object instance on which values can be provided or modified.</param>
+	/// <returns>A task that represents the asynchronous operation.</returns>
 	Task Invoke(TDto dto);
 }

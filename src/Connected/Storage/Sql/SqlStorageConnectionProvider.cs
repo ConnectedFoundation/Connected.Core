@@ -3,14 +3,10 @@ using System.Collections.Immutable;
 
 namespace Connected.Storage.Sql;
 
-internal sealed class SqlStorageConnectionProvider : StorageConnectionProvider
+internal sealed class SqlStorageConnectionProvider(ICancellationContext cancel)
+		: StorageConnectionProvider
 {
-	public SqlStorageConnectionProvider(ICancellationContext cancel)
-	{
-		Cancel = cancel;
-	}
-
-	private ICancellationContext Cancel { get; }
+	private ICancellationContext Cancel { get; } = cancel;
 
 	protected override async Task<IImmutableList<IStorageConnection>> OnInvoke<TEntity>()
 	{

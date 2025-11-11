@@ -2,9 +2,10 @@ using Connected.Storage.Schemas;
 
 namespace Connected.Storage.Sql.Schemas;
 
-internal class TableSynchronize : TableTransaction
+internal class TableSynchronize
+	: TableTransaction
 {
-	private ExistingSchema _existingSchema = new();
+	private readonly ExistingSchema _existingSchema = new();
 
 	private bool TableExists { get; set; }
 

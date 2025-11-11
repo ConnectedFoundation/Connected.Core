@@ -1,17 +1,10 @@
-using System;
 using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Expressions;
 
-public sealed class EntityExpression : DatabaseExpression
+public sealed class EntityExpression(Type entityType, Expression expression)
+		: DatabaseExpression(DatabaseExpressionType.Entity, expression.Type)
 {
-	public EntityExpression(Type entityType, Expression expression)
-		: base(DatabaseExpressionType.Entity, expression.Type)
-	{
-		EntityType = entityType;
-		Expression = expression;
-	}
-
-	public Type EntityType { get; }
-	public Expression Expression { get; }
+	public Type EntityType { get; } = entityType;
+	public Expression Expression { get; } = expression;
 }

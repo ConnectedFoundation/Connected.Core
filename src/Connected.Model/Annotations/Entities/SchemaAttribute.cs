@@ -8,6 +8,10 @@
 /// </remarks>
 public abstract class SchemaAttribute : MappingAttribute
 {
+	/*
+	 * Defines common schema metadata used by concrete schema attributes (e.g., TableAttribute).
+	 * Constants offer standard schema names across domains and properties capture object naming.
+	 */
 	/// <summary>
 	/// A default storage schema. This value should be avoided since
 	/// is can cause overlapping in the Entity names in the storage level.

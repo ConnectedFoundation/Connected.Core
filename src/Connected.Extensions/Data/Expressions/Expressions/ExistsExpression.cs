@@ -1,9 +1,6 @@
 namespace Connected.Data.Expressions.Expressions;
 
-public sealed class ExistsExpression : SubqueryExpression
+public sealed class ExistsExpression(SelectExpression select)
+		: SubqueryExpression(DatabaseExpressionType.Exists, typeof(bool), select)
 {
-	public ExistsExpression(SelectExpression select)
-		 : base(DatabaseExpressionType.Exists, typeof(bool), select)
-	{
-	}
 }

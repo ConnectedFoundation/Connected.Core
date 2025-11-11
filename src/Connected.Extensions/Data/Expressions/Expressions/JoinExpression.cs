@@ -12,19 +12,11 @@ public enum JoinType
 	SingletonLeftOuter = 5
 }
 
-public sealed class JoinExpression : DatabaseExpression
+public sealed class JoinExpression(JoinType joinType, Expression left, Expression right, Expression? condition)
+		: DatabaseExpression(DatabaseExpressionType.Join, typeof(void))
 {
-	public JoinExpression(JoinType joinType, Expression left, Expression right, Expression? condition)
-		 : base(DatabaseExpressionType.Join, typeof(void))
-	{
-		Join = joinType;
-		Left = left;
-		Right = right;
-		Condition = condition;
-	}
-
-	public JoinType Join { get; }
-	public Expression Left { get; }
-	public Expression Right { get; }
-	public new Expression? Condition { get; }
+	public JoinType Join { get; } = joinType;
+	public Expression Left { get; } = left;
+	public Expression Right { get; } = right;
+	public new Expression? Condition { get; } = condition;
 }

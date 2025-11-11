@@ -1,19 +1,11 @@
-using System;
 using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Expressions;
 
-public sealed class AggregateExpression : DatabaseExpression
+public sealed class AggregateExpression(Type type, string aggregateName, Expression argument, bool isDistinct)
+		: DatabaseExpression(DatabaseExpressionType.Aggregate, type)
 {
-	public AggregateExpression(Type type, string aggregateName, Expression argument, bool isDistinct)
-		 : base(DatabaseExpressionType.Aggregate, type)
-	{
-		AggregateName = aggregateName;
-		Argument = argument;
-		IsDistinct = isDistinct;
-	}
-
-	public string AggregateName { get; }
-	public Expression Argument { get; }
-	public bool IsDistinct { get; }
+	public string AggregateName { get; } = aggregateName;
+	public Expression Argument { get; } = argument;
+	public bool IsDistinct { get; } = isDistinct;
 }

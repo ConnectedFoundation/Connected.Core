@@ -1,18 +1,11 @@
-using System;
-using System.Threading;
 using System.Collections;
-using System.Collections.Generic;
 
 namespace Connected.Data.Expressions.Collections;
 
-internal class EnumerateOnce<T> : IEnumerable<T>, IEnumerable
+internal class EnumerateOnce<T>(IEnumerable<T> enumerable)
+	: IEnumerable<T>, IEnumerable
 {
-	private IEnumerable<T>? _enumerable;
-
-	public EnumerateOnce(IEnumerable<T> enumerable)
-	{
-		_enumerable = enumerable;
-	}
+	private IEnumerable<T>? _enumerable = enumerable;
 
 	public IEnumerator<T> GetEnumerator()
 	{

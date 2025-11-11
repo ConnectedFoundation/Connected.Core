@@ -12,7 +12,8 @@ using BlockExpression = Connected.Data.Expressions.Expressions.BlockExpression;
 
 namespace Connected.Data.Expressions.Formatters;
 
-public class SqlFormatter : DatabaseVisitor
+public class SqlFormatter
+	: DatabaseVisitor
 {
 	protected const char Space = ' ';
 	protected const char Period = '.';
@@ -30,7 +31,7 @@ public class SqlFormatter : DatabaseVisitor
 	{
 		Language = language;
 		Text = new StringBuilder();
-		Aliases = new();
+		Aliases = [];
 	}
 
 	private int Depth { get; set; }
@@ -157,10 +158,10 @@ public class SqlFormatter : DatabaseVisitor
 		}
 	}
 
-	protected override Expression? Visit(Expression? exp)
+	protected override Expression Visit(Expression exp)
 	{
 		if (exp is null)
-			return null;
+			throw new NullReferenceException("Expected expression.");
 
 		return exp.NodeType switch
 		{
@@ -188,7 +189,7 @@ public class SqlFormatter : DatabaseVisitor
 		throw new NotSupportedException($"The member access '{m.Member}' is not supported.");
 	}
 
-	protected override Expression? VisitMethodCall(MethodCallExpression m)
+	protected override Expression VisitMethodCall(MethodCallExpression m)
 	{
 		if (m.Method.DeclaringType == typeof(decimal))
 		{
@@ -534,7 +535,7 @@ public class SqlFormatter : DatabaseVisitor
 		return expr;
 	}
 
-	protected virtual Expression? VisitValue(Expression expr)
+	protected virtual Expression VisitValue(Expression expr)
 	{
 		return Visit(expr);
 	}
@@ -654,7 +655,7 @@ public class SqlFormatter : DatabaseVisitor
 		if (select.Where is not null)
 			WriteWhere(select.Where);
 
-		if (select.GroupBy is not null && select.GroupBy.Any())
+		if (select.GroupBy is not null && select.GroupBy.Count != 0)
 		{
 			WriteLine(Indentation.Same);
 			Write("GROUP BY ");
@@ -668,7 +669,7 @@ public class SqlFormatter : DatabaseVisitor
 			}
 		}
 
-		if (select.OrderBy is not null && select.OrderBy.Any())
+		if (select.OrderBy is not null && select.OrderBy.Count != 0)
 		{
 			WriteLine(Indentation.Same);
 			Write("ORDER BY ");
@@ -706,7 +707,7 @@ public class SqlFormatter : DatabaseVisitor
 
 	protected virtual void WriteColumns(ReadOnlyCollection<ColumnDeclaration> columns)
 	{
-		if (columns.Any())
+		if (columns.Count != 0)
 		{
 			for (var i = 0; i < columns.Count; i++)
 			{
@@ -893,7 +894,10 @@ public class SqlFormatter : DatabaseVisitor
 	{
 		Write(OpenBracket);
 		WriteLine(Indentation.Inner);
-		Visit(subquery.Select);
+
+		if (subquery.Select is not null)
+			Visit(subquery.Select);
+
 		WriteLine(Indentation.Same);
 		Write(CloseBracket);
 		Indent(Indentation.Outer);
@@ -905,7 +909,10 @@ public class SqlFormatter : DatabaseVisitor
 	{
 		Write($"EXISTS{OpenBracket}");
 		WriteLine(Indentation.Inner);
-		Visit(exists.Select);
+
+		if (exists.Select is not null)
+			Visit(exists.Select);
+
 		WriteLine(Indentation.Same);
 		Write(CloseBracket);
 		Indent(Indentation.Outer);
@@ -916,7 +923,7 @@ public class SqlFormatter : DatabaseVisitor
 	{
 		if (@in.Values is not null)
 		{
-			if (!@in.Values.Any())
+			if (@in.Values.Count == 0)
 				Write("0 <> 0");
 			else
 			{
@@ -939,7 +946,10 @@ public class SqlFormatter : DatabaseVisitor
 			VisitValue(@in.Expression);
 			Write($" IN {OpenBracket}");
 			WriteLine(Indentation.Inner);
-			Visit(@in.Select);
+
+			if (@in.Select is not null)
+				Visit(@in.Select);
+
 			WriteLine(Indentation.Same);
 			Write(CloseBracket);
 			Indent(Indentation.Outer);
@@ -989,7 +999,7 @@ public class SqlFormatter : DatabaseVisitor
 	{
 		Write(func.Name);
 
-		if (func.Arguments is not null && func.Arguments.Any())
+		if (func.Arguments is not null && func.Arguments.Count != 0)
 		{
 			Write(OpenBracket);
 

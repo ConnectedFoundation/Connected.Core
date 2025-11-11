@@ -9,14 +9,18 @@
 /// are supported so this is the only attribute that can be set on Entities regarding storage schemas.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Method, AllowMultiple = false)]
-public class TableAttribute : SchemaAttribute
+public class TableAttribute
+	: SchemaAttribute
 {
 	/// <summary>
 	/// Creates a new instance of the TableAttribute class.
 	/// </summary>
 	public TableAttribute()
 	{
-
+		/*
+		 * Default constructor leaves Schema property value unchanged (inherited default).
+		 * Consumers may rely on SchemaAttribute.DefaultSchema if no explicit schema is provided.
+		 */
 	}
 	/// <summary>
 	/// Creates a new instance of the TableAttribute class.
@@ -24,6 +28,9 @@ public class TableAttribute : SchemaAttribute
 	/// <param name="schema">The name of the schema which acts as a category under which the entity will be accessible.</param>
 	public TableAttribute(string schema)
 	{
+		/*
+		 * Assign explicit schema name so the table is created under the specified logical grouping.
+		 */
 		Schema = schema;
 	}
 }

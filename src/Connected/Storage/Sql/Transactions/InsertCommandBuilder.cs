@@ -5,7 +5,8 @@ using System.Reflection;
 
 namespace Connected.Storage.Sql.Transactions;
 
-internal class InsertCommandBuilder : CommandBuilder
+internal class InsertCommandBuilder
+	: CommandBuilder
 {
 	private static readonly ConcurrentDictionary<string, SqlStorageOperation> _cache;
 

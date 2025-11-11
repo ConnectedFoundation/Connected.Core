@@ -1,22 +1,16 @@
-using System.Collections.ObjectModel;
-using System.Collections.Generic;
-using System.Linq.Expressions;
 using Connected.Data.Expressions.Collections;
+using System.Collections.ObjectModel;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Expressions;
 
-public sealed class BlockExpression : CommandExpression
+public sealed class BlockExpression(IList<Expression> commands)
+		: CommandExpression(DatabaseExpressionType.Block, commands[commands.Count - 1].Type)
 {
-	public BlockExpression(IList<Expression> commands)
-		  : base(DatabaseExpressionType.Block, commands[commands.Count - 1].Type)
-	{
-		Commands = commands.ToReadOnly();
-	}
-
 	public BlockExpression(params Expression[] commands)
 		  : this((IList<Expression>)commands)
 	{
 	}
 
-	public ReadOnlyCollection<Expression> Commands { get; }
+	public ReadOnlyCollection<Expression> Commands { get; } = commands.ToReadOnly();
 }

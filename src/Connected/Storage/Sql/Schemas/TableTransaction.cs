@@ -5,7 +5,8 @@ using System.Text;
 
 namespace Connected.Storage.Sql.Schemas;
 
-internal abstract class TableTransaction : SynchronizationTransaction
+internal abstract class TableTransaction
+	: SynchronizationTransaction
 {
 	protected static string CreateColumnCommandText(ISchemaColumn column)
 	{

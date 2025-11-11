@@ -1,33 +1,29 @@
 ﻿using Connected.Annotations.Entities;
 
 namespace Connected.Entities;
-
 /// <summary>
-/// This entity is primarly used when cached in memory and access to the entity is frequent with
-/// updates. The <see cref="IConcurrentEntity{TPrimaryKey}"/> ensures that threads don't overwrite
-/// values from other threads by using the <see cref="Sync"/> property.
+/// Provides in-memory concurrency control for frequently updated cached entities using a synchronization value.
 /// </summary>
 /// <remarks>
-/// While <see cref="IConsistentEntity{T}"/> ensures database consistency, <see cref="IConcurrentEntity{TPrimaryKey}"/>
-/// ensures application consistency. The <see cref="IConcurrentEntity{TPrimaryKey}"/> is not thread safe but ensures
-/// that any writes are rejected if the thread tries to write entity with invalid <see cref="Sync"/> property value.
+/// Ensures application-level consistency by rejecting writes where the <see cref="Sync"/> value is stale. Entities are immutable; cache replaces
+/// whole instances. Before replacing, implementations compare synchronization values to prevent overwriting newer data. While <see cref="IConsistentEntity{T}"/>
+/// focuses on storage-level consistency (e.g., optimistic concurrency), this interface addresses concurrent in-memory updates. It is not inherently thread-safe;
+/// external coordination (e.g., atomic cache operations) must enforce synchronization.
 /// </remarks>
-/// <typeparam name="TPrimaryKey"></typeparam>
+/// <typeparam name="TPrimaryKey">Primary key type.</typeparam>
 public interface IConcurrentEntity<TPrimaryKey> : IConsistentEntity<TPrimaryKey>
 	 where TPrimaryKey : notnull
 {
 	/// <summary>
-	/// The synchronization value used when comparing if the write to the entity is made with the latest
-	/// version. Entities are immutable but they can be replaced in Cache with newer instances. The cache tipically
-	/// ensures that entities can't be overwritten with out of date values.
+	/// Gets or sets the synchronization value used to detect stale writes.
 	/// </summary>
+	/// <remarks>
+	/// Incremented when a newer version of the entity is written to cache. If an update attempts to replace an entity whose synchronization value no longer matches,
+	/// the write should be rejected to avoid losing intervening changes.
+	/// </remarks>
 	/// <example>
-	/// In Queue messages, all messages are stored in memory and multiple threads perform dequeue. Since dequeue means
-	/// overwriting some data and since the entities are immutable (except this entity and only the <see cref="Sync"/> property) the operaton results with overwriting the entire
-	/// entity in cache. If two or more thready do it in the same time, they could accidentally overwrite values from
-	/// each other. The cache ensures that the current entity has the same value as the updating entity. If the write
-	/// occurred in the mean time it would result incrementing the <see cref="Sync"/> value which would cause any subsequent
-	/// writes with the same originating entity would fail.
+	/// Multiple threads dequeue queue messages and overwrite cached entities. Each successful write increments <see cref="Sync"/>. Subsequent writes with earlier
+	/// synchronization values fail, preventing lost updates.
 	/// </example>
 	[Persistence(PersistenceMode.InMemory)]
 	int Sync { get; set; }

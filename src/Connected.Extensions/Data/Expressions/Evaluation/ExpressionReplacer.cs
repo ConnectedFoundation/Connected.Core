@@ -3,7 +3,8 @@ using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Evaluation;
 
-internal sealed class ExpressionReplacer : DatabaseVisitor
+internal sealed class ExpressionReplacer
+	: DatabaseVisitor
 {
 	private readonly Expression _searchFor;
 	private readonly Expression _replaceWith;
@@ -27,7 +28,7 @@ internal sealed class ExpressionReplacer : DatabaseVisitor
 		return expression;
 	}
 
-	protected override Expression? Visit(Expression? exp)
+	protected override Expression Visit(Expression exp)
 	{
 		if (exp == _searchFor)
 			return _replaceWith;

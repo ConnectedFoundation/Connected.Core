@@ -2,17 +2,10 @@ using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Expressions;
 
-public sealed class BetweenExpression : DatabaseExpression
+public sealed class BetweenExpression(Expression expression, Expression lower, Expression upper)
+		: DatabaseExpression(DatabaseExpressionType.Between, expression.Type)
 {
-	public BetweenExpression(Expression expression, Expression lower, Expression upper)
-		 : base(DatabaseExpressionType.Between, expression.Type)
-	{
-		Expression = expression;
-		Lower = lower;
-		Upper = upper;
-	}
-
-	public Expression Expression { get; }
-	public Expression Lower { get; }
-	public Expression Upper { get; }
+	public Expression Expression { get; } = expression;
+	public Expression Lower { get; } = lower;
+	public Expression Upper { get; } = upper;
 }

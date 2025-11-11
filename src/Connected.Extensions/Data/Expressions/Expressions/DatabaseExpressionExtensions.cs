@@ -151,7 +151,7 @@ internal static class DatabaseExpressionExtensions
 
 	public static SelectExpression RemoveGroupExpression(this SelectExpression select, Expression expression)
 	{
-		if (select.GroupBy is not null && select.GroupBy.Any())
+		if (select.GroupBy is not null && select.GroupBy.Count != 0)
 		{
 			var groupby = new List<Expression>(select.GroupBy);
 
@@ -182,7 +182,7 @@ internal static class DatabaseExpressionExtensions
 	public static SelectExpression AddRedundantSelect(this SelectExpression sel, QueryLanguage language, Alias newAlias)
 	{
 		var newColumns = from d in sel.Columns
-							  let qt = d.Expression is ColumnExpression ? ((ColumnExpression)d.Expression).QueryType : language.TypeSystem.ResolveColumnType(d.Expression.Type)
+							  let qt = d.Expression is ColumnExpression expression ? expression.QueryType : language.TypeSystem.ResolveColumnType(d.Expression.Type)
 							  select new ColumnDeclaration(d.Name, new ColumnExpression(d.Expression.Type, qt, newAlias, d.Name), qt);
 
 		var newFrom = new SelectExpression(newAlias, sel.Columns, sel.From, sel.Where, sel.OrderBy, sel.GroupBy, sel.IsDistinct, sel.Skip, sel.Take, sel.IsReverse);

@@ -1,15 +1,13 @@
-using System.Linq.Expressions;
-using System.Collections.Generic;
-using System;
-using System.Linq;
-using System.Reflection;
-using Connected.Data.Expressions.Mappings;
 using Connected.Data.Expressions.Expressions;
+using Connected.Data.Expressions.Mappings;
 using Connected.Data.Expressions.Visitors;
+using System.Linq.Expressions;
+using System.Reflection;
 
 namespace Connected.Data.Expressions.Translation.Rewriters;
 
-public sealed class ComparisonRewriter : DatabaseVisitor
+public sealed class ComparisonRewriter
+	: DatabaseVisitor
 {
 	private ComparisonRewriter()
 	{
@@ -28,7 +26,7 @@ public sealed class ComparisonRewriter : DatabaseVisitor
 			case ExpressionType.NotEqual:
 				var result = Compare(b);
 
-				if (result == b)
+				if (result is null || result == b)
 					goto default;
 
 				return Visit(result);
@@ -45,7 +43,7 @@ public sealed class ComparisonRewriter : DatabaseVisitor
 		return expression;
 	}
 
-	private Expression Compare(BinaryExpression bop)
+	private static Expression? Compare(BinaryExpression bop)
 	{
 		var e1 = SkipConvert(bop.Left);
 		var e2 = SkipConvert(bop.Right);
@@ -98,7 +96,7 @@ public sealed class ComparisonRewriter : DatabaseVisitor
 	{
 		var pred = members.Select(m => Binder.Bind(e1, m).Equal(Binder.Bind(e2, m))).Join(ExpressionType.And);
 
-		if (negate)
+		if (negate && pred is not null)
 			pred = Expression.Not(pred);
 
 		return pred;
@@ -125,13 +123,18 @@ public sealed class ComparisonRewriter : DatabaseVisitor
 				return nex.Members.Select(FixMember);
 		}
 
-		return null;
+		return [];
 	}
 
 	private static MemberInfo FixMember(MemberInfo member)
 	{
 		if (member is MethodInfo && member.Name.StartsWith("get_"))
-			return member.DeclaringType.GetTypeInfo().GetDeclaredProperty(member.Name[4..]);
+		{
+			if (member.DeclaringType is not Type dc)
+				throw new InvalidOperationException(SR.ErrCannotResolveDeclaringType);
+
+			return dc.GetTypeInfo().GetDeclaredProperty(member.Name[4..]) ?? throw new NullReferenceException(SR.ErrCannotResolveProperty);
+		}
 
 		return member;
 	}

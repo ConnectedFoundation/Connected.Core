@@ -2,7 +2,8 @@ using System.Text;
 
 namespace Connected.Storage.Sql.Schemas;
 
-internal class TableCreate : TableTransaction
+internal class TableCreate
+	: TableTransaction
 {
 	public TableCreate(bool temporary)
 	{
@@ -14,7 +15,7 @@ internal class TableCreate : TableTransaction
 
 	private bool Temporary { get; }
 
-	public string TemporaryName { get; }
+	public string? TemporaryName { get; }
 
 	protected override async Task OnExecute()
 	{
@@ -38,7 +39,7 @@ internal class TableCreate : TableTransaction
 
 	private async Task ExecuteDefaults()
 	{
-		var name = Temporary ? TemporaryName : Context.Schema.Name;
+		var name = Temporary ? TemporaryName ?? throw new NullReferenceException(SR.ErrExpectedTemporaryName) : Context.Schema.Name;
 
 		foreach (var column in Context.Schema.Columns)
 		{
@@ -61,7 +62,7 @@ internal class TableCreate : TableTransaction
 		{
 			var text = new StringBuilder();
 
-			var name = Temporary ? TemporaryName : Context.Schema.Name;
+			var name = Temporary ? TemporaryName ?? throw new NullReferenceException(SR.ErrExpectedTemporaryName) : Context.Schema.Name;
 
 			text.AppendLine($"CREATE TABLE {Escape(Context.Schema.SchemaName(), name)}");
 			text.AppendLine("(");

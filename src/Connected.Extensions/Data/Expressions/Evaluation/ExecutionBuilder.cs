@@ -8,7 +8,8 @@ using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Evaluation;
 
-public sealed class ExecutionBuilder : DatabaseVisitor
+public sealed class ExecutionBuilder
+	: DatabaseVisitor
 {
 	private ExecutionBuilder(ExpressionCompilationContext context, Linguist linguist, Expression executor)
 	{

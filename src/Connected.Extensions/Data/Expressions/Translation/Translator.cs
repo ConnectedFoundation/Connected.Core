@@ -1,9 +1,8 @@
-using System.Linq.Expressions;
-using Connected.Data.Expressions.Translation.Optimization;
-using Connected.Data.Expressions.Languages;
-using Connected.Data.Expressions.Translation.Rewriters;
-using Connected.Data.Expressions;
 using Connected.Data.Expressions.Evaluation;
+using Connected.Data.Expressions.Languages;
+using Connected.Data.Expressions.Translation.Optimization;
+using Connected.Data.Expressions.Translation.Rewriters;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation;
 
@@ -25,7 +24,7 @@ public class Translator
 	/// <summary>
 	/// Translates a query expression using rules defined by the <see cref="Linguist"/>, <see cref="Mapping"/> and <see cref="Police"/>.
 	/// </summary>
-	public Expression? Translate(Expression expression)
+	public Expression Translate(Expression expression)
 	{
 		var result = expression;
 		/*

@@ -4,9 +4,14 @@
 /// </summary>
 public interface IAuthenticationProvider : IMiddleware
 {
+	/*
+	 * Providers implement a single entry point invoked by the authentication pipeline.
+	 * The supplied DTO carries scheme and token values used to resolve and set identity.
+	 */
 	/// <summary>
-	/// This method is called from the appropriate middleware 
-	/// to determine the identity for the specified scope.
+	/// Called from the authentication middleware to evaluate credentials and establish identity
+	/// for the current scope.
 	/// </summary>
+	/// <param name="dto">Authentication data including scheme and token.</param>
 	Task Invoke(IAuthenticateDto dto);
 }

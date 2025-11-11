@@ -84,11 +84,11 @@ internal sealed class EntityMapping
 		return new EntityExpression(EntityType, CreateEntityExpression(assignments));
 	}
 
-	private Expression CreateMemberExpression(ExpressionCompilationContext context, Expression root, MemberMapping member)
+	private static Expression CreateMemberExpression(ExpressionCompilationContext context, Expression root, MemberMapping member)
 	{
 		if (root is AliasedExpression aliasedRoot)
 		{
-			return new ColumnExpression(member.MemberInfo.GetMemberType(), context.Language.TypeSystem.ResolveColumnType(member.Type),
+			return new ColumnExpression(member.MemberInfo.GetMemberType() ?? throw new NullReferenceException(SR.ErrCannotResolveMemberType), context.Language.TypeSystem.ResolveColumnType(member.Type),
 				 aliasedRoot.Alias, member.Name);
 		}
 
@@ -106,9 +106,9 @@ internal sealed class EntityMapping
 		if (assignments.Any())
 		{
 			if (EntityType.GetTypeInfo().IsInterface)
-				assignments = RemapAssignments(assignments, EntityType).ToList();
+				assignments = [.. RemapAssignments(assignments)];
 
-			result = Expression.MemberInit(newExpression, assignments.Select(a => Expression.Bind(a.Mapping.MemberInfo, a.Expression)).ToArray());
+			result = Expression.MemberInit(newExpression, [.. assignments.Select(a => Expression.Bind(a.Mapping.MemberInfo, a.Expression))]);
 		}
 		else
 			result = newExpression;
@@ -116,7 +116,7 @@ internal sealed class EntityMapping
 		return result;
 	}
 
-	private IEnumerable<EntityAssignment> RemapAssignments(IEnumerable<EntityAssignment> assignments, Type entityType)
+	private IEnumerable<EntityAssignment> RemapAssignments(IEnumerable<EntityAssignment> assignments)
 	{
 		foreach (var assign in assignments)
 		{

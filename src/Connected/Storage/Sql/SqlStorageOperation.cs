@@ -2,7 +2,8 @@ using System.Data;
 
 namespace Connected.Storage.Sql;
 
-internal class SqlStorageOperation : IStorageOperation
+internal class SqlStorageOperation
+	: IStorageOperation
 {
 	public SqlStorageOperation()
 	{

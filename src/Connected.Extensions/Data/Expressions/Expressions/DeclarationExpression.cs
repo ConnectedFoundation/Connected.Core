@@ -1,18 +1,11 @@
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using Connected.Data.Expressions.Collections;
+using System.Collections.ObjectModel;
 
 namespace Connected.Data.Expressions.Expressions;
 
-public sealed class DeclarationExpression : CommandExpression
+public sealed class DeclarationExpression(IEnumerable<VariableDeclaration> variables, SelectExpression source)
+		: CommandExpression(DatabaseExpressionType.Declaration, typeof(void))
 {
-	public DeclarationExpression(IEnumerable<VariableDeclaration> variables, SelectExpression source)
-		  : base(DatabaseExpressionType.Declaration, typeof(void))
-	{
-		Variables = variables.ToReadOnly();
-		Source = source;
-	}
-
-	public ReadOnlyCollection<VariableDeclaration> Variables { get; }
-	public SelectExpression Source { get; }
+	public ReadOnlyCollection<VariableDeclaration> Variables { get; } = variables.ToReadOnly();
+	public SelectExpression Source { get; } = source;
 }

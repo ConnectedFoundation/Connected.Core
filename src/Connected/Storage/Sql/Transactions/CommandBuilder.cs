@@ -166,10 +166,10 @@ internal abstract class CommandBuilder
 		if (IsVersion(property))
 			return Task.FromResult<object?>((byte[])EntityVersion.Parse(property.GetValue(Entity)));
 
-		return GetValue(Entity, property, property.GetValue(Entity), property.PropertyType.ToDbType(), cancel);
+		return GetValue(Entity, property, property.GetValue(Entity), cancel);
 	}
 
-	private static Task<object?> GetValue(IEntity entity, PropertyInfo property, object? value, DbType dbType, CancellationToken cancel)
+	private static Task<object?> GetValue(IEntity entity, PropertyInfo property, object? value, CancellationToken cancel)
 	{
 		var serializer = property.ResolveEntityPropertySerializer();
 
@@ -241,9 +241,6 @@ internal abstract class CommandBuilder
 
 		var typeName = Entity.GetType().FullName;
 
-		if (typeName is null)
-			throw new NullReferenceException($"{Strings.ErrCannotResolveTypeName} ('{Entity.GetType()}')");
-
-		return typeName;
+		return typeName is null ? throw new NullReferenceException($"{Strings.ErrCannotResolveTypeName} ('{Entity.GetType()}')") : typeName;
 	}
 }

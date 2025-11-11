@@ -6,7 +6,7 @@ namespace Connected.Storage.Schemas;
 
 public interface ISchemaColumn
 {
-	string? Name { get; }
+	string Name { get; }
 	DbType DataType { get; }
 	bool IsIdentity { get; }
 	bool IsUnique { get; }

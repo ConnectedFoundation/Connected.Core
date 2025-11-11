@@ -2,9 +2,10 @@
 
 namespace Connected.Caching;
 /// <summary>
-/// Represents the cache cointainer.
+/// Represents the cache container.
 /// </summary>
-public interface ICache : IDisposable
+public interface ICache
+	: IDisposable
 {
 	/// <summary>
 	/// Returns all non expired items for the specified key.
@@ -76,16 +77,16 @@ public interface ICache : IDisposable
 	/// <returns>A list of T instances which matches the criteria.</returns>
 	IImmutableList<T> Where<T>(string key, Func<T, bool> predicate);
 	/// <summary>
-	/// Checks wether the specified container exists in the cache.
+	/// Checks whether the specified container exists in the cache.
 	/// </summary>
-	/// <param name="key">The container which existence to check.</param>
-	/// <returns>true if container exists, false otherwise.</returns>
+	/// <param name="key">The container whose existence to check.</param>
+	/// <returns>True if container exists, false otherwise.</returns>
 	bool Exists(string key);
 	/// <summary>
-	/// Checks wether the specified container is empty which means it contains no entries.
+	/// Checks whether the specified container is empty which means it contains no entries.
 	/// </summary>
 	/// <param name="key">The container to check.</param>
-	/// <returns>true if container han no entries, false otherwise.</returns>
+	/// <returns>True if container has no entries, false otherwise.</returns>
 	bool IsEmpty(string key);
 	/// <summary>
 	/// Clears all entries in the container.
@@ -120,7 +121,7 @@ public interface ICache : IDisposable
 	/// <param name="id">The id of the entry.</param>
 	/// <param name="instance">The actual instance to be stored in the container.</param>
 	/// <param name="duration">The duration until the entry expires.</param>
-	/// <param name="slidingExpiration">true to extend the expiration once the entry is requested.</param>
+	/// <param name="slidingExpiration">True to extend the expiration once the entry is requested.</param>
 	T? Set<T>(string key, object id, T? instance, TimeSpan duration, bool slidingExpiration);
 	/// <summary>
 	/// Copies the external entry into the specified container. 
@@ -153,4 +154,8 @@ public interface ICache : IDisposable
 	/// </summary>
 	/// <returns>The list of keys containers.</returns>
 	IImmutableList<string> Keys();
+	/*
+	 * Contract-only interface: concrete cache implementations provide storage and retrieval mechanics,
+	 * expiration semantics (absolute/sliding), and synchronization/merge behavior across scopes.
+	 */
 }

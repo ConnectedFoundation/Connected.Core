@@ -3,12 +3,13 @@ using System.Data;
 
 namespace Connected.Data.Expressions.Evaluation;
 
-internal sealed class StorageOperation : IStorageOperation
+internal sealed class StorageOperation
+	: IStorageOperation
 {
 	public StorageOperation()
 	{
-		Parameters = new();
-		Variables = new();
+		Parameters = [];
+		Variables = [];
 	}
 
 	public string? CommandText { get; set; }

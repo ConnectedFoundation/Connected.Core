@@ -3,7 +3,8 @@ using System.Data;
 
 namespace Connected.Data.Expressions.Evaluation;
 
-internal sealed class StorageParameter : IStorageParameter
+internal sealed class StorageParameter
+	: IStorageParameter
 {
 	public string? Name { get; init; }
 	public object? Value { get; set; }

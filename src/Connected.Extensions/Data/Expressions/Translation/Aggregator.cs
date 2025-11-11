@@ -9,25 +9,25 @@ public static class Aggregator
 {
 	public static LambdaExpression? GetAggregator(Type expectedType, Type actualType)
 	{
-		var actualElementType = Enumerables.GetEnumerableElementType(actualType);
+		var actualElementType = Enumerables.GetEnumerableElementType(actualType) ?? throw new NullReferenceException(SR.ErrCannotResolveElementType);
 
 		if (!expectedType.GetTypeInfo().IsAssignableFrom(actualType.GetTypeInfo()))
 		{
-			var expectedElementType = Enumerables.GetEnumerableElementType(expectedType);
+			var expectedElementType = Enumerables.GetEnumerableElementType(expectedType) ?? throw new NullReferenceException(SR.ErrCannotResolveElementType);
 			var p = Expression.Parameter(actualType, "p");
 			Expression? body = null;
 
 			if (expectedType.GetTypeInfo().IsAssignableFrom(actualElementType.GetTypeInfo()))
-				body = Expression.Call(typeof(Enumerable), "SingleOrDefault", new Type[] { actualElementType }, p);
+				body = Expression.Call(typeof(Enumerable), "SingleOrDefault", [actualElementType], p);
 			else if (expectedType.GetTypeInfo().IsGenericType && (expectedType == typeof(IQueryable) || expectedType == typeof(IOrderedQueryable) || expectedType.GetGenericTypeDefinition() == typeof(IQueryable<>) || expectedType.GetGenericTypeDefinition() == typeof(IOrderedQueryable<>)))
 			{
-				body = Expression.Call(typeof(Queryable), "AsQueryable", new Type[] { expectedElementType }, CoerceElement(expectedElementType, p));
+				body = Expression.Call(typeof(Queryable), "AsQueryable", [expectedElementType], CoerceElement(expectedElementType, p));
 
 				if (body.Type != expectedType)
 					body = Expression.Convert(body, expectedType);
 			}
 			else if (expectedType.IsArray && expectedType.GetArrayRank() == 1)
-				body = Expression.Call(typeof(Enumerable), "ToArray", new Type[] { expectedElementType }, CoerceElement(expectedElementType, p));
+				body = Expression.Call(typeof(Enumerable), "ToArray", [expectedElementType], CoerceElement(expectedElementType, p));
 			else if (expectedType.GetTypeInfo().IsGenericType && expectedType.GetGenericTypeDefinition().GetTypeInfo().IsAssignableFrom(typeof(IList<>).GetTypeInfo()))
 			{
 				var gt = typeof(DeferredList<>).MakeGenericType(expectedType.GetTypeInfo().GenericTypeArguments);
@@ -39,7 +39,7 @@ public static class Aggregator
 				body = Expression.Call(typeof(Enumerable), "ToList", [expectedElementType], CoerceElement(expectedElementType, p));
 			else
 			{
-				var ci = Types.FindConstructor(expectedType, new Type[] { actualType });
+				var ci = Types.FindConstructor(expectedType, [actualType]);
 
 				if (ci is not null)
 					body = Expression.New(ci, p);
@@ -53,10 +53,10 @@ public static class Aggregator
 
 	private static Expression CoerceElement(Type expectedElementType, Expression expression)
 	{
-		var elementType = Enumerables.GetEnumerableElementType(expression.Type);
+		var elementType = Enumerables.GetEnumerableElementType(expression.Type) ?? throw new NullReferenceException(SR.ErrCannotResolveElementType);
 
 		if (expectedElementType != elementType && (expectedElementType.GetTypeInfo().IsAssignableFrom(elementType.GetTypeInfo()) || elementType.GetTypeInfo().IsAssignableFrom(expectedElementType.GetTypeInfo())))
-			return Expression.Call(typeof(Enumerable), "Cast", new Type[] { expectedElementType }, expression);
+			return Expression.Call(typeof(Enumerable), "Cast", [expectedElementType], expression);
 
 		return expression;
 	}

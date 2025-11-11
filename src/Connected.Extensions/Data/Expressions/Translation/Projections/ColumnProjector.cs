@@ -78,11 +78,8 @@ internal sealed class ColumnProjector
 		return ProjectColumns(language, expression, existingColumns, newAlias, (IEnumerable<Alias>)existingAliases);
 	}
 
-	protected override Expression? Visit(Expression? expression)
+	protected override Expression Visit(Expression expression)
 	{
-		if (expression is null)
-			return null;
-
 		if (Candidates.Contains(expression))
 		{
 			if (expression.NodeType == (ExpressionType)DatabaseExpressionType.Column)

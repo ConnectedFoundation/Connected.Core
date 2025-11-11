@@ -1,12 +1,10 @@
 ﻿namespace Connected.Annotations.Entities;
 /// <summary>
-/// Specifies how a storage provider should treat a numeric value.
-/// </summary>
-/// <summary>
-/// This attribute should be used if the property is of decimal type.
+/// Specifies how a storage provider should treat a numeric value. Intended for decimal properties.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property)]
-public sealed class NumericAttribute : Attribute
+public sealed class NumericAttribute
+	: Attribute
 {
 	/// <summary>
 	/// Creates a new instance of the NumericAttribute.
@@ -15,6 +13,10 @@ public sealed class NumericAttribute : Attribute
 	/// <param name="scale">Specifies how many decimal places the value should store.</param>
 	public NumericAttribute(int precision, int scale)
 	{
+		/*
+		 * Persist precision (total digits) and scale (digits after decimal point) so providers can
+		 * emit the correct numeric/decimal column definitions.
+		 */
 		Precision = precision;
 		Scale = scale;
 	}

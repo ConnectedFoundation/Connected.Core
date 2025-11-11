@@ -1,31 +1,27 @@
-﻿using System;
-
-namespace Connected.Data;
+﻿namespace Connected.Data;
 /// <summary>
-/// Represents an entity with a conditional visibillity.
+/// Represents an entity with a conditional visibility lock enforced through a pop receipt.
 /// </summary>
 /// <remarks>
-/// Some entities require a singleton access which protects
-/// them from being processed by multiple clients at a time. This
-/// entity serves for such purpose. One example is queue message which
-/// must be processed only by a single client. But, on the other hand,
-/// a client has only a limited available time to process it successfully.
-/// If it's not processed in time, other client gets opportunity to process
-/// the message. The isolation is achieved through the PopReceipt property
-/// which is updated everytime client dequeues the message. This means other
-/// clients can't successfully update (or delete) the message once other
-/// clients was granted the access.
+/// Some entities require singleton access preventing concurrent processing. A queue message is one example: it must be processed
+/// by only one client within a limited time window. The <c>PopReceipt</c> is updated each time a client dequeues the entity, granting
+/// exclusive access until <see cref="NextVisible"/> is reached. Once expired, other clients may attempt processing. Clients that do not
+/// complete work in time relinquish the lock automatically as visibility returns.
 /// </remarks>
 public interface IPopReceipt
 {
 	/// <summary>
-	/// The id of the current scope. The id is available only upon the expiration
-	/// (NextVisible).
+	/// Gets the pop receipt identifier granted to the current processing scope until expiration.
 	/// </summary>
+	/// <remarks>
+	/// The pop receipt is null when no exclusive lock is currently held (e.g., prior to initial dequeue or after expiration).
+	/// </remarks>
 	Guid? PopReceipt { get; init; }
 	/// <summary>
-	/// The date and time the current PopReceipt expires and the access is granted to
-	/// other client.
+	/// Gets the date and time at which the current pop receipt expires and visibility returns to other clients.
 	/// </summary>
+	/// <remarks>
+	/// Upon reaching this timestamp, the entity becomes eligible for dequeue by other clients, enabling retry or reassignment.
+	/// </remarks>
 	DateTimeOffset NextVisible { get; init; }
 }

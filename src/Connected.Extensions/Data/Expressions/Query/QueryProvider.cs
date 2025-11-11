@@ -2,19 +2,15 @@ using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Query;
 
-public abstract class QueryProvider : Middleware, IQueryProvider
+public abstract class QueryProvider
+	: Middleware, IQueryProvider
 {
 	public IQueryable CreateQuery(Expression expression)
 	{
-		var type = expression.Type.GetElementType();
-		var generic = typeof(EntityQuery<>).MakeGenericType(new Type[] { type });
+		var type = expression.Type.GetElementType() ?? throw new NullReferenceException(SR.ErrCannotResolveElementType);
+		var generic = typeof(EntityQuery<>).MakeGenericType([type]) ?? throw new NullReferenceException(nameof(type));
 
-		if (generic is null)
-			throw new NullReferenceException(nameof(type));
-
-		var instance = Activator.CreateInstance(generic, new object[] { this, expression }) as IQueryable;
-
-		if (instance is null)
+		if (Activator.CreateInstance(generic, [this, expression]) is not IQueryable instance)
 			throw new NullReferenceException(nameof(type));
 
 		return instance;

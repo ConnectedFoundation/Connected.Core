@@ -1,6 +1,4 @@
-﻿using Connected.Runtime;
-
-namespace Connected.Workers;
+﻿namespace Connected.Workers;
 public static class ScheduleCalculator
 {
 	public static DateTimeOffset? Calculate(this ISchedule schedule)

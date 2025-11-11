@@ -12,4 +12,7 @@ public interface ICachingDataProvider
    /// Invalidates the entry in the container. This usually means reloading it from the storage.
    /// </summary>
    Task Invalidate(object id);
+   /*
+    * Data providers hydrate and refresh cache contents on demand.
+    */
 }

@@ -2,14 +2,10 @@ using System.Text;
 
 namespace Connected.Storage.Sql.Schemas;
 
-internal class UniqueConstraintAdd : TableTransaction
+internal class UniqueConstraintAdd(IndexDescriptor index)
+		: TableTransaction
 {
-	public UniqueConstraintAdd(IndexDescriptor index)
-	{
-		Index = index;
-	}
-
-	private IndexDescriptor Index { get; }
+	private IndexDescriptor Index { get; } = index;
 
 	protected override async Task OnExecute()
 	{

@@ -2,14 +2,8 @@ using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Mappings;
 
-internal sealed class EntityAssignment
+internal sealed class EntityAssignment(MemberMapping mapping, Expression expression)
 {
-	public EntityAssignment(MemberMapping mapping, Expression expression)
-	{
-		Mapping = mapping;
-		Expression = expression;
-	}
-
-	public MemberMapping Mapping { get; }
-	public Expression Expression { get; }
+	public MemberMapping Mapping { get; } = mapping;
+	public Expression Expression { get; } = expression;
 }

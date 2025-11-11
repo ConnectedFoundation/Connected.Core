@@ -2,15 +2,9 @@ using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Expressions;
 
-public sealed class OuterJoinedExpression : DatabaseExpression
+public sealed class OuterJoinedExpression(Expression test, Expression expression)
+	: DatabaseExpression(DatabaseExpressionType.OuterJoined, expression.Type)
 {
-	public OuterJoinedExpression(Expression test, Expression expression)
-		 : base(DatabaseExpressionType.OuterJoined, expression.Type)
-	{
-		Test = test;
-		Expression = expression;
-	}
-
-	public Expression Test { get; }
-	public Expression Expression { get; }
+	public Expression Test { get; } = test;
+	public Expression Expression { get; } = expression;
 }

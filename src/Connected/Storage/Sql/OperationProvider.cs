@@ -5,14 +5,10 @@ using Connected.Storage.Sql.Transactions;
 namespace Connected.Storage.Sql;
 
 [Priority(0)]
-internal sealed class OperationProvider : StorageOperationProvider
+internal sealed class OperationProvider(ICancellationContext cancel)
+		: StorageOperationProvider
 {
-	public OperationProvider(ICancellationContext cancel)
-	{
-		Cancel = cancel;
-	}
-
-	private ICancellationContext Cancel { get; }
+	private ICancellationContext Cancel { get; } = cancel;
 
 	protected override async Task<IStorageOperation?> OnInvoke<TEntity>(TEntity entity)
 	{

@@ -9,7 +9,8 @@
 /// attribute is a must because the sycnhronization would otherwise fail.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Property)]
-public sealed class DefaultAttribute : Attribute
+public sealed class DefaultAttribute
+	: Attribute
 {
 	/// <summary>
 	/// Creates a new instance of the Default class.
@@ -17,6 +18,10 @@ public sealed class DefaultAttribute : Attribute
 	/// <param name="value">The value that should be used as default value.</param>
 	public DefaultAttribute(object? value)
 	{
+		/*
+		 * Store the provided default value so schema generators and updaters can apply
+		 * it to the backing store for missing values on insert.
+		 */
 		Value = value;
 	}
 	/// <summary>

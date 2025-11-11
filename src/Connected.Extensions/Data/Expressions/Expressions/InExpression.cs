@@ -1,11 +1,11 @@
-using System.Collections.ObjectModel;
-using System.Collections.Generic;
-using System.Linq.Expressions;
 using Connected.Data.Expressions.Collections;
+using System.Collections.ObjectModel;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Expressions;
 
-public sealed class InExpression : SubqueryExpression
+public sealed class InExpression
+	: SubqueryExpression
 {
 	public InExpression(Expression expression, SelectExpression select)
 		  : base(DatabaseExpressionType.In, typeof(bool), select)

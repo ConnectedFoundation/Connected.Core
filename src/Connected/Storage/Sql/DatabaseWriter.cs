@@ -1,12 +1,8 @@
 namespace Connected.Storage.Sql;
 
-internal class DatabaseWriter : DatabaseCommand, IStorageWriter
+internal class DatabaseWriter(IStorageOperation operation, IStorageConnection connection)
+		: DatabaseCommand(operation, connection), IStorageWriter
 {
-	public DatabaseWriter(IStorageOperation operation, IStorageConnection connection)
-		: base(operation, connection)
-	{
-	}
-
 	public async Task<int> Execute()
 	{
 		try

@@ -103,6 +103,11 @@
 			<DesignTime>True</DesignTime>
 			<AutoGen>True</AutoGen>
 		</Compile>
+		<Compile Update="SR.Designer.cs">
+		  <DesignTime>True</DesignTime>
+		  <AutoGen>True</AutoGen>
+		  <DependentUpon>SR.resx</DependentUpon>
+		</Compile>
 		<Compile Update="Storage\SR.Designer.cs">
 			<DependentUpon>SR.resx</DependentUpon>
 			<DesignTime>True</DesignTime>
@@ -134,6 +139,10 @@
 		<EmbeddedResource Update="Services\SR.resx">
 			<LastGenOutput>SR.Designer.cs</LastGenOutput>
 			<Generator>ResXFileCodeGenerator</Generator>
+		</EmbeddedResource>
+		<EmbeddedResource Update="SR.resx">
+		  <Generator>ResXFileCodeGenerator</Generator>
+		  <LastGenOutput>SR.Designer.cs</LastGenOutput>
 		</EmbeddedResource>
 		<EmbeddedResource Update="Storage\SR.resx">
 			<LastGenOutput>SR.Designer.cs</LastGenOutput>

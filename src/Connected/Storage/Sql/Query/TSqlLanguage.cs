@@ -5,7 +5,8 @@ using Connected.Data.Expressions.TypeSystem;
 
 namespace Connected.Storage.Sql.Query;
 
-internal sealed class TSqlLanguage : QueryLanguage
+internal sealed class TSqlLanguage
+	: QueryLanguage
 {
 	private static TSqlLanguage? _default;
 

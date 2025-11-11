@@ -6,8 +6,8 @@
 public enum PersistenceMode
 {
 	/// <summary>
-	/// The Entity or property should be kept only in memory. No storage ready or writes will
-	/// be preformed.
+	/// The Entity or property should be kept only in memory. No storage reads or writes will
+	/// be performed.
 	/// </summary>
 	InMemory = 0,
 	/// <summary>
@@ -28,7 +28,8 @@ public enum PersistenceMode
 /// Specifies how entity or one ore more of its properties are persisted.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Class)]
-public sealed class PersistenceAttribute : Attribute
+public sealed class PersistenceAttribute
+	: Attribute
 {
 	/// <summary>
 	/// Creates a new instance of the PersistenceAttribute class.
@@ -36,6 +37,10 @@ public sealed class PersistenceAttribute : Attribute
 	/// <param name="mode">Specifies how persistence will be treated by a storage provider.</param>
 	public PersistenceAttribute(PersistenceMode mode)
 	{
+		/*
+		 * Store the selected mode so storage middleware can alter read/write behavior and
+		 * schema generation accordingly for the annotated member or type.
+		 */
 		Mode = mode;
 	}
 	/// <summary>

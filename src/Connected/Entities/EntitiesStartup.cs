@@ -4,6 +4,7 @@ using Connected.Runtime;
 using Connected.Services;
 using Connected.Storage.Schemas;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Connected.Entities;
 public sealed class EntitiesStartup : Startup
@@ -18,6 +19,7 @@ public sealed class EntitiesStartup : Startup
 		using var scope = await Scope.Create().WithSystemIdentity();
 
 		var rt = scope.ServiceProvider.GetRequiredService<IRuntimeService>();
+		var logger = scope.ServiceProvider.GetRequiredService<ILogger<EntitiesStartup>>();
 
 		if (!(await rt.SelectStartOptions()).HasFlag(StartOptions.SynchronizeSchemas))
 			return;
@@ -37,7 +39,7 @@ public sealed class EntitiesStartup : Startup
 			}
 		}
 
-		if (!types.Any())
+		if (types.Count == 0)
 			return;
 
 		var schemas = scope.ServiceProvider.GetRequiredService<ISchemaService>() ?? throw new NullReferenceException(nameof(ISchemaService));
@@ -51,9 +53,11 @@ public sealed class EntitiesStartup : Startup
 			await schemas.Update(dto);
 			await scope.Commit();
 		}
-		catch
+		catch (Exception ex)
 		{
 			await scope.Rollback();
+
+			logger.LogError(ex, null);
 
 			throw;
 		}

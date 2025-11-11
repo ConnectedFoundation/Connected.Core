@@ -1,6 +1,7 @@
 namespace Connected.Storage.Sql.Schemas;
 
-internal class TableRecreate(ExistingSchema existing) : TableTransaction
+internal class TableRecreate(ExistingSchema existing)
+	: TableTransaction
 {
 	protected override async Task OnExecute()
 	{
@@ -8,7 +9,7 @@ internal class TableRecreate(ExistingSchema existing) : TableTransaction
 
 		await add.Execute(Context);
 
-		await ExecuteDefaults(add.TemporaryName);
+		await ExecuteDefaults(add.TemporaryName ?? throw new NullReferenceException(SR.ErrExpectedTemporaryName));
 
 		if (HasIdentity)
 			await new IdentityInsert(add.TemporaryName, true).Execute(Context);

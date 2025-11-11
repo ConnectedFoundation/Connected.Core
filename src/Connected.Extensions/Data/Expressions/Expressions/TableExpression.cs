@@ -1,21 +1,13 @@
 using Connected.Data.Expressions.Translation;
-using System;
 
 namespace Connected.Data.Expressions.Expressions;
 
-public sealed class TableExpression : AliasedExpression
+public sealed class TableExpression(Alias alias, Type entity, string schema, string name)
+		: AliasedExpression(DatabaseExpressionType.Table, typeof(void), alias)
 {
-	public TableExpression(Alias alias, Type entity, string schema, string name)
-		: base(DatabaseExpressionType.Table, typeof(void), alias)
-	{
-		Entity = entity;
-		Name = name;
-		Schema = schema;
-	}
-
-	public Type Entity { get; }
-	public string Name { get; }
-	public string Schema { get; }
+	public Type Entity { get; } = entity;
+	public string Name { get; } = name;
+	public string Schema { get; } = schema;
 
 	public override string ToString()
 	{

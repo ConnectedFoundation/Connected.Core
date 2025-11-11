@@ -4,7 +4,8 @@ namespace Connected.Caching;
 /// <summary>
 /// Represents a single entry in the cache catalog.
 /// </summary>
-public interface IEntry : IDisposable
+public interface IEntry
+	: IDisposable
 {
 	/// <summary>
 	/// The actual instance which is cached.
@@ -27,4 +28,7 @@ public interface IEntry : IDisposable
 	/// Determines if the duration can be extended if the entry has been requested.
 	/// </summary>
 	bool SlidingExpiration { get; }
+	/*
+	 * Entry metadata used by cache implementations to enforce expiration and lifetime semantics.
+	 */
 }

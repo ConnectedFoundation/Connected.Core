@@ -63,8 +63,8 @@ public static class Application
 			builder.AddHttpServices();
 			builder.AddCors();
 			builder.Services.AddRouting();
-			builder.AddDependenciess();
 			builder.ConfigureDependenciesServices();
+			builder.AddDependencies();
 
 			services.AddSignalR(o =>
 			{
@@ -115,7 +115,7 @@ public static class Application
 		AppDomain.CurrentDomain.UnhandledException += OnUnhandledExceptionThrown;
 	}
 
-	private static void AddDependenciess(this WebApplicationBuilder builder)
+	private static void AddDependencies(this WebApplicationBuilder builder)
 	{
 		foreach (var dependency in Dependencies.All)
 			builder.Services.AddDependency(dependency);

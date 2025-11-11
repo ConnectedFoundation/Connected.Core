@@ -6,7 +6,8 @@ using ExpressionVisitor = Connected.Data.Expressions.Visitors.ExpressionVisitor;
 
 namespace Connected.Data.Expressions.Evaluation;
 
-internal sealed class SubtreeEvaluator : ExpressionVisitor
+internal sealed class SubtreeEvaluator
+	: ExpressionVisitor
 {
 	private SubtreeEvaluator(ExpressionCompilationContext context, HashSet<Expression> candidates, Func<ConstantExpression, Expression>? onEval)
 	{
@@ -27,11 +28,8 @@ internal sealed class SubtreeEvaluator : ExpressionVisitor
 		return subtreeExpression;
 	}
 
-	protected override Expression? Visit(Expression? exp)
+	protected override Expression Visit(Expression exp)
 	{
-		if (exp is null)
-			return null;
-
 		if (Candidates.Contains(exp))
 			return Evaluate(exp);
 
@@ -44,9 +42,9 @@ internal sealed class SubtreeEvaluator : ExpressionVisitor
 		{
 			var test = Evaluate(c.Test);
 
-			if (test is ConstantExpression && ((ConstantExpression)test).Type == typeof(bool))
+			if (test is ConstantExpression expression && expression.Type == typeof(bool))
 			{
-				if ((bool)((ConstantExpression)test).Value)
+				if ((bool)(expression.Value ?? false))
 					return Visit(c.IfTrue);
 				else
 					return Visit(c.IfFalse);
@@ -88,7 +86,7 @@ internal sealed class SubtreeEvaluator : ExpressionVisitor
 		{
 			if (me.Expression is ConstantExpression ce)
 			{
-				var value = me.Member.GetValue(ce.Value);
+				var value = ce.Value is null ? null : me.Member.GetValue(ce.Value);
 				var constant = Expression.Constant(value, type);
 
 				Context.Parameters.Add(me.Member.Name, constant);

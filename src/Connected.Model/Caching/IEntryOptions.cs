@@ -27,4 +27,7 @@ public interface IEntryOptions
 	/// Specifies wether the entry can store null value.
 	/// </summary>
 	bool AllowNull { get; set; }
+	/*
+	 * Consumers configure these options to control storage behavior per entry when adding via callbacks.
+	 */
 }

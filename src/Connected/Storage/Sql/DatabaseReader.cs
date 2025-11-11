@@ -3,12 +3,9 @@ using System.Data;
 
 namespace Connected.Storage.Sql;
 
-internal class DatabaseReader<T> : DatabaseCommand, IStorageReader<T>
+internal class DatabaseReader<T>(IStorageOperation operation, IStorageConnection connection)
+	: DatabaseCommand(operation, connection), IStorageReader<T>
 {
-	public DatabaseReader(IStorageOperation operation, IStorageConnection connection) : base(operation, connection)
-	{
-	}
-
 	public async Task<IImmutableList<T>> Query()
 	{
 		if (Connection is null)

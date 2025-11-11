@@ -1,29 +1,15 @@
-using System.Collections.ObjectModel;
-using System.Collections.Generic;
-using System.Linq.Expressions;
 using Connected.Data.Expressions.Collections;
 using Connected.Data.Expressions.Formatters;
 using Connected.Data.Expressions.Translation;
+using System.Collections.ObjectModel;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Expressions;
 
-public sealed class SelectExpression : AliasedExpression
-{
-	public SelectExpression(Alias alias, IEnumerable<ColumnDeclaration> columns, Expression from, Expression? where,
+public sealed class SelectExpression(Alias alias, IEnumerable<ColumnDeclaration> columns, Expression from, Expression? where,
 		 IEnumerable<OrderExpression>? orderBy, IEnumerable<Expression>? groupBy, bool isDistinct, Expression? skip, Expression? take, bool isReverse)
-		 : base(DatabaseExpressionType.Select, typeof(void), alias)
-	{
-		Columns = columns.ToReadOnly();
-		IsDistinct = isDistinct;
-		From = from;
-		Where = where;
-		OrderBy = orderBy?.ToReadOnly();
-		GroupBy = groupBy?.ToReadOnly();
-		Take = take;
-		Skip = skip;
-		IsReverse = isReverse;
-	}
-
+		: AliasedExpression(DatabaseExpressionType.Select, typeof(void), alias)
+{
 	public SelectExpression(Alias alias, IEnumerable<ColumnDeclaration> columns, Expression from, Expression? where, IEnumerable<OrderExpression>? orderBy, IEnumerable<Expression>? groupBy)
 		 : this(alias, columns, from, where, orderBy, groupBy, false, null, null, false)
 	{
@@ -34,14 +20,14 @@ public sealed class SelectExpression : AliasedExpression
 	{
 	}
 
-	public ReadOnlyCollection<ColumnDeclaration> Columns { get; }
-	public Expression From { get; }
-	public Expression? Where { get; }
-	public ReadOnlyCollection<OrderExpression>? OrderBy { get; }
-	public ReadOnlyCollection<Expression>? GroupBy { get; }
-	public bool IsDistinct { get; }
-	public Expression? Skip { get; }
-	public Expression? Take { get; }
-	public bool IsReverse { get; }
+	public ReadOnlyCollection<ColumnDeclaration> Columns { get; } = columns.ToReadOnly();
+	public Expression From { get; } = from;
+	public Expression? Where { get; } = where;
+	public ReadOnlyCollection<OrderExpression>? OrderBy { get; } = orderBy?.ToReadOnly();
+	public ReadOnlyCollection<Expression>? GroupBy { get; } = groupBy?.ToReadOnly();
+	public bool IsDistinct { get; } = isDistinct;
+	public Expression? Skip { get; } = skip;
+	public Expression? Take { get; } = take;
+	public bool IsReverse { get; } = isReverse;
 	public string QueryText => SqlFormatter.Format(this);
 }

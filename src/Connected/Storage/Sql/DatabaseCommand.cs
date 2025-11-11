@@ -3,7 +3,6 @@ namespace Connected.Storage.Sql;
 internal abstract class DatabaseCommand(IStorageOperation operation, IStorageConnection connection) : IStorageCommand
 {
 	private IStorageConnection? _connection = connection;
-
 	protected bool IsDisposed { get; private set; }
 	public IStorageOperation Operation { get; } = operation;
 	public IStorageConnection Connection

@@ -1,6 +1,7 @@
 namespace Connected.Storage.Sql.Schemas;
 
-internal class SchemaExists(string name) : SynchronizationQuery<bool>
+internal class SchemaExists(string name)
+	: SynchronizationQuery<bool>
 {
 	protected override async Task<bool> OnExecute()
 	{

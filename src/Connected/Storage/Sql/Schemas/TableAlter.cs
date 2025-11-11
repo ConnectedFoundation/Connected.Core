@@ -2,7 +2,8 @@ using Connected.Storage.Schemas;
 
 namespace Connected.Storage.Sql.Schemas;
 
-internal class TableAlter(ExistingSchema schema) : TableSynchronize
+internal class TableAlter(ExistingSchema schema)
+	: TableSynchronize
 {
 	protected override async Task OnExecute()
 	{

@@ -10,7 +10,7 @@ namespace Connected.Data.Expressions.Comparers;
 
 internal sealed class DatabaseComparer : ExpressionComparer
 {
-	protected DatabaseComparer(ScopedDictionary<ParameterExpression, ParameterExpression>? parameterScope, Func<object?, object?, bool>? comparer,
+	private DatabaseComparer(ScopedDictionary<ParameterExpression, ParameterExpression>? parameterScope, Func<object?, object?, bool>? comparer,
 		 ScopedDictionary<Alias, Alias>? aliasScope)
 		 : base(parameterScope, comparer)
 	{

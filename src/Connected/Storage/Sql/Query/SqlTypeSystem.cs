@@ -8,7 +8,8 @@ using System.Text;
 
 namespace Connected.Storage.Sql.Query;
 
-internal sealed class SqlTypeSystem : QueryTypeSystem
+internal sealed class SqlTypeSystem
+	: QueryTypeSystem
 {
 	public static int StringDefaultSize => int.MaxValue;
 	public static int BinaryDefaultSize => int.MaxValue;

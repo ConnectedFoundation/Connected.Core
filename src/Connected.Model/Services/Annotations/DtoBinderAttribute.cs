@@ -1,17 +1,18 @@
-﻿using Connected.Services;
+﻿namespace Connected.Services.Annotations;
 
-namespace Connected.Services.Annotations;
 /// <summary>
-/// Specifies that a Dto has a custom binder.
+/// Specifies that a DTO has a custom binder.
 /// </summary>
+/// <typeparam name="TBinder">The type of the binder that implements <see cref="IDtoBinder"/> and is used when binding request parameters to the DTO.</typeparam>
 /// <remarks>
-/// If a Dto cannot be bound directly it's recommended that service operations decorate
-/// arguments with a custom binder which performs a binding based on a request parameters.
+/// If a DTO cannot be bound directly, it is recommended that service operations decorate
+/// arguments with a custom binder which performs binding based on request parameters.
+/// This attribute enables custom deserialization logic for DTOs that require special
+/// handling beyond standard model binding.
 /// </remarks>
-/// <typeparam name="TBinder">The binder that should be used when binding request parameters to Dto. TBinder
-/// should implement IDtoBinder interface.</typeparam>
 [AttributeUsage(AttributeTargets.Class)]
-public sealed class DtoBinderAttribute<TBinder> : Attribute where TBinder : IDtoBinder
+public sealed class DtoBinderAttribute<TBinder>
+	: Attribute
+	where TBinder : IDtoBinder
 {
-
 }

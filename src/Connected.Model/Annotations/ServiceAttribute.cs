@@ -18,17 +18,20 @@ public enum ServiceRegistrationScope
 	Transient = 3
 }
 /// <summary>
-/// Specifies that a component should be treated as a service.	
+/// Specifies that a component should be treated as a service.
 /// </summary>
 [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class)]
-public sealed class ServiceAttribute : Attribute
+public sealed class ServiceAttribute
+	: Attribute
 {
 	/// <summary>
 	/// Creates a new instance of the ServiceAttribute class.
 	/// </summary>
 	public ServiceAttribute()
 	{
-
+		/*
+		 * Default scope remains scoped unless explicitly overridden.
+		 */
 	}
 	/// <summary>
 	/// Creates a new instance of the MiddlewareAttribute class with a specific scope.
@@ -37,6 +40,9 @@ public sealed class ServiceAttribute : Attribute
 	/// in the Dependency Injection Container.</param>
 	public ServiceAttribute(ServiceRegistrationScope scope)
 	{
+		/*
+		 * Persist the desired scope for DI registration.
+		 */
 		Scope = scope;
 	}
 	/// <summary>

@@ -5,21 +5,23 @@ using System.Reflection;
 
 namespace Connected.Data;
 
+/// <summary>
+/// Provides data-related extension utilities for mapping runtime metadata
+/// to database-specific types and behaviors.
+/// </summary>
 public static class Extensions
 {
 	/// <summary>
-	/// Sets <see cref="StorageConnectionMode.Isolated"/> value to the <see cref="IConnectionProvider"/> on the
-	/// provided <see cref="IContext"/>.
+	/// Maps a CLR property type and its data annotations to an appropriate <see cref="DbType"/>.
 	/// </summary>
-	/// <param name="context">The <see cref="IContext"/> to set the <see cref="StorageConnectionMode.Isolated"/> value.</param>
-	// public static void UseIsolatedConnections(this IContext context)
-	// {
-	// 	if (context.GetService<IConnectionProvider>() is IConnectionProvider provider)
-	// 		provider.Mode = StorageConnectionMode.Isolated;
-	// }
-
+	/// <param name="property">The reflected property to evaluate.</param>
+	/// <returns>A <see cref="DbType"/> corresponding to the property's storage representation.</returns>
 	public static DbType ToDbType(this PropertyInfo property)
 	{
+		/*
+		 * Determine the effective CLR type: unwrap nullable<T>, enums map to their
+		 * underlying integer type to ensure proper storage mapping.
+		 */
 		Type type;
 
 		if (property.PropertyType.IsNullable())
@@ -30,6 +32,11 @@ public static class Extensions
 		if (type.IsEnum)
 			type = Enum.GetUnderlyingType(type);
 
+		/*
+		 * Strings and chars may be influenced by ETag and String annotations.
+		 * - ETag implies binary storage for concurrency tokens.
+		 * - StringAttribute selects ANSI/Unicode and fixed/variable length kinds.
+		 */
 		if (type == typeof(char) || type == typeof(string))
 		{
 			if (property.FindAttribute<ETagAttribute>() is not null)
@@ -49,10 +56,18 @@ public static class Extensions
 				_ => DbType.String,
 			};
 		}
+		/*
+		 * Primitive numeric and boolean mappings follow the straightforward
+		 * CLR-to-DbType correspondence.
+		 */
 		else if (type == typeof(byte))
 			return DbType.Byte;
 		else if (type == typeof(bool))
 			return DbType.Boolean;
+		/*
+		 * Date/Time types can be refined by DateAttribute to specify dialect
+		 * specific kinds. Default to DateTime2 for precision.
+		 */
 		else if (type == typeof(DateTime) || type == typeof(DateTimeOffset))
 		{
 			var att = property.FindAttribute<DateAttribute>();
@@ -70,6 +85,9 @@ public static class Extensions
 				_ => DbType.DateTime2,
 			};
 		}
+		/*
+		 * Remaining well-known frameworks types.
+		 */
 		else if (type == typeof(decimal))
 			return DbType.Decimal;
 		else if (type == typeof(double))
@@ -96,6 +114,11 @@ public static class Extensions
 			return DbType.UInt64;
 		else if (type == typeof(byte[]))
 			return DbType.Binary;
+
+		/*
+		 * Fallback to binary for unknown types to avoid runtime failures while
+		 * still providing a storable representation.
+		 */
 		else
 			return DbType.Binary;
 	}

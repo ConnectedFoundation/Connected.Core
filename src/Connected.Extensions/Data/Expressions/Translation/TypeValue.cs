@@ -1,19 +1,11 @@
-using System;
-
 namespace Connected.Data.Expressions.Translation;
 
-internal readonly struct TypeValue : IEquatable<TypeValue>
+internal readonly struct TypeValue(Type type, object value)
+		: IEquatable<TypeValue>
 {
-	private readonly Type _type;
-	private readonly object _value;
-	private readonly int _hash;
-
-	public TypeValue(Type type, object value)
-	{
-		_type = type;
-		_value = value;
-		_hash = type.GetHashCode() + (value is not null ? value.GetHashCode() : 0);
-	}
+	private readonly Type _type = type;
+	private readonly object _value = value;
+	private readonly int _hash = type.GetHashCode() + (value is not null ? value.GetHashCode() : 0);
 
 	public override bool Equals(object? obj)
 	{

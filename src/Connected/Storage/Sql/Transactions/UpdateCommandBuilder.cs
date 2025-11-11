@@ -4,7 +4,8 @@ using System.Reflection;
 
 namespace Connected.Storage.Sql.Transactions;
 
-internal sealed class UpdateCommandBuilder : CommandBuilder
+internal sealed class UpdateCommandBuilder
+	: CommandBuilder
 {
 	static UpdateCommandBuilder()
 	{

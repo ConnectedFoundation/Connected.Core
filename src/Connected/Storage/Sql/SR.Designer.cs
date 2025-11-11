@@ -61,6 +61,24 @@ namespace Connected.Storage.Sql {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Expected expression.
+        /// </summary>
+        internal static string ErrExpectedExpression {
+            get {
+                return ResourceManager.GetString("ErrExpectedExpression", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Expected temporary name.
+        /// </summary>
+        internal static string ErrExpectedTemporaryName {
+            get {
+                return ResourceManager.GetString("ErrExpectedTemporaryName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to No default connection string set.
         /// </summary>
         internal static string ErrNoConnectionString {

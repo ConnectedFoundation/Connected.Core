@@ -1,6 +1,7 @@
 namespace Connected.Storage.Sql.Schemas;
 
-internal class SchemaSynchronize : SynchronizationTransaction
+internal class SchemaSynchronize
+	: SynchronizationTransaction
 {
 	protected override async Task OnExecute()
 	{

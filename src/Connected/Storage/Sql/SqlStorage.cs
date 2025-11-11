@@ -6,20 +6,17 @@ using Connected.Data.Expressions.Translation;
 using Connected.Entities;
 using Connected.Services;
 using Connected.Storage.Sql.Query;
+using System.Collections.ObjectModel;
 using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Connected.Storage.Sql;
 
 [Priority(0)]
-internal sealed class SqlStorage : QueryProvider, IStorageExecutor, IQueryMiddleware
+internal sealed class SqlStorage(IStorageProvider storage)
+		: QueryProvider, IStorageExecutor, IQueryMiddleware
 {
-	public SqlStorage(IStorageProvider storage)
-	{
-		Storage = storage;
-	}
-
-	private IStorageProvider Storage { get; }
+	private IStorageProvider Storage { get; } = storage;
 	private StorageConnectionMode ConnectionMode { get; set; } = StorageConnectionMode.Shared;
 
 	public Task<bool> Invoke(Type type, StorageConnectionMode connectionMode)
@@ -44,14 +41,15 @@ internal sealed class SqlStorage : QueryProvider, IStorageExecutor, IQueryMiddle
 		var context = new ExpressionCompilationContext(new TSqlLanguage());
 		var translator = new Translator(context);
 		var translation = translator.Translate(expression);
-		var parameters = lambda?.Parameters;
+		var parameters = lambda?.Parameters ?? new ReadOnlyCollection<ParameterExpression>([]);
 		var provider = Resolve(expression, parameters, typeof(IStorage<>));
 
 		if (provider is null)
 		{
 			var rootQueryable = Resolve(expression, parameters, typeof(IQueryable));
+			var property = typeof(IQueryable).GetTypeInfo().GetDeclaredProperty(nameof(IQueryable.Provider))!;
 
-			provider = Expression.Property(rootQueryable, typeof(IQueryable).GetTypeInfo().GetDeclaredProperty(nameof(IQueryable.Provider)));
+			provider = Expression.Property(rootQueryable, property);
 		}
 
 		return ExecutionBuilder.Build(context, new TSqlLinguist(context, TSqlLanguage.Default, translator), translation, provider);

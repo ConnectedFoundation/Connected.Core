@@ -2,7 +2,8 @@ using System.Data;
 
 namespace Connected.Storage.Sql;
 
-internal sealed class SqlStorageParameter : IStorageParameter
+internal sealed class SqlStorageParameter
+	: IStorageParameter
 {
 	public string? Name { get; init; }
 	public object? Value { get; set; }

@@ -2,7 +2,8 @@ using System.Data;
 
 namespace Connected.Storage.Sql.Schemas;
 
-internal class SpHelp : SynchronizationQuery<ObjectDescriptor>
+internal class SpHelp
+	: SynchronizationQuery<ObjectDescriptor>
 {
 	private readonly ObjectDescriptor _descriptor;
 

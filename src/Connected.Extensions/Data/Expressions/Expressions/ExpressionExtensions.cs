@@ -94,7 +94,7 @@ internal static class ExpressionExtensions
 
 		Split(expression, list, binarySeparators);
 
-		return list.ToArray();
+		return [.. list];
 	}
 
 	private static void Split(Expression expression, List<Expression> list, ExpressionType[] binarySeparators)
@@ -116,13 +116,10 @@ internal static class ExpressionExtensions
 
 	public static Expression? Join(this IEnumerable<Expression> list, ExpressionType binarySeparator)
 	{
-		if (list is not null)
-		{
-			var array = list.ToArray();
+		var array = list.ToArray();
 
-			if (array.Any())
-				return array.Aggregate((x1, x2) => Expression.MakeBinary(binarySeparator, x1, x2));
-		}
+		if (array.Length != 0)
+			return array.Aggregate((x1, x2) => Expression.MakeBinary(binarySeparator, x1, x2));
 
 		return null;
 	}

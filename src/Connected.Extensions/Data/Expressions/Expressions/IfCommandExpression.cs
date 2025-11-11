@@ -2,17 +2,10 @@ using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Expressions;
 
-public sealed class IfCommandExpression : CommandExpression
+public sealed class IfCommandExpression(Expression check, Expression ifTrue, Expression ifFalse)
+		: CommandExpression(DatabaseExpressionType.If, ifTrue.Type)
 {
-	public IfCommandExpression(Expression check, Expression ifTrue, Expression ifFalse)
-		 : base(DatabaseExpressionType.If, ifTrue.Type)
-	{
-		Check = check;
-		IfTrue = ifTrue;
-		IfFalse = ifFalse;
-	}
-
-	public Expression Check { get; }
-	public Expression IfTrue { get; }
-	public Expression IfFalse { get; }
+	public Expression Check { get; } = check;
+	public Expression IfTrue { get; } = ifTrue;
+	public Expression IfFalse { get; } = ifFalse;
 }

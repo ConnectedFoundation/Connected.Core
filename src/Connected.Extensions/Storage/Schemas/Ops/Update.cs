@@ -26,7 +26,7 @@ internal sealed class Update(IMiddlewareService middleware, ILogger<ISchemaServi
 			if (!IsPersistent(entity))
 				continue;
 
-			logger.LogTrace("Synchronizing entity '{entity}", entity.Name);
+			logger.LogTrace("Synchronizing entity '{entity}'", entity.Name);
 
 			var synchronized = false;
 			var dto = Dto.Create<ISelectSchemaDto>();

@@ -21,19 +21,20 @@ public enum BinaryKind
 /// serialized to binary data type. This attribute is typically used with 
 /// LengthAttribute which defines the maximum size of the data.
 /// </remarks>
+/// <remarks>
+/// Creates a new instance of the BinaryAttribute class.
+/// </remarks>
+/// <param name="kind">The kind of a binary type that should be used by storage provider.</param>
 [AttributeUsage(AttributeTargets.Property)]
-public sealed class BinaryAttribute : Attribute
+public sealed class BinaryAttribute(BinaryKind kind)
+	: Attribute
 {
-	/// <summary>
-	/// Creates a new instance of the BinaryAttribute class.
-	/// </summary>
-	/// <param name="kind">The kind of a binary type that should be used by storage provider.</param>
-	public BinaryAttribute(BinaryKind kind)
-	{
-		Kind = kind;
-	}
+	/*
+	 * The attribute carries the desired binary storage kind which can be consulted by
+	 * storage providers while generating schema for the annotated property.
+	 */
 	/// <summary>
 	/// Specifies what kind of binary type the should use.
 	/// </summary>
-	public BinaryKind Kind { get; }
+	public BinaryKind Kind { get; } = kind;
 }

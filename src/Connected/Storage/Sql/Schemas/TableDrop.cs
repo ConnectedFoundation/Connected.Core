@@ -2,7 +2,8 @@ using System.Text;
 
 namespace Connected.Storage.Sql.Schemas;
 
-internal class TableDrop : TableTransaction
+internal class TableDrop
+	: TableTransaction
 {
 	protected override async Task OnExecute()
 	{

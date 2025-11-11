@@ -5,7 +5,8 @@ namespace Connected.Annotations.Entities;
 /// Specifies what database type should be used by storage provider when creating
 /// a storage schema.
 /// </summary>
-public sealed class DataTypeAttribute : Attribute
+public sealed class DataTypeAttribute
+	: Attribute
 {
 	/// <summary>
 	/// Creates a new instance of the DataTypeAttribute class.
@@ -13,6 +14,10 @@ public sealed class DataTypeAttribute : Attribute
 	/// <param name="type">The database type that storage provider should use.</param>
 	public DataTypeAttribute(DbType type)
 	{
+		/*
+		 * Capture the explicitly declared database type so schema generation can
+		 * override default inference rules for the annotated property.
+		 */
 		Type = type;
 	}
 	/// <summary>

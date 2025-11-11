@@ -1,16 +1,14 @@
-using System;
-using System.Linq;
-using System.Linq.Expressions;
-using Connected.Data.Expressions.Translation.Resolvers;
-using Connected.Data.Expressions.Translation;
 using Connected.Data.Expressions.Expressions;
 using Connected.Data.Expressions.Languages;
 using Connected.Data.Expressions.Translation.Projections;
+using Connected.Data.Expressions.Translation.Resolvers;
 using Connected.Data.Expressions.Visitors;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation.Rewriters;
 
-public sealed class CrossApplyRewriter : DatabaseVisitor
+public sealed class CrossApplyRewriter
+	: DatabaseVisitor
 {
 	private CrossApplyRewriter(QueryLanguage language)
 	{

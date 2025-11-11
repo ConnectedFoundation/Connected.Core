@@ -2,11 +2,17 @@ using System.Text;
 
 namespace Connected.Storage.Sql.Schemas;
 
-internal class TableExists : SynchronizationQuery<bool>
+internal class TableExists
+	: SynchronizationQuery<bool>
 {
 	protected override async Task<bool> OnExecute()
 	{
-		return (await Context.Select(CommandText)).Result;
+		var result = await Context.Select(CommandText);
+
+		if (result is null)
+			return false;
+
+		return result.Result;
 	}
 
 	private string CommandText

@@ -8,19 +8,15 @@ internal class AggregatedCommandBuilder<TEntity>
 	public async Task<SqlStorageOperation?> Build(TEntity entity, CancellationToken cancel)
 	{
 		if (entity is not IEntity ie)
-			throw new ArgumentException(nameof(entity));
+			throw new ArgumentException(null, nameof(entity));
 
-		switch (ie.State)
+		return ie.State switch
 		{
-			case State.Add:
-				return await BuildInsert(ie, cancel);
-			case State.Update:
-				return await BuildUpdate(ie, cancel);
-			case State.Delete:
-				return await BuildDelete(ie, cancel);
-			default:
-				throw new NotSupportedException();
-		}
+			State.Add => await AggregatedCommandBuilder<TEntity>.BuildInsert(ie, cancel),
+			State.Update => await AggregatedCommandBuilder<TEntity>.BuildUpdate(ie, cancel),
+			State.Delete => await AggregatedCommandBuilder<TEntity>.BuildDelete(ie, cancel),
+			_ => throw new NotSupportedException(),
+		};
 	}
 
 	public async Task<List<SqlStorageOperation>> Build(ImmutableArray<TEntity> entities, CancellationToken cancel)
@@ -38,17 +34,17 @@ internal class AggregatedCommandBuilder<TEntity>
 		return result;
 	}
 
-	private Task<SqlStorageOperation?> BuildInsert(IEntity entity, CancellationToken cancel)
+	private static Task<SqlStorageOperation?> BuildInsert(IEntity entity, CancellationToken cancel)
 	{
 		return new InsertCommandBuilder().Build(entity, cancel);
 	}
 
-	private Task<SqlStorageOperation?> BuildUpdate(IEntity entity, CancellationToken cancel)
+	private static Task<SqlStorageOperation?> BuildUpdate(IEntity entity, CancellationToken cancel)
 	{
 		return new UpdateCommandBuilder().Build(entity, cancel);
 	}
 
-	private Task<SqlStorageOperation?> BuildDelete(IEntity entity, CancellationToken cancel)
+	private static Task<SqlStorageOperation?> BuildDelete(IEntity entity, CancellationToken cancel)
 	{
 		return new DeleteCommandBuilder().Build(entity, cancel);
 	}

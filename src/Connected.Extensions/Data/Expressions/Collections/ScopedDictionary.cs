@@ -1,15 +1,8 @@
-using System.Collections.Generic;
 namespace Connected.Data.Expressions.Collections;
 
-internal sealed class ScopedDictionary<TKey, TValue>
+internal sealed class ScopedDictionary<TKey, TValue>(ScopedDictionary<TKey, TValue>? previous)
 	where TKey : notnull
 {
-	public ScopedDictionary(ScopedDictionary<TKey, TValue>? previous)
-	{
-		Previous = previous;
-		Map = new();
-	}
-
 	public ScopedDictionary(ScopedDictionary<TKey, TValue>? previous, IEnumerable<KeyValuePair<TKey, TValue>> pairs)
 		 : this(previous)
 	{
@@ -17,8 +10,8 @@ internal sealed class ScopedDictionary<TKey, TValue>
 			Map.Add(p.Key, p.Value);
 	}
 
-	private ScopedDictionary<TKey, TValue>? Previous { get; }
-	private Dictionary<TKey, TValue> Map { get; }
+	private ScopedDictionary<TKey, TValue>? Previous { get; } = previous;
+	private Dictionary<TKey, TValue> Map { get; } = [];
 
 	public void Add(TKey key, TValue value)
 	{
