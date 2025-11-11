@@ -431,3 +431,4 @@ FodyWeavers.xsd
 *.sh
 !tools/**.ps1
 !tools/**.sh
+/.github/copilot-instructions.md
