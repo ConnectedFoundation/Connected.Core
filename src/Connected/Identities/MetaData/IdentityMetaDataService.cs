@@ -1,4 +1,4 @@
-﻿using Connected.Identities.MetaData.Dtos;
+using Connected.Identities.MetaData.Dtos;
 using Connected.Identities.MetaData.Ops;
 using Connected.Services;
 using System.Collections.Immutable;

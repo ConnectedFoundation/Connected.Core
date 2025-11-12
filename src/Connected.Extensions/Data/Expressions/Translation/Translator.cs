@@ -41,9 +41,9 @@ public class Translator
 		return Linguist.Translate(result);
 	}
 
-	private Expression Bind(ExpressionCompilationContext context, Expression expression)
+	private static Expression Bind(ExpressionCompilationContext context, Expression expression)
 	{
-		var bound = Binder.Bind(context, expression);
+		var bound = Binder.Bind(context, expression) ?? throw new NullReferenceException(SR.ErrExpectedExpression);
 		var aggmoved = AggregateRewriter.Rewrite(context, bound);
 		var reduced = UnusedColumns.Remove(aggmoved);
 

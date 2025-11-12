@@ -1,4 +1,4 @@
-﻿using Connected.Entities;
+using Connected.Entities;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
@@ -96,6 +96,6 @@ public class TagIndexer<TEntity, TPrimaryKey>
 
 	public IImmutableList<TEntity> Query(string tags)
 	{
-		return Query(tags.Split(TagDelimiter, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList());
+		return Query([.. tags.Split(TagDelimiter, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)]);
 	}
 }

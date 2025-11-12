@@ -1,4 +1,4 @@
-﻿namespace Connected.Annotations;
+namespace Connected.Annotations;
 /// <summary>
 /// Specifies whic verbs are allowed on the service operation.
 /// </summary>
@@ -43,19 +43,15 @@ public enum ServiceOperationVerbs
 /// Specifies that a Service Operation will be potentially accessible
 /// by external clients.
 /// </summary>
+/// <remarks>
+/// Creates a new instance of the ServiceOperationAttribute class.
+/// </remarks>
+/// <param name="verbs">A set of verbs that will be allowed on the operation.</param>
 [AttributeUsage(AttributeTargets.Method)]
-public sealed class ServiceOperationAttribute : Attribute
+public sealed class ServiceOperationAttribute(ServiceOperationVerbs verbs) : Attribute
 {
-	/// <summary>
-	/// Creates a new instance of the ServiceOperationAttribute class.
-	/// </summary>
-	/// <param name="verbs">A set of verbs that will be allowed on the operation.</param>
-	public ServiceOperationAttribute(ServiceOperationVerbs verbs)
-	{
-		Verbs = verbs;
-	}
 	/// <summary>
 	/// Gets a set of allowed verbs on the operation, if any.
 	/// </summary>
-	public ServiceOperationVerbs Verbs { get; }
+	public ServiceOperationVerbs Verbs { get; } = verbs;
 }

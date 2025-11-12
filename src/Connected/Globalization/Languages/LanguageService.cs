@@ -1,4 +1,4 @@
-﻿using Connected.Services;
+using Connected.Services;
 using System.Collections.Immutable;
 
 namespace Connected.Globalization.Languages;

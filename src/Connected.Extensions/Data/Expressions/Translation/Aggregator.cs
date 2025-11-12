@@ -31,8 +31,7 @@ public static class Aggregator
 			else if (expectedType.GetTypeInfo().IsGenericType && expectedType.GetGenericTypeDefinition().GetTypeInfo().IsAssignableFrom(typeof(IList<>).GetTypeInfo()))
 			{
 				var gt = typeof(DeferredList<>).MakeGenericType(expectedType.GetTypeInfo().GenericTypeArguments);
-				var cn = Types.FindConstructor(gt, [typeof(IEnumerable<>).MakeGenericType(expectedType.GetTypeInfo().GenericTypeArguments)]);
-
+				var cn = Types.FindConstructor(gt, [typeof(IEnumerable<>).MakeGenericType(expectedType.GetTypeInfo().GenericTypeArguments)]) ?? throw new NullReferenceException(SR.ErrCannotResolveConstructor);
 				body = Expression.New(cn, CoerceElement(expectedElementType, p));
 			}
 			else if (expectedType.GetTypeInfo().IsAssignableFrom(typeof(List<>).MakeGenericType(actualElementType).GetTypeInfo()))

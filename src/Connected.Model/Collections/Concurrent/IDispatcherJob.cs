@@ -1,4 +1,4 @@
-﻿namespace Connected.Collections.Concurrent;
+namespace Connected.Collections.Concurrent;
 /// <summary>
 /// Represents a unit of work capable of processing dispatcher arguments of type <typeparamref name="TDto"/>.
 /// </summary>

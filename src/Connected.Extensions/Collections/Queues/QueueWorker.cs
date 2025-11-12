@@ -1,4 +1,4 @@
-﻿using Connected.Collections.Concurrent;
+using Connected.Collections.Concurrent;
 using Connected.Reflection;
 using Connected.Services;
 using Connected.Threading;
@@ -6,16 +6,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Connected.Collections.Queues;
 
-internal sealed class QueueWorker : DispatcherJob<IQueueMessage>
+internal sealed class QueueWorker(IQueueService queue, ILogger<QueueWorker> logger)
+	: DispatcherJob<IQueueMessage>
 {
-	public QueueWorker(IQueueService queue, ILogger<QueueWorker> logger)
-	{
-		Queue = queue;
-		Logger = logger;
-	}
-
-	private IQueueService Queue { get; }
-	private ILogger<QueueWorker> Logger { get; }
 	private TaskTimeout? Timeout { get; set; }
 
 	protected override async Task OnInvoke()
@@ -34,7 +27,7 @@ internal sealed class QueueWorker : DispatcherJob<IQueueMessage>
 		 * we'll perform a ping operation on a message to extend
 		 * next visible time.
 		 */
-		await Queue.Update(new UpdateDto
+		await queue.Update(new UpdateDto
 		{
 			Value = Dto.PopReceipt.GetValueOrDefault(),
 			NextVisible = TimeSpan.FromSeconds(60)
@@ -49,7 +42,7 @@ internal sealed class QueueWorker : DispatcherJob<IQueueMessage>
 			 * It will move next visible for another 60 seconds.
 			 * We are going to do it every 20 seconds.
 			 */
-			await Queue.Update(new UpdateDto
+			await queue.Update(new UpdateDto
 			{
 				Value = Dto.PopReceipt.GetValueOrDefault(),
 				NextVisible = TimeSpan.FromSeconds(60)
@@ -69,7 +62,7 @@ internal sealed class QueueWorker : DispatcherJob<IQueueMessage>
 		}
 		catch (Exception ex)
 		{
-			Logger.LogError(ex, null);
+			logger.LogError(ex, "{Message}", ex.Message);
 
 			throw;
 		}
@@ -115,7 +108,7 @@ internal sealed class QueueWorker : DispatcherJob<IQueueMessage>
 
 	private async Task Complete()
 	{
-		await Queue.Delete(Services.Dto.Factory.CreateValue(Dto.PopReceipt.GetValueOrDefault()));
+		await queue.Delete(Services.Dto.Factory.CreateValue(Dto.PopReceipt.GetValueOrDefault()));
 	}
 
 	private object? CreateClient()
@@ -124,14 +117,14 @@ internal sealed class QueueWorker : DispatcherJob<IQueueMessage>
 
 		if (service is null)
 		{
-			Logger.LogError($"Queue client service not registered ({Dto.Client.GetType().ShortName()})");
+			logger.LogError("Queue client service not registered ({Type})", Dto.Client.GetType().ShortName());
 
 			return null;
 		}
 
 		if (!service.GetType().ImplementsInterface(typeof(IQueueClient<>)))
 		{
-			Logger.LogError($"Queue client does not implement IQueueClient interface ({service.GetType().ShortName()})");
+			logger.LogError("Queue client does not implement IQueueClient interface ({Type})", service.GetType().ShortName());
 
 			return null;
 		}

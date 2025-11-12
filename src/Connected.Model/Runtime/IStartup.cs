@@ -1,4 +1,4 @@
-﻿namespace Connected.Runtime;
+namespace Connected.Runtime;
 
 /// <summary>
 /// Defines the lifecycle hooks for application startup and configuration.

@@ -1,4 +1,4 @@
-﻿namespace Connected.Storage.Schemas;
+namespace Connected.Storage.Schemas;
 
 /// <summary>
 /// Defines a middleware component for schema synchronization operations.

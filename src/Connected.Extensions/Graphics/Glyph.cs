@@ -1,4 +1,4 @@
-﻿namespace Connected.Graphics;
+namespace Connected.Graphics;
 
 public enum GlyphFamily
 {

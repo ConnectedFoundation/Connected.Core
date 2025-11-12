@@ -1,4 +1,4 @@
-﻿using Connected.Identities;
+using Connected.Identities;
 using Connected.Identities.Authentication;
 using Connected.Services;
 using Microsoft.AspNetCore.Http;

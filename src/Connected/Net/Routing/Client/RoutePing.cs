@@ -1,4 +1,4 @@
-﻿using Connected.Authentication;
+using Connected.Authentication;
 using Connected.Entities;
 using Connected.Services;
 using Connected.Workers;

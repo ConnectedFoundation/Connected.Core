@@ -1,4 +1,4 @@
-﻿namespace Connected.Services;
+namespace Connected.Services;
 
 /// <summary>
 /// Represents the base interface for all service operations.

@@ -1,4 +1,4 @@
-﻿namespace Connected.Services.Search;
+namespace Connected.Services.Search;
 
 /// <summary>
 /// Represents a data transfer object for text-based search operations with pagination.

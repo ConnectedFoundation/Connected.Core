@@ -1,7 +1,7 @@
-﻿using Connected.Annotations.Entities;
+using Connected.Annotations.Entities;
 using Connected.Membership.Claims;
 
-namespace Connected.Authorization.Default.Schema;
+namespace Connected.Authorization.Schema;
 internal sealed class SchemaProvider
 	: ClaimSchemaProvider
 {

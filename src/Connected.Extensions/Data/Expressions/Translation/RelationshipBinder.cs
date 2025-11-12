@@ -30,6 +30,9 @@ internal sealed class RelationshipBinder : DatabaseVisitor
 		 */
 		var saveCurrentFrom = CurrentFrom;
 
+		if (select.From is null)
+			throw new NullReferenceException(SR.ErrExpectedExpression);
+
 		CurrentFrom = VisitSource(select.From);
 
 		try
@@ -110,6 +113,6 @@ internal sealed class RelationshipBinder : DatabaseVisitor
 		if (mex is not null && mex.Member == expression.Member && mex.Expression == expression.Expression)
 			return expression;
 
-		return result;
+		return result ?? expression;
 	}
 }

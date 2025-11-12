@@ -1,4 +1,4 @@
-﻿using Connected.Reflection.Merging;
+using Connected.Reflection.Merging;
 using System.Text;
 using System.Text.Json;
 
@@ -49,7 +49,7 @@ public static class Serializer
 		if (destination is null)
 			return destination;
 
-		if (sources is null || !sources.Any())
+		if (sources is null || sources.Length == 0)
 			return destination;
 
 		new ObjectMerger().Merge(destination, sources);

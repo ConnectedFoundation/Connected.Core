@@ -1,4 +1,4 @@
-﻿using Connected.Configuration;
+using Connected.Configuration;
 using Connected.Services;
 using Grpc.Net.Client;
 

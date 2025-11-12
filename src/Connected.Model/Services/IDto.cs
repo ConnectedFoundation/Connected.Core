@@ -1,4 +1,4 @@
-﻿namespace Connected.Services;
+namespace Connected.Services;
 
 /// <summary>
 /// The base interface for all data transfer objects.

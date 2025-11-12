@@ -1,4 +1,4 @@
-﻿namespace Connected.Configuration.Authentication;
+namespace Connected.Configuration.Authentication;
 /// <summary>
 /// Configuration contract describing JSON Web Token (JWT) issuance and validation parameters.
 /// </summary>

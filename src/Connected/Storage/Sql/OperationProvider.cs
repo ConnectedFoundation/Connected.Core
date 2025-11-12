@@ -12,8 +12,6 @@ internal sealed class OperationProvider(ICancellationContext cancel)
 
 	protected override async Task<IStorageOperation?> OnInvoke<TEntity>(TEntity entity)
 	{
-		var command = new AggregatedCommandBuilder<TEntity>();
-
-		return await command.Build(entity, Cancel.CancellationToken);
+		return await AggregatedCommandBuilder<TEntity>.Build(entity, Cancel.CancellationToken);
 	}
 }

@@ -1,4 +1,4 @@
-﻿using Connected.Authentication;
+using Connected.Authentication;
 using Connected.Authorization;
 using Connected.Membership.Annotations;
 using System.Reflection;
@@ -22,7 +22,7 @@ internal sealed class ClaimDecorationHandler(IClaimService claims, IAuthenticati
 				onePassed = true;
 		}
 
-		if (attributes.Count() == 0)
+		if (!attributes.Any())
 			return AuthorizationResult.Skip;
 
 		if (onePassed)

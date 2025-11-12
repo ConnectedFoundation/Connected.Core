@@ -1,4 +1,4 @@
-﻿namespace Connected.Services;
+namespace Connected.Services;
 
 /// <summary>
 /// Provides standard service operation names used across the platform.

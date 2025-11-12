@@ -1,4 +1,4 @@
-﻿using Connected.Services;
+using Connected.Services;
 
 namespace Connected.Authorization.Services;
 public abstract class BoundServiceOperationAuthorization<TDto> : ServiceOperationAuthorization<TDto>, IBoundAuthorization

@@ -11,9 +11,9 @@ internal abstract class CommandBuilder
 {
 	protected CommandBuilder()
 	{
-		Parameters = new();
-		WhereProperties = new();
-		Properties = new();
+		Parameters = [];
+		WhereProperties = [];
+		Properties = [];
 
 		Text = new StringBuilder();
 	}

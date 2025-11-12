@@ -1,4 +1,4 @@
-﻿using Connected.Configuration.Settings;
+using Connected.Configuration.Settings;
 using Connected.Reflection;
 using Connected.Services;
 using Microsoft.Extensions.DependencyInjection;

@@ -1,4 +1,4 @@
-﻿using Connected.Services;
+using Connected.Services;
 using System.Collections;
 
 namespace Connected.Reflection.Merging;
@@ -56,9 +56,7 @@ internal static class PropertyAggregator
 		}
 		else if (value.GetType().IsDictionary())
 		{
-			var dictionary = value as IDictionary;
-
-			if (dictionary is null)
+			if (value is not IDictionary dictionary)
 				return result;
 
 			foreach (var item in dictionary.Keys)

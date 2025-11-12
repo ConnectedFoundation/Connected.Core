@@ -1,4 +1,4 @@
-﻿namespace Connected.Configuration.Authentication;
+namespace Connected.Configuration.Authentication;
 /// <summary>
 /// Root configuration contract for authentication-related settings.
 /// </summary>

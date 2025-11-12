@@ -1,4 +1,4 @@
-﻿namespace Connected.Entities;
+namespace Connected.Entities;
 /// <summary>
 /// Represents a container that references another entity by name and identifier.
 /// </summary>

@@ -1,4 +1,4 @@
-﻿using Connected.Identities.Users;
+using Connected.Identities.Users;
 using Connected.Services;
 
 namespace Connected.Identities.Users.Ops;

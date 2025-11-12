@@ -1,4 +1,4 @@
-﻿namespace Connected.Annotations;
+namespace Connected.Annotations;
 
 /// <summary>
 /// Marks a property as a cache key so caching layers can identify the value to use

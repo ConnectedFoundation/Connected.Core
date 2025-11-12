@@ -1,4 +1,4 @@
-﻿namespace Connected.Annotations;
+namespace Connected.Annotations;
 /// <summary>
 /// Specifies how the service will be registered on the startup.
 /// </summary>
@@ -17,20 +17,16 @@ public enum ServiceRegistrationMode
 /// <summary>
 /// Specifies how the service is registered on startup.
 /// </summary>
+/// <remarks>
+/// Creates a new instance of the ServiceRegistrationAttribute class.
+/// </remarks>
+/// <param name="mode">A registration mode to instruct the Connected wether 
+/// to perform automatic registration or not.</param>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-public sealed class ServiceRegistrationAttribute : Attribute
+public sealed class ServiceRegistrationAttribute(ServiceRegistrationMode mode) : Attribute
 {
-	/// <summary>
-	/// Creates a new instance of the ServiceRegistrationAttribute class.
-	/// </summary>
-	/// <param name="mode">A registration mode to instruct the Connected wether 
-	/// to perform automatic registration or not.</param>
-	public ServiceRegistrationAttribute(ServiceRegistrationMode mode)
-	{
-		Mode = mode;
-	}
 	/// <summary>
 	/// Gets a registration mode for the service.
 	/// </summary>
-	public ServiceRegistrationMode Mode { get; }
+	public ServiceRegistrationMode Mode { get; } = mode;
 }

@@ -1,4 +1,4 @@
-﻿namespace Connected.Net.Events.Dtos;
+namespace Connected.Net.Events.Dtos;
 
 /// <summary>
 /// Represents a data transfer object for subscribing to events on the event server.

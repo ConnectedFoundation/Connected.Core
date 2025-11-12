@@ -1,4 +1,4 @@
-﻿using Connected.Data;
+using Connected.Data;
 using Connected.Entities;
 using Connected.Services;
 

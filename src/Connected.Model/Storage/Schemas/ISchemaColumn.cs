@@ -1,4 +1,4 @@
-﻿using Connected.Annotations.Entities;
+using Connected.Annotations.Entities;
 using System.Data;
 using System.Reflection;
 
@@ -219,5 +219,5 @@ public interface ISchemaColumn
 	/// its corresponding property in the entity model, enabling mapping and data binding
 	/// operations.
 	/// </remarks>
-	PropertyInfo Property { get; }
+	PropertyInfo? Property { get; }
 }

@@ -139,6 +139,9 @@ public abstract class QueryLanguage
 		 * a constant that can act as a safe fallback test value.
 		 *
 		 */
+		if (select.From is null)
+			throw new NullReferenceException(SR.ErrExpectedExpression);
+
 		var aliases = DeclaredAliasesResolver.Resolve(select.From);
 		var columns = JoinColumnResolver.Resolve(aliases, select).ToList();
 
@@ -241,7 +244,7 @@ public abstract class QueryLanguage
 																																																					type == typeof(TimeSpan) ||
 																																																															type == typeof(Guid) ||
 																																				type == typeof(byte[]),
-				_ => true,
+			_ => true,
 		};
 	}
 

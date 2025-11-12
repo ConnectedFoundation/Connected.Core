@@ -1,4 +1,4 @@
-﻿namespace Connected.Services;
+namespace Connected.Services;
 
 public abstract class AmbientProvider<TDto> : Connected.Middleware, IAmbientProvider<TDto>
 	where TDto : IDto

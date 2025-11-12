@@ -1,4 +1,4 @@
-﻿using Connected.Annotations;
+using Connected.Annotations;
 using Connected.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 

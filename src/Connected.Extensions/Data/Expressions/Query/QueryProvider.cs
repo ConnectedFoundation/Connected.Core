@@ -31,8 +31,5 @@ public abstract class QueryProvider
 		return (TResult)OnExecute(expression);
 	}
 
-	protected virtual object? OnExecute(Expression expression)
-	{
-		return default;
-	}
+	protected abstract object OnExecute(Expression expression);
 }

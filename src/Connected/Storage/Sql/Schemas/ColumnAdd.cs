@@ -23,7 +23,7 @@ internal class ColumnAdd(ISchemaColumn column)
 		{
 			var text = new StringBuilder();
 
-			text.AppendLine($"ALTER TABLE {Escape(Context.Schema.SchemaName(), Context.Schema.Name)}");
+			text.AppendLine($"ALTER TABLE {Escape(Context.Schema.Schema, Context.Schema.Name)}");
 			text.AppendLine($"ADD COLUMN {CreateColumnCommandText(Column)}");
 
 			return text.ToString();

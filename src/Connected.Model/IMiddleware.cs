@@ -1,4 +1,4 @@
-﻿namespace Connected;
+namespace Connected;
 
 /// <summary>
 /// The base marker interface for all middleware implementations.

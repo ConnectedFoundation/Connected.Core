@@ -1,4 +1,4 @@
-﻿namespace Connected.Threading;
+namespace Connected.Threading;
 
 public static class AsyncUtils
 {

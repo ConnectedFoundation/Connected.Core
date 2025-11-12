@@ -1,4 +1,4 @@
-﻿using Connected.Entities;
+using Connected.Entities;
 using Connected.Net.Routing;
 
 namespace Connected.Net.Routing.Client;

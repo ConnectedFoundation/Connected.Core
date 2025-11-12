@@ -1,4 +1,4 @@
-﻿using Connected.Net.Routing.Dtos;
+using Connected.Net.Routing.Dtos;
 using Connected.Services;
 
 namespace Connected.Net.Routing.Ambient;

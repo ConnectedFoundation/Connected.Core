@@ -2,15 +2,8 @@ using System.Text;
 
 namespace Connected.Storage.Sql.Schemas;
 
-internal class ConstraintDrop : TableTransaction
+internal class ConstraintDrop(ObjectIndex index) : TableTransaction
 {
-	public ConstraintDrop(ObjectIndex index)
-	{
-		Index = index;
-	}
-
-	private ObjectIndex Index { get; }
-
 	protected override async Task OnExecute()
 	{
 		await Context.Execute(CommandText);
@@ -21,7 +14,7 @@ internal class ConstraintDrop : TableTransaction
 		{
 			var text = new StringBuilder();
 
-			text.AppendLine($"ALTER TABLE {Escape(Context.Schema.Schema, Context.Schema.Name)} DROP CONSTRAINT {Index.Name};");
+			text.AppendLine($"ALTER TABLE {Escape(Context.Schema.Schema, Context.Schema.Name)} DROP CONSTRAINT {index.Name};");
 
 			return text.ToString();
 		}

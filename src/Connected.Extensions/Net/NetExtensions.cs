@@ -1,4 +1,4 @@
-﻿using Connected.Annotations;
+using Connected.Annotations;
 using Connected.Net.Cors;
 using Connected.Net.Rest;
 using Connected.Net.Rest.Dtos;

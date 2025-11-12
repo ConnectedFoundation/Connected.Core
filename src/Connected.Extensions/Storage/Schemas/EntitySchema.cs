@@ -3,9 +3,9 @@ namespace Connected.Storage.Schemas;
 internal sealed class EntitySchema : ISchema
 {
 	public List<ISchemaColumn> Columns { get; } = [];
-	public string? Schema { get; set; }
-	public string? Name { get; set; }
-	public string? Type { get; set; }
+	public required string Schema { get; set; }
+	public required string Name { get; set; }
+	public required string Type { get; set; }
 	public bool Ignore { get; set; }
 
 	public bool Equals(ISchema? other)

@@ -1,4 +1,4 @@
-﻿using Connected.Annotations;
+using Connected.Annotations;
 using Connected.Membership.Dtos;
 using Connected.Services;
 using System.Collections.Immutable;

@@ -1,4 +1,4 @@
-﻿using Connected.Annotations;
+using Connected.Annotations;
 using Connected.Net.Grpc.Dtos;
 using Grpc.Net.Client;
 

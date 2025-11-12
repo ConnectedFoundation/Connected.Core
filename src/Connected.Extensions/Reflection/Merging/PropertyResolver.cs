@@ -1,4 +1,4 @@
-﻿using Connected;
+using Connected;
 using System;
 using System.Reflection;
 

@@ -1,4 +1,4 @@
-﻿namespace Connected.Identities;
+namespace Connected.Identities;
 
 /// <summary>
 /// Represents an Identity which acts as an Authenticated entity in the specified context.

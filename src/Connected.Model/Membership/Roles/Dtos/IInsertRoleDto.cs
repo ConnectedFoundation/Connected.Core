@@ -1,4 +1,4 @@
-﻿namespace Connected.Membership.Roles.Dtos;
+namespace Connected.Membership.Roles.Dtos;
 
 public interface IInsertRoleDto : IRoleDto
 {

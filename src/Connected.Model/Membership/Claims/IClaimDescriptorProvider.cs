@@ -1,4 +1,4 @@
-﻿using Connected.Membership.Claims.Dtos;
+using Connected.Membership.Claims.Dtos;
 using System.Collections.Immutable;
 
 namespace Connected.Membership.Claims;

@@ -1,4 +1,4 @@
-﻿namespace Connected.Entities;
+namespace Connected.Entities;
 /// <summary>
 /// Represents an entity that supports a simple tag collection stored as a string.
 /// </summary>

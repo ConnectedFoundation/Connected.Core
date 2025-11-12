@@ -1,4 +1,4 @@
-﻿using Connected.Identities.Schemas;
+using Connected.Identities.Schemas;
 using Connected.Services;
 
 namespace Connected.Identities.Ops;

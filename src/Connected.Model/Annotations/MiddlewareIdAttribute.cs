@@ -1,4 +1,4 @@
-﻿namespace Connected.Annotations;
+namespace Connected.Annotations;
 /// <summary>
 /// Associates a stable identifier with a middleware type to support discovery and referencing.
 /// </summary>

@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.Loader;
 
@@ -6,7 +6,7 @@ namespace Connected.Reflection;
 
 public static class Types
 {
-	private static Dictionary<Type, string> AliasedTypes = new Dictionary<Type, string>
+	private static readonly Dictionary<Type, string> AliasedTypes = new()
 	{
 		{typeof(int), "int"},
 		{typeof(uint), "uint"},
@@ -85,12 +85,9 @@ public static class Types
 		{
 			var a = typeof(System.Runtime.CompilerServices.RuntimeHelpers).GetTypeInfo().Assembly;
 			var fs = a.DefinedTypes.FirstOrDefault(t => string.Equals(t.FullName, "System.Runtime.Serialization.FormatterServices"));
-			var guo = fs?.DeclaredMethods.FirstOrDefault(m => m.Name == nameof(GetUninitializedObject));
+			var guo = (fs?.DeclaredMethods.FirstOrDefault(m => m.Name == nameof(GetUninitializedObject))) ?? throw new NotSupportedException($"The runtime does not support the '{nameof(GetUninitializedObject)}' API.");
 
-			if (guo is null)
-				throw new NotSupportedException($"The runtime does not support the '{nameof(GetUninitializedObject)}' API.");
-
-			Interlocked.CompareExchange(ref _getUninitializedObject, (Func<Type, object>)guo.CreateDelegate(typeof(Func<Type, object>)), null);
+			Interlocked.CompareExchange(ref _getUninitializedObject, guo.CreateDelegate<Func<Type, object>>(), null);
 		}
 
 		return type.GetUninitializedObject();
@@ -128,7 +125,7 @@ public static class Types
 		var r = type.Name;
 
 		if (r.Contains('.'))
-			r = r.Substring(r.LastIndexOf('.') + 1);
+			r = r[(r.LastIndexOf('.') + 1)..];
 
 		return r;
 	}
@@ -163,7 +160,7 @@ public static class Types
 		if (type is null)
 			return default;
 
-		object? instance = null;
+		object? instance;
 
 		if (ctorArgs is null)
 			instance = CreateInstanceInternal(type);
@@ -301,13 +298,13 @@ public static class Types
 		if (r is null)
 			return [];
 
-		return r.ToList();
+		return [.. r];
 	}
 
 	public static string ToFriendlyName(this Type type)
 	{
-		if (AliasedTypes.ContainsKey(type))
-			return AliasedTypes[type];
+		if (AliasedTypes.TryGetValue(type, out string? value))
+			return value;
 		else if (type.IsGenericType)
 			return type.Name.Split('`')[0] + "<" + string.Join(", ", type.GetGenericArguments().Select(x => ToFriendlyName(x)).ToArray()) + ">";
 		else

@@ -1,4 +1,4 @@
-﻿namespace Connected.Caching;
+namespace Connected.Caching;
 /// <summary>
 /// Entity-focused cache abstraction supporting synchronized access and refresh operations.
 /// </summary>

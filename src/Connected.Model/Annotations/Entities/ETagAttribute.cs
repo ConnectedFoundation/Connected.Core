@@ -1,4 +1,4 @@
-﻿namespace Connected.Annotations.Entities;
+namespace Connected.Annotations.Entities;
 /// <summary>
 /// Specifies that a property should be regarded as an ETag field, sometimes called timestamp.
 /// </summary>

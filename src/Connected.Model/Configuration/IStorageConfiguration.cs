@@ -1,4 +1,4 @@
-﻿namespace Connected.Configuration;
+namespace Connected.Configuration;
 /// <summary>
 /// Configuration root for storage-related settings.
 /// </summary>

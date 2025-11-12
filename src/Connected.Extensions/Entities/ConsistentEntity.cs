@@ -1,4 +1,4 @@
-﻿using Connected.Annotations;
+using Connected.Annotations;
 using Connected.Annotations.Entities;
 using System.Text.Json.Serialization;
 

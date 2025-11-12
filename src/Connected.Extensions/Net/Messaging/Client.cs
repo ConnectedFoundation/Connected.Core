@@ -1,4 +1,4 @@
-﻿namespace Connected.Net.Messaging;
+namespace Connected.Net.Messaging;
 
 internal sealed class Client : IClient
 {

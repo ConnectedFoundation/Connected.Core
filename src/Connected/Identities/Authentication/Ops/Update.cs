@@ -1,4 +1,4 @@
-﻿using Connected.Identities.Authentication.Dtos;
+using Connected.Identities.Authentication.Dtos;
 using Connected.Notifications;
 using Connected.Services;
 using Connected.Storage;

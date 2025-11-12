@@ -1,4 +1,4 @@
-﻿namespace Connected.Services;
+namespace Connected.Services;
 
 public abstract class DtoValuesProvider<TDto> : Connected.Middleware, IDtoValuesProvider<TDto>
 	where TDto : IDto

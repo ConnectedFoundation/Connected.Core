@@ -1,4 +1,4 @@
-﻿namespace Connected.Membership.Annotations;
+namespace Connected.Membership.Annotations;
 
 public enum ClaimsOptions
 {

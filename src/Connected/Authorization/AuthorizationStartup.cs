@@ -1,4 +1,4 @@
-﻿using Connected.Runtime;
+using Connected.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Connected.Authorization;

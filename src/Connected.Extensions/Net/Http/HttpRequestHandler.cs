@@ -1,20 +1,12 @@
-﻿using System.Threading.Tasks;
-using System;
-using System.Net;
-using System.Globalization;
-using System.Linq;
 using Microsoft.AspNetCore.Http;
+using System.Globalization;
+using System.Net;
 
 namespace Connected.Net.Http;
 
-public abstract class HttpRequestHandler : IDisposable
+public abstract class HttpRequestHandler(HttpContext context) : IDisposable
 {
-	protected HttpRequestHandler(HttpContext context)
-	{
-		Context = context;
-	}
-
-	protected HttpContext Context { get; }
+	protected HttpContext Context { get; } = context;
 
 	public async Task Invoke()
 	{
@@ -29,8 +21,8 @@ public abstract class HttpRequestHandler : IDisposable
 	protected bool HasBeenModified(DateTimeOffset date)
 	{
 		date = new DateTimeOffset(date.Year, date.Month, date.Day, date.Hour, date.Minute, date.Second, TimeSpan.Zero);
-		var ifModified = Context.Request.Headers["If-Modified-Since"].ToString();
-		var etag = Context.Request.Headers["ETag"].ToString();
+		var ifModified = Context.Request.Headers.IfModifiedSince.ToString();
+		var etag = Context.Request.Headers.ETag.ToString();
 
 		if (string.IsNullOrWhiteSpace(ifModified))
 			ifModified = null;
@@ -68,14 +60,14 @@ public abstract class HttpRequestHandler : IDisposable
 	{
 		date = new DateTimeOffset(date.Year, date.Month, date.Day, date.Hour, date.Minute, date.Second, TimeSpan.Zero);
 
-		Context.Response.Headers["Last-Modified"] = date.ToUniversalTime().ToString("r");
-		Context.Response.Headers["ETag"] = date.ToUniversalTime().Ticks.ToString();
-		Context.Response.Headers["Cache-Control"] = $"public, max-age={maxAge}";
+		Context.Response.Headers.LastModified = date.ToUniversalTime().ToString("r");
+		Context.Response.Headers.ETag = date.ToUniversalTime().Ticks.ToString();
+		Context.Response.Headers.CacheControl = $"public, max-age={maxAge}";
 	}
 
 	protected async Task Write(DateTimeOffset modified, string contentType, byte[]? content)
 	{
-		if (content is null || !content.Any())
+		if (content is null || content.Length == 0)
 			return;
 
 		if (modified != DateTimeOffset.MinValue && !HasBeenModified(modified))
@@ -88,7 +80,7 @@ public abstract class HttpRequestHandler : IDisposable
 
 		Context.Response.ContentLength = content.Length;
 
-		await Context.Response.Body.WriteAsync(content, 0, content.Length);
+		await Context.Response.Body.WriteAsync(content);
 		await Context.Response.CompleteAsync();
 	}
 
@@ -104,6 +96,8 @@ public abstract class HttpRequestHandler : IDisposable
 
 	public void Dispose()
 	{
+		GC.SuppressFinalize(this);
+
 		OnDispose(true);
 	}
 

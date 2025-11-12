@@ -24,7 +24,7 @@ internal class ColumnDrop(ISchemaColumn column, ExistingSchema existing) : Colum
 		{
 			var text = new StringBuilder();
 
-			text.AppendLine($"ALTER TABLE {Escape(Context.Schema.SchemaName(), Context.Schema.Name)} DROP COLUMN {Escape(Column.Name)};");
+			text.AppendLine($"ALTER TABLE {Escape(Context.Schema.Schema, Context.Schema.Name)} DROP COLUMN {Escape(Column.Name)};");
 
 			return text.ToString();
 		}

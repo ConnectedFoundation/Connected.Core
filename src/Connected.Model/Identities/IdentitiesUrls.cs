@@ -1,4 +1,4 @@
-﻿namespace Connected.Identities;
+namespace Connected.Identities;
 
 /// <summary>
 /// Provides URL constants for identity service endpoints and operations.

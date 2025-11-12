@@ -1,4 +1,4 @@
-﻿namespace Connected.Collections.Concurrent;
+namespace Connected.Collections.Concurrent;
 public class TimeoutTask : IDisposable
 {
 	private readonly Func<Task> _pingAction;

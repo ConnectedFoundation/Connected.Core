@@ -1,4 +1,4 @@
-﻿using Connected.Annotations;
+using Connected.Annotations;
 using Connected.Collections.Queues;
 using Connected.Services;
 using System.Collections;
@@ -39,10 +39,10 @@ public static class CollectionExtensions
 	public static ImmutableArray<TSource> ToImmutableArray<TSource>(this IEnumerable<TSource> items, bool performLock)
 	{
 		if (!performLock)
-			return items.ToImmutableArray();
+			return [.. items];
 
 		lock (items)
-			return items.ToImmutableArray();
+			return [.. items];
 	}
 
 	public static IImmutableList<TSource> ToImmutableList<TSource>(this IEnumerable<TSource> items, bool performLock)

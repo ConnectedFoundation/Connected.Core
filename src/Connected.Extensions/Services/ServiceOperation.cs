@@ -1,4 +1,4 @@
-﻿using Connected.Entities;
+using Connected.Entities;
 using Connected.Storage.Transactions;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;

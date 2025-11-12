@@ -1,4 +1,4 @@
-﻿using Connected.Net.Events.Dtos;
+using Connected.Net.Events.Dtos;
 
 namespace Connected.Net.Events;
 internal static class EventExtensions

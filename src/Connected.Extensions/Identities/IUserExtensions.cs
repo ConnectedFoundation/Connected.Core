@@ -1,4 +1,4 @@
-﻿using Connected.Annotations;
+using Connected.Annotations;
 using Connected.Identities.Dtos;
 using System;
 using System.Collections.Generic;

@@ -1,4 +1,4 @@
-﻿using Connected.Configuration;
+using Connected.Configuration;
 using Connected.Entities;
 using Connected.Net.Grpc;
 using Connected.Net.Routing.Dtos;

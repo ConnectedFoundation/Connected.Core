@@ -1,4 +1,4 @@
-﻿namespace Connected.Annotations;
+namespace Connected.Annotations;
 /// <summary>
 /// Specifies how a Service is registered in the Dependency Injection container.
 /// </summary>

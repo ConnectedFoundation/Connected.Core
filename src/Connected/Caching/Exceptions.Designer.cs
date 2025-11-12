@@ -61,6 +61,15 @@ namespace Connected.Caching {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Cache entry id resolved to null.
+        /// </summary>
+        internal static string ErrCacheIdResolvedNull {
+            get {
+                return ResourceManager.GetString("ErrCacheIdResolvedNull", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Cannot cast cache entry to destination type.
         /// </summary>
         internal static string ExInvalidCacheEntry {

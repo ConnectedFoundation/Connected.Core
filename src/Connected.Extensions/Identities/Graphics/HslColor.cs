@@ -1,4 +1,4 @@
-﻿using SkiaSharp;
+using SkiaSharp;
 
 namespace Connected.Identities.Graphics;
 internal class HslColor

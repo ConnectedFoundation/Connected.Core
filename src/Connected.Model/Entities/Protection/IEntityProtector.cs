@@ -1,4 +1,4 @@
-﻿namespace Connected.Entities.Protection;
+namespace Connected.Entities.Protection;
 /// <summary>
 /// Middleware component that applies protection logic to an entity prior to persistence.
 /// </summary>

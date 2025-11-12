@@ -16,7 +16,7 @@ internal class IdentityInsert(string tableName, bool on) : TableTransaction
 			var text = new StringBuilder();
 			var switchCommand = on ? "ON" : "OFF";
 
-			text.AppendLine($"SET IDENTITY_INSERT {Escape(Context.Schema.SchemaName(), tableName)}  {switchCommand}");
+			text.AppendLine($"SET IDENTITY_INSERT {Escape(Context.Schema.Schema, tableName)}  {switchCommand}");
 
 			return text.ToString();
 		}

@@ -1,4 +1,4 @@
-﻿using Connected.Entities;
+using Connected.Entities;
 using Connected.Notifications;
 using Connected.Services;
 using Connected.Storage;

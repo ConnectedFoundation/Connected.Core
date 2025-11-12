@@ -1,4 +1,4 @@
-﻿using Connected.Collections;
+using Connected.Collections;
 using Connected.Net.Dtos;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;

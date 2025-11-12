@@ -5,7 +5,7 @@ namespace Connected.Storage.Sql.Schemas;
 internal class TableSynchronize
 	: TableTransaction
 {
-	private readonly ExistingSchema _existingSchema = new();
+	private ExistingSchema? _existingSchema = null;
 
 	private bool TableExists { get; set; }
 
@@ -18,6 +18,13 @@ internal class TableSynchronize
 			await new TableCreate(false).Execute(Context);
 			return;
 		}
+
+		_existingSchema = new ExistingSchema
+		{
+			Name = Context.Schema.Name,
+			Schema = Context.Schema.Schema,
+			Type = Context.Schema.Type
+		};
 
 		await _existingSchema.Load(Context);
 
@@ -32,7 +39,7 @@ internal class TableSynchronize
 	private bool ShouldAlter => !Context.Schema.Equals(ExistingSchema);
 	private bool ShouldRecreate => HasIdentityChanged || HasColumnMetadataChanged;
 
-	private ExistingSchema ExistingSchema => _existingSchema;
+	private ExistingSchema? ExistingSchema => _existingSchema;
 
 	private bool HasIdentityChanged
 	{
@@ -40,14 +47,14 @@ internal class TableSynchronize
 		{
 			foreach (var column in Context.Schema.Columns)
 			{
-				if (ExistingSchema.Columns.FirstOrDefault(f => string.Equals(f.Name, column.Name, StringComparison.OrdinalIgnoreCase)) is not ISchemaColumn existing)
+				if (ExistingSchema!.Columns.FirstOrDefault(f => string.Equals(f.Name, column.Name, StringComparison.OrdinalIgnoreCase)) is not ISchemaColumn existing)
 					return true;
 
 				if (existing.IsIdentity != column.IsIdentity)
 					return true;
 			}
 
-			foreach (var existing in ExistingSchema.Columns)
+			foreach (var existing in ExistingSchema!.Columns)
 			{
 				var column = Context.Schema.Columns.FirstOrDefault(f => string.Equals(f.Name, existing.Name, StringComparison.OrdinalIgnoreCase));
 
@@ -65,7 +72,7 @@ internal class TableSynchronize
 	{
 		get
 		{
-			foreach (var existing in ExistingSchema.Columns)
+			foreach (var existing in ExistingSchema!.Columns)
 			{
 				if (Context.Schema.Columns.FirstOrDefault(f => string.Equals(f.Name, existing.Name, StringComparison.OrdinalIgnoreCase)) is not ISchemaColumn column)
 					continue;

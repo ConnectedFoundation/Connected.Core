@@ -1,4 +1,4 @@
-﻿using Connected;
+using Connected;
 using Connected.Runtime;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

@@ -1,4 +1,4 @@
-﻿using Connected.Storage.Transactions;
+using Connected.Storage.Transactions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Connected.Services;

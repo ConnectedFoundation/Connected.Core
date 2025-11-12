@@ -1,4 +1,4 @@
-﻿using Connected.Runtime;
+using Connected.Runtime;
 using Microsoft.Extensions.Configuration;
 using System.Collections.Immutable;
 using System.Reflection;
@@ -30,7 +30,7 @@ internal sealed class RuntimeService(IConfiguration configuration)
 	/// <inheritdoc/>
 	public async Task<IImmutableList<Type>> QueryMiddlewares()
 	{
-		return await Task.FromResult(configuration.QueryMiddlewares());
+		return await Task.FromResult(CoreUtils.QueryMiddlewares());
 	}
 	/// <summary>
 	/// Asynchronously queries all discovered startup components.

@@ -1,4 +1,4 @@
-﻿namespace Connected.Net;
+namespace Connected.Net;
 
 /// <summary>
 /// Provides URL path constants for networking service endpoints.

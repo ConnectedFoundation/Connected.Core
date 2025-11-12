@@ -1,4 +1,4 @@
-﻿namespace Connected.Data;
+namespace Connected.Data;
 /// <summary>
 /// Represents an entity with a conditional visibility lock enforced through a pop receipt.
 /// </summary>

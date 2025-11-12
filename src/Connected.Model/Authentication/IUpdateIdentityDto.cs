@@ -1,4 +1,4 @@
-﻿using Connected.Identities;
+using Connected.Identities;
 using Connected.Services;
 
 namespace Connected.Authentication;

@@ -1,4 +1,4 @@
-﻿namespace Connected.Entities;
+namespace Connected.Entities;
 
 /// <summary>
 /// Provides custom serialization and deserialization for individual entity properties.

@@ -1,4 +1,4 @@
-﻿namespace Connected.Services.Middlewares;
+namespace Connected.Services.Middlewares;
 
 /// <summary>
 /// Represents the base marker interface for all service operation middleware.

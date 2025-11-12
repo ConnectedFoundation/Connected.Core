@@ -1,4 +1,4 @@
-﻿namespace Connected.Net.Events.Dtos;
+namespace Connected.Net.Events.Dtos;
 internal sealed class UnsubscribeEventDto
 	: EventServerDto, IUnsubscribeEventDto
 {

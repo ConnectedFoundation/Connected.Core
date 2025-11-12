@@ -1,4 +1,4 @@
-﻿namespace Connected.Identities;
+namespace Connected.Identities;
 
 /// <summary>
 /// Represents an identity that supports single sign-on authentication.

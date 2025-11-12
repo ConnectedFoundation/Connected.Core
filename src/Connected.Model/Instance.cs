@@ -1,4 +1,4 @@
-﻿namespace Connected;
+namespace Connected;
 
 /// <summary>
 /// Represents the unique identifier for the current application instance.

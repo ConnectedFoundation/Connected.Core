@@ -1,22 +1,22 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Connected.Annotations;
 /// <summary>
 /// Validation attribute ensuring a numeric value is greater than or equal to a configured minimum.
 /// </summary>
+/// <remarks>
+/// Initializes the attribute with the minimum allowed value.
+/// </remarks>
+/// <param name="value">The inclusive lower bound.</param>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
-public class MinValueAttribute
-	: ValidationAttribute
+public class MinValueAttribute(double value)
+		: ValidationAttribute
 {
 	/// <summary>
 	/// Gets the minimum allowed numeric value.
 	/// </summary>
-	public double Value { get; }
-	/// <summary>
-	/// Initializes the attribute with the minimum allowed value.
-	/// </summary>
-	/// <param name="value">The inclusive lower bound.</param>
-	public MinValueAttribute(double value) => Value = value;
+	public double Value { get; } = value;
+
 	/// <summary>
 	/// Determines whether the specified value satisfies the minimum constraint.
 	/// </summary>

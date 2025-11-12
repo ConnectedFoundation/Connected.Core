@@ -1,4 +1,4 @@
-﻿namespace Connected.Annotations.Entities;
+namespace Connected.Annotations.Entities;
 /// <summary>
 /// Defines an Entity member name on the property when storage naming differs from the CLR property name.
 /// Common when mapping to pre-existing schemas where names cannot be changed.

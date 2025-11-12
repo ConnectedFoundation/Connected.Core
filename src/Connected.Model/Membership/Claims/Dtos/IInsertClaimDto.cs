@@ -1,4 +1,4 @@
-﻿namespace Connected.Membership.Claims.Dtos;
+namespace Connected.Membership.Claims.Dtos;
 
 public interface IInsertClaimDto : IClaimDto
 {

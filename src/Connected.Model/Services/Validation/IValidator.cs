@@ -1,4 +1,4 @@
-﻿namespace Connected.Services.Validation;
+namespace Connected.Services.Validation;
 
 /// <summary>
 /// Represents a validator middleware for data transfer objects.

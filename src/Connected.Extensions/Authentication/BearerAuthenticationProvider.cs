@@ -1,4 +1,4 @@
-﻿using Connected.Annotations;
+using Connected.Annotations;
 using System.Text;
 
 namespace Connected.Authentication;

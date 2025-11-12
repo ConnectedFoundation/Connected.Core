@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Connected.Net.Events.Dtos;
 internal sealed class SubscribeEventDto

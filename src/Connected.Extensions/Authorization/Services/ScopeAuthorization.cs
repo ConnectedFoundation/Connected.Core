@@ -1,4 +1,4 @@
-﻿using Connected.Services;
+using Connected.Services;
 
 namespace Connected.Authorization.Services;
 public abstract class ScopeAuthorization : AuthorizationMiddleware, IScopeAuthorization

@@ -46,6 +46,9 @@ internal sealed class Subqueries
 	{
 		if (SelectsToRemove.Contains(expression))
 		{
+			if (expression.From is null)
+				throw new NullReferenceException(SR.ErrExpectedExpression);
+
 			if (Visit(expression.From) is not Expression fromExpression)
 				throw new NullReferenceException(nameof(fromExpression));
 

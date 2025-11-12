@@ -8,15 +8,15 @@ public enum IndexType
 }
 internal class ObjectIndex
 {
-	public string Name { get; set; }
-	public string Description { get; set; }
-	public string Keys { get; set; }
+	public string? Name { get; set; }
+	public string? Description { get; set; }
+	public string? Keys { get; set; }
 
 	public IndexType Type
 	{
 		get
 		{
-			var tokens = Description.Split(',');
+			var tokens = Description is null ? [] : Description.Split(',');
 			var result = IndexType.Index;
 
 			foreach (var token in tokens)
@@ -41,7 +41,7 @@ internal class ObjectIndex
 		get
 		{
 			var result = new List<string>();
-			var tokens = Keys.Split(',');
+			var tokens = Keys is null ? [] : Keys.Split(',');
 
 			foreach (var token in tokens)
 				result.Add(token.Trim());

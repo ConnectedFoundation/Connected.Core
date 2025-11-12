@@ -1,4 +1,4 @@
-﻿using Connected.Authentication;
+using Connected.Authentication;
 using Connected.Globalization.Languages;
 using Connected.Identities.Globalization;
 using Connected.Services;

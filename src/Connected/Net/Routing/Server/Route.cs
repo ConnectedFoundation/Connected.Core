@@ -1,4 +1,4 @@
-﻿using Connected.Entities;
+using Connected.Entities;
 
 namespace Connected.Net.Routing.Server;
 internal sealed record Route : ConcurrentEntity<Guid>, IRoute

@@ -1,4 +1,4 @@
-﻿namespace Connected.Storage;
+namespace Connected.Storage;
 
 public sealed class EntityVersion : IComparable, IEquatable<EntityVersion>, IComparable<EntityVersion>
 {

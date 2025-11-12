@@ -24,6 +24,9 @@ internal sealed class RedundantSubqueries
 	{
 		select = (SelectExpression)base.VisitSelect(select);
 
+		if (select.From is null)
+			throw new NullReferenceException(SR.ErrExpectedExpression);
+
 		var redundant = RedundandSubqueriesResolver.Resolve(select.From);
 
 		if (redundant is not null)

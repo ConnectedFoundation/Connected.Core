@@ -1,4 +1,4 @@
-﻿namespace Connected.Authorization.Net;
+namespace Connected.Authorization.Net;
 
 public abstract class HttpRequestAuthorization : AuthorizationMiddleware, IHttpRequestAuthorization
 {

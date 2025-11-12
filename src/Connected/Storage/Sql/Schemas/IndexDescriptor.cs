@@ -8,7 +8,7 @@ internal class IndexDescriptor
 
 	public string? Group { get; set; }
 
-	public List<string> Columns => _columns ??= new List<string>();
+	public List<string> Columns => _columns ??= [];
 
 	public override string ToString()
 	{

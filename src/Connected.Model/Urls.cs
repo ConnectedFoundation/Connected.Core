@@ -1,4 +1,4 @@
-﻿namespace Connected;
+namespace Connected;
 
 /// <summary>
 /// Provides URL path constants for core application endpoints.

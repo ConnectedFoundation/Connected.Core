@@ -1,6 +1,5 @@
-using System;
-using System.Linq.Expressions;
 using Connected.Data.Expressions.Languages;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation;
 
@@ -8,14 +7,9 @@ public sealed class ColumnDeclaration
 {
 	public ColumnDeclaration(string name, Expression expression, DataType dataType)
 	{
-		if (name is null)
-			throw new ArgumentNullException(nameof(name));
-
-		if (expression is null)
-			throw new ArgumentNullException(nameof(expression));
-
-		if (dataType is null)
-			throw new ArgumentNullException(nameof(dataType));
+		ArgumentNullException.ThrowIfNull(name);
+		ArgumentNullException.ThrowIfNull(expression);
+		ArgumentNullException.ThrowIfNull(dataType);
 
 		Name = name;
 		Expression = expression;

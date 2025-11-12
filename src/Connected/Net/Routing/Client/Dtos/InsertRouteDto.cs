@@ -1,4 +1,4 @@
-﻿using Connected.Net.Routing;
+using Connected.Net.Routing;
 using Connected.Net.Routing.Dtos;
 using Connected.Services;
 using System.ComponentModel.DataAnnotations;

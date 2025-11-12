@@ -1,4 +1,4 @@
-﻿using Connected.Authentication;
+using Connected.Authentication;
 using Connected.Identities;
 using Connected.Reflection;
 using Connected.Services;
@@ -134,11 +134,7 @@ public static class HttpExtensions
 
 	private static async Task HandleResponseException(HttpResponseMessage response)
 	{
-		var ex = await ParseException(response.Content);
-
-		if (ex is null)
-			throw new WebException(response.ReasonPhrase);
-
+		var ex = await ParseException(response.Content) ?? throw new WebException(response.ReasonPhrase);
 		var source = string.Empty;
 		var message = string.Empty;
 

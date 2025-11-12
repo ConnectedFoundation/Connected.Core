@@ -19,7 +19,7 @@ internal class DefaultDrop(ISchemaColumn column) : ColumnTransaction(column)
 		{
 			var text = new StringBuilder();
 
-			text.AppendLine($"ALTER TABLE {Escape(Context.Schema.SchemaName(), Context.Schema.Name)}");
+			text.AppendLine($"ALTER TABLE {Escape(Context.Schema.Schema, Context.Schema.Name)}");
 			text.AppendLine($"DROP CONSTRAINT {DefaultName};");
 
 			return text.ToString();
@@ -30,7 +30,7 @@ internal class DefaultDrop(ISchemaColumn column) : ColumnTransaction(column)
 	{
 		get
 		{
-			if (Context.ExistingSchema is null)
+			if (Context.ExistingSchema?.Descriptor is null)
 				return null;
 
 			foreach (var constraint in Context.ExistingSchema.Descriptor.Constraints)

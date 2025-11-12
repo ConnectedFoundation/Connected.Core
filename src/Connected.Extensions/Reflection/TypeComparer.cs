@@ -1,4 +1,4 @@
-﻿namespace Connected.Reflection;
+namespace Connected.Reflection;
 
 public static class TypeComparer
 {

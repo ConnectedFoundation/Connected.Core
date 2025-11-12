@@ -1,4 +1,4 @@
-﻿namespace Connected.Annotations;
+namespace Connected.Annotations;
 /// <summary>
 /// Marks a property so that built-in validation logic skips evaluating the decorated member.
 /// </summary>

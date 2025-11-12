@@ -1,4 +1,4 @@
-﻿using Connected.Annotations.Entities;
+using Connected.Annotations.Entities;
 using Connected.Identities.Authentication;
 using Connected.Identities.Globalization;
 using Connected.Identities.MetaData;

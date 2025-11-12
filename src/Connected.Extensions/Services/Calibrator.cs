@@ -1,4 +1,4 @@
-﻿namespace Connected.Services;
+namespace Connected.Services;
 
 public abstract class Calibrator<TDto> : Connected.Middleware, ICalibrator<TDto>
 	where TDto : IDto

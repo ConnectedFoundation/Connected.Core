@@ -114,6 +114,9 @@ internal sealed class UnusedColumns
 		var orderbys = VisitOrderBy(select.OrderBy);
 		var where = select.Where is null ? null : Visit(select.Where);
 
+		if (select.From is null)
+			throw new NullReferenceException(SR.ErrExpectedExpression);
+
 		if (Visit(select.From) is not Expression fromExpression)
 			throw new NullReferenceException(nameof(fromExpression));
 

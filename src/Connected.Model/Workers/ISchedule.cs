@@ -1,4 +1,4 @@
-﻿namespace Connected.Workers;
+namespace Connected.Workers;
 
 /// <summary>
 /// Defines the time interval unit for schedule recurrence patterns.

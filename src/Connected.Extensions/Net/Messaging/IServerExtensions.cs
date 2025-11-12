@@ -1,4 +1,4 @@
-﻿using Connected.Annotations;
+using Connected.Annotations;
 using Connected.Net.Messaging.Dtos;
 using System.Collections.Immutable;
 

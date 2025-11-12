@@ -1,4 +1,4 @@
-﻿namespace Connected.Entities;
+namespace Connected.Entities;
 
 /// <summary>
 /// Represents an entity that supports optimistic concurrency using an entity tag (ETag).

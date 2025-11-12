@@ -20,6 +20,9 @@ internal class SchemaExecutionContext(IStorageProvider storage, ISchema schema, 
 
 			foreach (var index in _existingSchema.Descriptor.Constraints)
 			{
+				if (index.Name is null)
+					continue;
+
 				switch (index.ConstraintType)
 				{
 					case ConstraintType.Default:

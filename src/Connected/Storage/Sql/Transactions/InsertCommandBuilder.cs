@@ -16,7 +16,7 @@ internal class InsertCommandBuilder
 	}
 
 	private static ConcurrentDictionary<string, SqlStorageOperation> Cache => _cache;
-	private IStorageParameter? PrimaryKeyParameter { get; set; }
+	private SqlStorageParameter? PrimaryKeyParameter { get; set; }
 
 	protected override async Task<SqlStorageOperation> OnBuild(CancellationToken cancel)
 	{

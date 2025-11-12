@@ -43,9 +43,9 @@ internal class DataCopy(ExistingSchema existing, string temporaryName) : TableTr
 				comma = ",";
 			}
 
-			text.AppendLine($"IF EXISTS (SELECT * FROM {Escape(Existing.SchemaName(), Existing.Name)})");
-			text.AppendLine($"INSERT INTO {Escape(Context.Schema.SchemaName(), TemporaryName)} ({columnSet.ToString()})");
-			text.AppendLine($"SELECT {sourceSet.ToString()} FROM {Escape(Existing.SchemaName(), Existing.Name)}");
+			text.AppendLine($"IF EXISTS (SELECT * FROM {Escape(Existing.Schema, Existing.Name)})");
+			text.AppendLine($"INSERT INTO {Escape(Context.Schema.Schema, TemporaryName)} ({columnSet.ToString()})");
+			text.AppendLine($"SELECT {sourceSet.ToString()} FROM {Escape(Existing.Schema, Existing.Name)}");
 
 			return text.ToString();
 		}

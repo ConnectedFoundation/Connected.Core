@@ -634,7 +634,9 @@ public class SqlFormatter
 
 	protected override Expression VisitSelect(SelectExpression select)
 	{
-		AddAliases(select.From);
+		if (select.From is not null)
+			AddAliases(select.From);
+
 		Write("SELECT ");
 
 		if (select.IsDistinct)

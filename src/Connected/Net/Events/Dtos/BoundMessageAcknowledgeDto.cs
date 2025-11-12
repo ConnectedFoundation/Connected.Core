@@ -1,4 +1,4 @@
-﻿using Connected.Net.Dtos;
+using Connected.Net.Dtos;
 using System.ComponentModel.DataAnnotations;
 
 namespace Connected.Net.Events.Dtos;

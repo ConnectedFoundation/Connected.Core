@@ -1,4 +1,4 @@
-﻿using Connected.Net.Messaging;
+using Connected.Net.Messaging;
 using Connected.Services;
 
 namespace Connected.Net.Events;

@@ -1,4 +1,4 @@
-﻿using Connected.Services;
+using Connected.Services;
 
 namespace Connected.Caching;
 internal sealed class InvalidateCacheDto : Dto

@@ -141,7 +141,7 @@ internal sealed class ResolutionService(IRuntimeService runtimeService, IRouting
 		}
 	}
 
-	private void InitializeDto(Type type)
+	private static void InitializeDto(Type type)
 	{
 		if (type.GetImplementedDtos() is not List<Type> dtos || dtos.Count == 0)
 			return;
@@ -209,7 +209,7 @@ internal sealed class ResolutionService(IRuntimeService runtimeService, IRouting
 		await routing.Insert(dto);
 	}
 
-	private void InitializeServiceMethod(string serviceUrl, Type serviceType, MethodInfo method, ServiceOperationVerbs verbs)
+	private static void InitializeServiceMethod(string serviceUrl, Type serviceType, MethodInfo method, ServiceOperationVerbs verbs)
 	{
 		var parameterTypes = new List<Type>();
 

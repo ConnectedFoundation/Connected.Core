@@ -1,4 +1,4 @@
-﻿namespace Connected.Identities.Authentication.Dtos;
+namespace Connected.Identities.Authentication.Dtos;
 
 /// <summary>
 /// Represents a data transfer object for inserting a new identity authentication token.

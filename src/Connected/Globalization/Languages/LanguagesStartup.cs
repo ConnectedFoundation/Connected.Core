@@ -1,4 +1,4 @@
-﻿namespace Connected.Globalization.Languages;
+namespace Connected.Globalization.Languages;
 public sealed class LanguagesStartup : Runtime.Startup
 {
 }

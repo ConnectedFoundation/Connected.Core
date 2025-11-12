@@ -1,4 +1,4 @@
-﻿namespace Connected.Authorization.Services;
+namespace Connected.Authorization.Services;
 /// <summary>
 /// Defines an authorization component that evaluates the current scope context and returns
 /// an <see cref="AuthorizationResult"/> governing further processing.

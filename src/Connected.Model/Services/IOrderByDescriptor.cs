@@ -1,4 +1,4 @@
-﻿namespace Connected.Services;
+namespace Connected.Services;
 
 /// <summary>
 /// Defines the sorting direction for query results.

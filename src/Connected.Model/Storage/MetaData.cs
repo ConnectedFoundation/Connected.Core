@@ -1,4 +1,4 @@
-﻿using Connected.Annotations.Entities;
+using Connected.Annotations.Entities;
 using Connected.Storage.Sharding;
 using Connected.Storage.Sharding.Nodes;
 

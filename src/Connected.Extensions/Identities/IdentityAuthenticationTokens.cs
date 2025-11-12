@@ -1,4 +1,4 @@
-﻿namespace Connected.Identities;
+namespace Connected.Identities;
 
 public static class IdentityAuthenticationTokens
 {

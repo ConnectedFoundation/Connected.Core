@@ -1,4 +1,4 @@
-﻿using Connected.Annotations;
+using Connected.Annotations;
 using System.Collections.Immutable;
 using System.Data;
 

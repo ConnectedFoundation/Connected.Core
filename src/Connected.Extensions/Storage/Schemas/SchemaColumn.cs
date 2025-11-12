@@ -6,7 +6,7 @@ namespace Connected.Storage.Schemas;
 
 internal class SchemaColumn(ISchema schema, PropertyInfo property) : IEquatable<ISchemaColumn>, ISchemaColumn
 {
-	public string? Name { get; set; }
+	public required string Name { get; set; }
 	public DbType DataType { get; set; }
 	public bool IsIdentity { get; set; }
 	public bool IsUnique { get; set; }

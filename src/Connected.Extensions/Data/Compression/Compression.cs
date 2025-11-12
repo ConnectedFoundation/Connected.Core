@@ -1,4 +1,4 @@
-﻿using Connected.Reflection;
+using Connected.Reflection;
 using System.IO.Compression;
 using System.Text;
 

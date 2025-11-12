@@ -5,7 +5,7 @@ namespace Connected.Storage.Sql.Transactions;
 
 internal class AggregatedCommandBuilder<TEntity>
 {
-	public async Task<SqlStorageOperation?> Build(TEntity entity, CancellationToken cancel)
+	public static async Task<SqlStorageOperation?> Build(TEntity entity, CancellationToken cancel)
 	{
 		if (entity is not IEntity ie)
 			throw new ArgumentException(null, nameof(entity));
@@ -19,13 +19,13 @@ internal class AggregatedCommandBuilder<TEntity>
 		};
 	}
 
-	public async Task<List<SqlStorageOperation>> Build(ImmutableArray<TEntity> entities, CancellationToken cancel)
+	public static async Task<List<SqlStorageOperation>> Build(ImmutableArray<TEntity> entities, CancellationToken cancel)
 	{
 		var result = new List<SqlStorageOperation>();
 
 		foreach (var entity in entities)
 		{
-			var operation = await Build(entity, cancel);
+			var operation = await AggregatedCommandBuilder<TEntity>.Build(entity, cancel);
 
 			if (operation is not null)
 				result.Add(operation);

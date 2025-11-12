@@ -24,7 +24,7 @@ internal class IndexDrop(ObjectIndex index) : TableTransaction
 		{
 			var text = new StringBuilder();
 
-			text.AppendLine($"DROP INDEX {index.Name} ON {Escape(Context.Schema.SchemaName(), Context.Schema.Name)};");
+			text.AppendLine($"DROP INDEX {index.Name} ON {Escape(Context.Schema.Schema, Context.Schema.Name)};");
 
 			return text.ToString();
 		}

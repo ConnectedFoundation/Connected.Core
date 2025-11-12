@@ -1,4 +1,4 @@
-﻿using Connected.Annotations;
+using Connected.Annotations;
 using Connected.Caching;
 using Connected.Collections.Concurrent;
 using Connected.Reflection;
@@ -86,7 +86,7 @@ public static class RuntimeExtensions
 
 			var typeRef = new List<Type>();
 
-			AddService(type, services, false);
+			AddService(type, false);
 			AddServiceOperation(type, services, false);
 			AddCache(type, services, false);
 			AddDispatcher(type, services, false);
@@ -171,18 +171,16 @@ public static class RuntimeExtensions
 	/// Registers a single service type into the pending registration queue with appropriate scope and priority.
 	/// </summary>
 	/// <param name="type">The service implementation type.</param>
-	/// <param name="services">The service collection.</param>
-	public static void AddService(Type type, IServiceCollection services)
+	public static void AddService(Type type)
 	{
-		AddService(type, services, true);
+		AddService(type, true);
 	}
 	/// <summary>
 	/// Registers a service type by inspecting for <see cref="ServiceAttribute"/> on interfaces or the class itself.
 	/// </summary>
 	/// <param name="type">The service implementation type.</param>
-	/// <param name="services">The service collection.</param>
 	/// <param name="manual">True if this is a manual registration; false for automatic discovery.</param>
-	private static void AddService(Type type, IServiceCollection services, bool manual)
+	private static void AddService(Type type, bool manual)
 	{
 		/*
 		 * Determine registration eligibility. Inspect interfaces for [Service] attribute and enqueue each service
@@ -464,7 +462,7 @@ public static class RuntimeExtensions
 			{
 				services.Add(ServiceDescriptor.Scoped(i, type));
 
-				CoreExtensions.AddMiddleware(type);
+				CoreUtils.AddMiddleware(type);
 
 				typeRef?.Add(type);
 			}

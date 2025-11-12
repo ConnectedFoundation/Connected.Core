@@ -1,4 +1,4 @@
-﻿using Connected.Services.Middlewares;
+using Connected.Services.Middlewares;
 using Connected.Storage.Transactions;
 
 namespace Connected.Services;

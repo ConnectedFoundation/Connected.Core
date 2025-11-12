@@ -1,4 +1,4 @@
-﻿namespace Connected.Annotations.Entities;
+namespace Connected.Annotations.Entities;
 /// <summary>
 /// Specifies if the property value should be automatically set after the storage transaction performs insert.
 /// </summary>

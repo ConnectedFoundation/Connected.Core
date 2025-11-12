@@ -1,4 +1,4 @@
-﻿namespace Connected.Services.Middlewares;
+namespace Connected.Services.Middlewares;
 
 /// <summary>
 /// Represents middleware for intercepting and processing service function operations.

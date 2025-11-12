@@ -1,4 +1,4 @@
-﻿using Connected.Annotations;
+using Connected.Annotations;
 
 namespace Connected.Caching;
 /// <summary>

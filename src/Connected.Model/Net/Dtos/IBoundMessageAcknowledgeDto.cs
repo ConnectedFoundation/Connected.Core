@@ -1,4 +1,4 @@
-﻿namespace Connected.Net.Dtos;
+namespace Connected.Net.Dtos;
 
 /// <summary>
 /// Represents a message acknowledgement that is bound to a specific connection.

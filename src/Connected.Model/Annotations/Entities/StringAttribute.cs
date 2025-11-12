@@ -1,4 +1,4 @@
-﻿namespace Connected.Annotations.Entities;
+namespace Connected.Annotations.Entities;
 /// <summary>
 /// Specifies what kind of string value a storage provider should reserve for the Entity's property.
 /// </summary>

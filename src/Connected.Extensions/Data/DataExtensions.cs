@@ -1,4 +1,4 @@
-﻿using Connected.Annotations.Entities;
+using Connected.Annotations.Entities;
 using Connected.Reflection;
 using System.Data;
 using System.Reflection;
@@ -82,6 +82,7 @@ public static class Extensions
 				DateKind.DateTime2 => DbType.DateTime2,
 				DateKind.SmallDateTime => DbType.DateTime,
 				DateKind.Time => DbType.Time,
+				DateKind.Offset => DbType.DateTimeOffset,
 				_ => DbType.DateTime2,
 			};
 		}

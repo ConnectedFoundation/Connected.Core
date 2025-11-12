@@ -1,4 +1,4 @@
-﻿using Connected.Annotations.Entities;
+using Connected.Annotations.Entities;
 using Connected.Net.Routing;
 
 namespace Connected.Net;

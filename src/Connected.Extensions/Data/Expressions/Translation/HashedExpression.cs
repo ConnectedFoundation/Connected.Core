@@ -1,19 +1,13 @@
-using System.Linq.Expressions;
-using System;
 using Connected.Data.Expressions.Comparers;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation;
 
-internal readonly struct HashedExpression : IEquatable<HashedExpression>
+internal readonly struct HashedExpression(Expression expression)
+	: IEquatable<HashedExpression>
 {
-	private readonly Expression _expression;
-	private readonly int _hashCode;
-
-	public HashedExpression(Expression expression)
-	{
-		_expression = expression;
-		_hashCode = Hasher.ComputeHash(expression);
-	}
+	private readonly Expression _expression = expression;
+	private readonly int _hashCode = Hasher.ComputeHash(expression);
 
 	public override bool Equals(object? obj)
 	{

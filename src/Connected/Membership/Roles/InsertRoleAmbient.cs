@@ -1,4 +1,4 @@
-﻿using Connected.Membership.Roles.Dtos;
+using Connected.Membership.Roles.Dtos;
 using Connected.Services;
 using System.ComponentModel.DataAnnotations;
 

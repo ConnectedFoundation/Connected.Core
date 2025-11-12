@@ -1,4 +1,4 @@
-﻿namespace Connected.Configuration;
+namespace Connected.Configuration;
 
 /// <summary>
 /// Routing configuration used by clients and services to compose and discover endpoints.

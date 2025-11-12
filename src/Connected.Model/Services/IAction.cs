@@ -1,4 +1,4 @@
-﻿namespace Connected.Services;
+namespace Connected.Services;
 
 /// <summary>
 /// Represents a service operation that performs an action without returning a value.

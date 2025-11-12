@@ -1,4 +1,4 @@
-﻿using Connected.Entities;
+using Connected.Entities;
 using Connected.Services;
 using Connected.Storage.Sharding;
 using Connected.Storage.Sharding.Nodes;
@@ -57,10 +57,7 @@ public static class ShardingExtensions
 	public static async Task<IImmutableList<IShardingNode>> ResolveNode<TEntity>(this IShardingService sharding, IShardingNodeService nodes, IStorageOperation operation, string propertyName)
 		where TEntity : IEntity
 	{
-		var entityName = typeof(TEntity).FullName;
-
-		if (entityName is null)
-			throw new NullReferenceException($"{Strings.ErrCannotResolveTypeName} ('{typeof(TEntity)}')");
+		var entityName = typeof(TEntity).FullName ?? throw new NullReferenceException($"{Strings.ErrCannotResolveTypeName} ('{typeof(TEntity)}')");
 		/*
 		 * First look in the parameters list.
 		 */
@@ -117,10 +114,7 @@ public static class ShardingExtensions
 		/*
 		 * We have a node, one more check to see if it actually exists or we have a void pointer.
 		 */
-		var node = await nodes.Select(Dto.Factory.CreatePrimaryKey(result.Node));
-
-		if (node is null)
-			throw new NullReferenceException($"{Strings.ErrShardingNodeNotFound} ('{result.Node}')");
+		var node = await nodes.Select(Dto.Factory.CreatePrimaryKey(result.Node)) ?? throw new NullReferenceException($"{Strings.ErrShardingNodeNotFound} ('{result.Node}')");
 		/*
 		 * Everything ok, we've got a valid node.
 		 */
@@ -135,10 +129,6 @@ public static class ShardingExtensions
 	/// </remarks>
 	public static IImmutableList<IShardingNode> WithDefaultNode(this IImmutableList<IShardingNode> existing)
 	{
-		var result = new List<IShardingNode>([.. existing]);
-
-		result.Append(new DefaultShardingNode());
-
-		return result.ToImmutableList();
+		return existing.Add(new DefaultShardingNode());
 	}
 }

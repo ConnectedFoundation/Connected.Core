@@ -18,7 +18,7 @@ internal class IndexCreate(IndexDescriptor index) : TableTransaction
 		{
 			var text = new StringBuilder();
 
-			text.AppendLine($"CREATE NONCLUSTERED INDEX [{Context.GenerateConstraintName(Context.Schema.Schema, Context.Schema.Name, ConstraintNameType.Index)}] ON {Escape(Context.Schema.SchemaName(), Context.Schema.Name)}(");
+			text.AppendLine($"CREATE NONCLUSTERED INDEX [{Context.GenerateConstraintName(Context.Schema.Schema, Context.Schema.Name, ConstraintNameType.Index)}] ON {Escape(Context.Schema.Schema, Context.Schema.Name)}(");
 			var comma = string.Empty;
 
 			foreach (var column in index.Columns)

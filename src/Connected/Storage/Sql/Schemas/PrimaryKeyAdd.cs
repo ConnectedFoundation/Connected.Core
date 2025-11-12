@@ -16,8 +16,8 @@ internal class PrimaryKeyAdd(ISchemaColumn column) : ColumnTransaction(column)
 		{
 			var text = new StringBuilder();
 
-			text.AppendLine($"ALTER TABLE {Escape(Context.Schema.SchemaName(), Context.Schema.Name)}");
-			text.AppendLine($"ADD CONSTRAINT {Context.GenerateConstraintName(Context.Schema.SchemaName(), Context.Schema.Name, ConstraintNameType.PrimaryKey)}");
+			text.AppendLine($"ALTER TABLE {Escape(Context.Schema.Schema, Context.Schema.Name)}");
+			text.AppendLine($"ADD CONSTRAINT {Context.GenerateConstraintName(Context.Schema.Schema, Context.Schema.Name, ConstraintNameType.PrimaryKey)}");
 			text.AppendLine($"PRIMARY KEY CLUSTERED ({Escape(Column.Name)}) ON {Escape(SchemaExtensions.FileGroup)}");
 
 			return text.ToString();

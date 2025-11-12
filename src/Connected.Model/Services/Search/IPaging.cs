@@ -1,4 +1,4 @@
-﻿namespace Connected.Services.Search;
+namespace Connected.Services.Search;
 
 /// <summary>
 /// Represents pagination settings for search operations.

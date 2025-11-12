@@ -1,4 +1,4 @@
-﻿using Connected.Caching;
+using Connected.Caching;
 using Connected.Storage;
 
 namespace Connected.Globalization.Languages.Mappings;

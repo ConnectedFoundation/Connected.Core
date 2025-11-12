@@ -1,4 +1,4 @@
-﻿using Connected.Collections;
+using Connected.Collections;
 using System.Collections.Immutable;
 
 namespace Connected.Net.Messaging;

@@ -16,7 +16,7 @@ internal class TableDrop
 		{
 			var text = new StringBuilder();
 
-			text.AppendLine($"DROP TABLE {Escape(Context.Schema.SchemaName(), Context.Schema.Name)}");
+			text.AppendLine($"DROP TABLE {Escape(Context.Schema.Schema, Context.Schema.Name)}");
 
 			return text.ToString();
 		}

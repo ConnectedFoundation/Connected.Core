@@ -1,4 +1,4 @@
-﻿using Connected.Authentication;
+using Connected.Authentication;
 using Connected.Services;
 using Connected.Workers;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,9 +21,10 @@ public abstract class QueueHost : ScheduledWorker
 		Queue = queue;
 		Timer = TimeSpan.FromMilliseconds(500);
 
-		Dispatcher = new();
-
-		Dispatcher.WorkerSize = size;
+		Dispatcher = new()
+		{
+			WorkerSize = size
+		};
 	}
 
 	private QueueDispatcher Dispatcher { get; }

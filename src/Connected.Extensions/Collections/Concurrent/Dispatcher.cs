@@ -1,4 +1,4 @@
-﻿using Connected.Authentication;
+using Connected.Authentication;
 using Connected.Data;
 using Connected.Services;
 using Microsoft.Extensions.DependencyInjection;

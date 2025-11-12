@@ -1,4 +1,4 @@
-﻿using Connected.Net.Events;
+using Connected.Net.Events;
 using Connected.Runtime;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,9 +40,9 @@ internal sealed class Bootstrapper
 		var server = Configuration.GetValue<string?>("routing:routingServerUrl");
 
 		if (server is null)
-			RuntimeExtensions.AddService(typeof(Net.Routing.Server.RoutingService), services);
+			RuntimeExtensions.AddService(typeof(Net.Routing.Server.RoutingService));
 		else
-			RuntimeExtensions.AddService(typeof(Net.Routing.Client.RoutingService), services);
+			RuntimeExtensions.AddService(typeof(Net.Routing.Client.RoutingService));
 	}
 	/// <summary>
 	/// Asynchronously initializes startup state such as the maintenance identity token.

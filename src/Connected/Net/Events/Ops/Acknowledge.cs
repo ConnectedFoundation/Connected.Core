@@ -1,4 +1,4 @@
-﻿using Connected.Net.Dtos;
+using Connected.Net.Dtos;
 using Connected.Net.Messaging.Dtos;
 using Connected.Services;
 using Microsoft.AspNetCore.SignalR;

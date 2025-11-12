@@ -1,4 +1,4 @@
-﻿namespace Connected.Data.Compression;
+namespace Connected.Data.Compression;
 
 public class NamedBuffer
 {

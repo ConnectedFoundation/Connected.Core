@@ -1,4 +1,4 @@
-﻿using Connected.Entities;
+using Connected.Entities;
 using Connected.Storage.Sharding.Nodes;
 using System.Collections.Immutable;
 

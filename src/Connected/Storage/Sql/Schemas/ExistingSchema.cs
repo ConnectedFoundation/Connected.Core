@@ -4,18 +4,13 @@ namespace Connected.Storage.Sql.Schemas;
 
 internal class ExistingSchema : ISchema
 {
-	public ExistingSchema()
-	{
-		Columns = [];
-	}
+	public List<ISchemaColumn> Columns { get; } = [];
 
-	public List<ISchemaColumn> Columns { get; }
+	public required string Schema { get; set; }
 
-	public string? Schema { get; set; }
+	public required string Name { get; set; }
 
-	public string? Name { get; set; }
-
-	public string? Type { get; set; }
+	public required string Type { get; set; }
 
 	public bool Ignore { get; set; }
 
@@ -25,7 +20,7 @@ internal class ExistingSchema : ISchema
 	{
 		Name = context.Schema.Name;
 		Type = context.Schema.Type;
-		Schema = context.Schema.SchemaName();
+		Schema = context.Schema.Schema;
 
 		Columns.AddRange(await new Columns(this).Execute(context));
 		Descriptor = await new SpHelp().Execute(context);
@@ -94,10 +89,13 @@ internal class ExistingSchema : ISchema
 	{
 		var result = new List<ObjectIndex>();
 
-		foreach (var index in Descriptor.Indexes)
+		if (Descriptor is not null)
 		{
-			if (index.IsReferencedBy(column))
-				result.Add(index);
+			foreach (var index in Descriptor.Indexes)
+			{
+				if (index.IsReferencedBy(column))
+					result.Add(index);
+			}
 		}
 
 		return result;

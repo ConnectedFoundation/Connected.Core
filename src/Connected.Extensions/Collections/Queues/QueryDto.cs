@@ -1,4 +1,4 @@
-﻿using Connected.Services;
+using Connected.Services;
 using System.ComponentModel.DataAnnotations;
 
 namespace Connected.Collections.Queues;

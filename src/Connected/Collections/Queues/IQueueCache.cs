@@ -1,4 +1,4 @@
-﻿using Connected.Caching;
+using Connected.Caching;
 using System.Collections.Immutable;
 
 namespace Connected.Collections.Queues;

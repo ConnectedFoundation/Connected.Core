@@ -1,4 +1,4 @@
-﻿namespace Connected.Services;
+namespace Connected.Services;
 
 /// <summary>
 /// Middleware for correcting <see cref="IDto"/> objects and <see cref="IAmbientProvider{TDto}"/> objects before they are validated.

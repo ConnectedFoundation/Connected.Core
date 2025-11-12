@@ -1,4 +1,4 @@
-﻿using Connected.Identities.Dtos;
+using Connected.Identities.Dtos;
 using Connected.Services;
 
 namespace Connected.Identities;

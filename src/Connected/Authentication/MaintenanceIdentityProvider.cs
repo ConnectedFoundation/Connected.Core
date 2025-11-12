@@ -1,4 +1,4 @@
-﻿using Connected.Identities;
+using Connected.Identities;
 using Connected.Identities.Schemas;
 using Connected.Services;
 using System.Collections.Immutable;

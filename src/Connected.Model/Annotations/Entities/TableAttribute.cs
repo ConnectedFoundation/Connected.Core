@@ -1,4 +1,4 @@
-﻿namespace Connected.Annotations.Entities;
+namespace Connected.Annotations.Entities;
 /// <summary>
 /// Defines how an Entity is created in physical storage.
 /// </summary>
@@ -8,7 +8,7 @@
 /// All Entities must have this attribute set if a physical storage is used. Currently, only tables
 /// are supported so this is the only attribute that can be set on Entities regarding storage schemas.
 /// </remarks>
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Method, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
 public class TableAttribute
 	: SchemaAttribute
 {

@@ -1,4 +1,4 @@
-﻿using Connected.Caching;
+using Connected.Caching;
 
 namespace Connected.Identities.MetaData;
 

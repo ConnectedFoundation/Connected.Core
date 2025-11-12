@@ -1,9 +1,8 @@
-﻿using Connected.Annotations;
+using Connected.Annotations;
 using Connected.Authentication;
-using Connected.Authorization;
 using Connected.Authorization.Net;
 
-namespace Connected.Authorization.Default;
+namespace Connected.Authorization;
 
 [ServiceRegistration(ServiceRegistrationMode.Manual)]
 internal sealed class DefaultHttpRequestAuthorization(IAuthenticationService authentication)

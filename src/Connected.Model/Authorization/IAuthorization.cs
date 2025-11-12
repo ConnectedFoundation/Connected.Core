@@ -1,4 +1,4 @@
-﻿namespace Connected.Authorization;
+namespace Connected.Authorization;
 
 /// <summary>
 /// Represents the outcome of an authorization check used to control downstream processing.

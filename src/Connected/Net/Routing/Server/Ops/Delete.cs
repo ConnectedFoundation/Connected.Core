@@ -1,4 +1,4 @@
-﻿using Connected.Services;
+using Connected.Services;
 
 namespace Connected.Net.Routing.Server.Ops;
 internal sealed class Delete(IRouteCache cache) : ServiceAction<IPrimaryKeyDto<Guid>>

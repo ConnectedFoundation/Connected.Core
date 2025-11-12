@@ -106,7 +106,9 @@ internal sealed class DatabaseComparer : ExpressionComparer
 				return false;
 
 			AliasScope = new ScopedDictionary<Alias, Alias>(save);
-			MapAliases(a.From, b.From);
+
+			if (a.From is not null && b.From is not null)
+				MapAliases(a.From, b.From);
 
 			return Compare(a.Where, b.Where)
 				 && CompareOrderList(a.OrderBy, b.OrderBy)

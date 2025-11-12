@@ -1,4 +1,4 @@
-﻿using Connected.Net.Rest.Dtos;
+using Connected.Net.Rest.Dtos;
 using Connected.Services;
 
 namespace Connected.Net.Rest;

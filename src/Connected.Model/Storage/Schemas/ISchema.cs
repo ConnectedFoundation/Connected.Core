@@ -1,4 +1,4 @@
-﻿namespace Connected.Storage.Schemas;
+namespace Connected.Storage.Schemas;
 
 /// <summary>
 /// Represents the base schema definition for database objects.

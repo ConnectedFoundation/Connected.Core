@@ -1,4 +1,4 @@
-﻿namespace Connected.Authorization.Net;
+namespace Connected.Authorization.Net;
 
 /// <summary>
 /// Defines an authorization component that evaluates the current HTTP request context

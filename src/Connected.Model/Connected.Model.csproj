@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 	<PropertyGroup>
 		<OutputType>Library</OutputType>
 		<TargetFramework>net9.0</TargetFramework>
@@ -20,6 +20,7 @@
 		<Authors>Connected</Authors>
 		<IsPackable>true</IsPackable>
 		<PackageIcon>ConnectedLogo.png</PackageIcon>
+		<SponsorableLibrary>false</SponsorableLibrary>
 	</PropertyGroup>
 
 	<ItemGroup>

@@ -1,4 +1,4 @@
-﻿namespace Connected.Annotations;
+namespace Connected.Annotations;
 /// <summary>
 /// Marks a class as a proxy wrapper for the specified service type <typeparamref name="TService"/>.
 /// </summary>

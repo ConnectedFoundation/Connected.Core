@@ -9,7 +9,7 @@ internal class EntryEnumerator<T>(ConcurrentDictionary<string, IEntry> items) : 
 	private int Count => items.Count;
 	private int Index { get; set; } = -1;
 
-	object IEnumerator.Current => Current;
+	object? IEnumerator.Current => Current;
 
 	public T Current
 	{

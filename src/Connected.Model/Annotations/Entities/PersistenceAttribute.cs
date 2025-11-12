@@ -1,4 +1,4 @@
-﻿namespace Connected.Annotations.Entities;
+namespace Connected.Annotations.Entities;
 /// <summary>
 /// Specifies how a persistence is treated for the Entities and its properties.
 /// </summary>
@@ -27,26 +27,18 @@ public enum PersistenceMode
 /// <summary>
 /// Specifies how entity or one ore more of its properties are persisted.
 /// </summary>
+/// <remarks>
+/// Creates a new instance of the PersistenceAttribute class.
+/// </remarks>
+/// <param name="mode">Specifies how persistence will be treated by a storage provider.</param>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Class)]
-public sealed class PersistenceAttribute
-	: Attribute
+public sealed class PersistenceAttribute(PersistenceMode mode)
+		: Attribute
 {
-	/// <summary>
-	/// Creates a new instance of the PersistenceAttribute class.
-	/// </summary>
-	/// <param name="mode">Specifies how persistence will be treated by a storage provider.</param>
-	public PersistenceAttribute(PersistenceMode mode)
-	{
-		/*
-		 * Store the selected mode so storage middleware can alter read/write behavior and
-		 * schema generation accordingly for the annotated member or type.
-		 */
-		Mode = mode;
-	}
 	/// <summary>
 	/// Gets the persistence mode.
 	/// </summary>
-	public PersistenceMode Mode { get; }
+	public PersistenceMode Mode { get; } = mode;
 	/// <summary>
 	/// Gets the value which indicates wether the Entity or property is read only.
 	/// </summary>

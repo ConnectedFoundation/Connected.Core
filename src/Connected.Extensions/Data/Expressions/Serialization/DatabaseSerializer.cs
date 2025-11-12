@@ -1,43 +1,26 @@
 using Connected.Data.Expressions.Evaluation;
 using Connected.Data.Expressions.Expressions;
 using Connected.Data.Expressions.Formatters;
-using Connected.Data.Expressions.Languages;
 using Connected.Data.Expressions.Translation;
 using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Serialization;
 
-internal sealed class DatabaseSerializer : ExpressionSerializer
+internal sealed class DatabaseSerializer(TextWriter writer)
+		: ExpressionSerializer(writer)
 {
-	public DatabaseSerializer(TextWriter writer, QueryLanguage? language) : base(writer)
-	{
-		Aliases = new();
-		Language = language;
-	}
-
-	private Dictionary<Alias, int> Aliases { get; }
-	private QueryLanguage? Language { get; }
+	private Dictionary<Alias, int> Aliases { get; } = [];
 
 	public static new void Serialize(TextWriter writer, Expression expression)
 	{
-		Serialize(writer, expression, null);
+		new DatabaseSerializer(writer).Visit(expression);
 	}
 
-	public static void Serialize(TextWriter writer, Expression expression, QueryLanguage? language)
-	{
-		new DatabaseSerializer(writer, language).Visit(expression);
-	}
-
-	public new static string Serialize(Expression expression)
-	{
-		return Serialize((QueryLanguage?)null, expression);
-	}
-
-	public static string Serialize(QueryLanguage? language, Expression expression)
+	public static new string Serialize(Expression expression)
 	{
 		var writer = new StringWriter();
 
-		Serialize(writer, expression, language);
+		Serialize(writer, expression);
 
 		return writer.ToString();
 	}
@@ -94,16 +77,21 @@ internal sealed class DatabaseSerializer : ExpressionSerializer
 		Write("\",");
 		WriteLine(Indentation.Same);
 		Visit(projection.Projector);
-		Write(',');
-		WriteLine(Indentation.Same);
-		Visit(projection.Aggregator);
+
+		if (projection.Aggregator is not null)
+		{
+			Write(',');
+			WriteLine(Indentation.Same);
+			Visit(projection.Aggregator);
+		}
+
 		WriteLine(Indentation.Outer);
 		Write(')');
 
 		return projection;
 	}
 
-	private Expression VisitClientJoin(ClientJoinExpression join)
+	private ClientJoinExpression VisitClientJoin(ClientJoinExpression join)
 	{
 		AddAlias(join.Projection.Select.Alias);
 		Write("ClientJoin(");
@@ -123,7 +111,7 @@ internal sealed class DatabaseSerializer : ExpressionSerializer
 		return join;
 	}
 
-	private Expression VisitOuterJoined(OuterJoinedExpression outer)
+	private OuterJoinedExpression VisitOuterJoined(OuterJoinedExpression outer)
 	{
 		Write("Outer(");
 		WriteLine(Indentation.Inner);
@@ -137,26 +125,26 @@ internal sealed class DatabaseSerializer : ExpressionSerializer
 		return outer;
 	}
 
-	private Expression VisitSelect(SelectExpression select)
+	private SelectExpression VisitSelect(SelectExpression select)
 	{
 		Write(select.QueryText);
 
 		return select;
 	}
 
-	private Expression VisitCommand(CommandExpression command)
+	private CommandExpression VisitCommand(CommandExpression command)
 	{
 		Write(FormatQuery(command));
 
 		return command;
 	}
 
-	private string FormatQuery(Expression query)
+	private static string FormatQuery(Expression query)
 	{
 		return SqlFormatter.Format(query);
 	}
 
-	private Expression VisitBatch(BatchExpression batch)
+	private BatchExpression VisitBatch(BatchExpression batch)
 	{
 		Write("Batch(");
 		WriteLine(Indentation.Inner);
@@ -175,14 +163,7 @@ internal sealed class DatabaseSerializer : ExpressionSerializer
 		return batch;
 	}
 
-	private Expression VisitVariable(VariableExpression vex)
-	{
-		Write(FormatQuery(vex));
-
-		return vex;
-	}
-
-	private Expression VisitFunction(FunctionExpression function)
+	private FunctionExpression VisitFunction(FunctionExpression function)
 	{
 		Write("FUNCTION ");
 		Write(function.Name);
@@ -197,7 +178,7 @@ internal sealed class DatabaseSerializer : ExpressionSerializer
 		return function;
 	}
 
-	private Expression VisitEntity(EntityExpression expression)
+	private EntityExpression VisitEntity(EntityExpression expression)
 	{
 		Visit(expression.Expression);
 
@@ -208,7 +189,8 @@ internal sealed class DatabaseSerializer : ExpressionSerializer
 	{
 		if (c.Type == typeof(Command))
 		{
-			var qc = (Command)c.Value;
+			if (c.Value is not Command qc)
+				return c;
 
 			Write("new Connected.Expressions.Evaluation.QueryCommand {");
 			WriteLine(Indentation.Inner);

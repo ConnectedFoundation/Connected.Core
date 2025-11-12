@@ -1,4 +1,4 @@
-﻿using Connected.Caching;
+using Connected.Caching;
 
 namespace Connected.Net.Routing.Client;
 internal sealed class RouteCache(ICachingService cachingService)

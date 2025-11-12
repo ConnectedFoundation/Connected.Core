@@ -1,4 +1,4 @@
-﻿namespace Connected.Membership;
+namespace Connected.Membership;
 
 public static class MembershipUrls
 {

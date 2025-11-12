@@ -1,4 +1,4 @@
-﻿namespace Connected;
+namespace Connected;
 
 public static class WebUtils
 {

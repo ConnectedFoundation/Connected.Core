@@ -15,7 +15,7 @@ internal sealed class ExpressionNominator
 		Language = language;
 		Affinity = affinity;
 
-		Candidates = new HashSet<Expression>();
+		Candidates = [];
 	}
 
 	private QueryLanguage Language { get; }
@@ -33,30 +33,27 @@ internal sealed class ExpressionNominator
 		return nominator.Candidates;
 	}
 
-	protected override Expression? Visit(Expression? expression)
+	protected override Expression Visit(Expression expression)
 	{
-		if (expression is not null)
+		var saveIsBlocked = IsBlocked;
+
+		IsBlocked = false;
+
+		if (Language.MustBeColumn(expression))
+			Candidates.Add(expression);
+		else
 		{
-			var saveIsBlocked = IsBlocked;
+			base.Visit(expression);
 
-			IsBlocked = false;
-
-			if (Language.MustBeColumn(expression))
-				Candidates.Add(expression);
-			else
+			if (!IsBlocked)
 			{
-				base.Visit(expression);
-
-				if (!IsBlocked)
-				{
-					if (Language.MustBeColumn(expression) || Affinity == ProjectionAffinity.Server && Language.CanBeColumn(expression))
-						Candidates.Add(expression);
-					else
-						IsBlocked = true;
-				}
-
-				IsBlocked |= saveIsBlocked;
+				if (Language.MustBeColumn(expression) || Affinity == ProjectionAffinity.Server && Language.CanBeColumn(expression))
+					Candidates.Add(expression);
+				else
+					IsBlocked = true;
 			}
+
+			IsBlocked |= saveIsBlocked;
 		}
 
 		return expression;

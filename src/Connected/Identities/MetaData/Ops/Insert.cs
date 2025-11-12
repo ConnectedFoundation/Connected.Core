@@ -1,4 +1,4 @@
-﻿using Connected.Entities;
+using Connected.Entities;
 using Connected.Identities.MetaData.Dtos;
 using Connected.Notifications;
 using Connected.Services;

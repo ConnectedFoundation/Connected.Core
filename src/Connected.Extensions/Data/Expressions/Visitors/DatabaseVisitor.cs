@@ -129,6 +129,9 @@ public abstract class DatabaseVisitor
 		 * and ORDER BY entries. Each component is visited so nested database
 		 * expressions can be rewritten by derived visitors.
 		 */
+		if (expression.From is null)
+			throw new NullReferenceException(SR.ErrExpectedExpression);
+
 		var from = VisitSource(expression.From);
 		var where = expression.Where is not null ? VisitWhere(expression.Where) : null;
 		var groupBy = VisitExpressionList(expression.GroupBy);
@@ -253,7 +256,7 @@ public abstract class DatabaseVisitor
 		 * Visit the aggregate argument so nested expressions are rewritten and
 		 * then rebuild the AggregateExpression when appropriate.
 		 */
-		if (Visit(expression.Argument) is not Expression argumentExpression)
+		if (expression.Argument is null || Visit(expression.Argument) is not Expression argumentExpression)
 			throw new NullReferenceException(nameof(argumentExpression));
 
 		return UpdateAggregate(expression, expression.Type, expression.AggregateName, argumentExpression, expression.IsDistinct);

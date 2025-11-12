@@ -1,4 +1,4 @@
-﻿using Connected.Services;
+using Connected.Services;
 using System.Reflection;
 
 namespace Connected.Reflection;
@@ -35,7 +35,7 @@ public static class Methods
 			/*
 			 * Now check if the type arguments match.
 			 */
-			if (method.IsGenericMethodDefinition && typeArguments is not null && typeArguments.Any())
+			if (method.IsGenericMethodDefinition && typeArguments is not null && typeArguments.Length != 0)
 			{
 				/*
 				 * Check if the number of arguments equals on both the definition and typeArguments argument.

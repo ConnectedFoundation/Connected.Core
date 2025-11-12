@@ -1,4 +1,4 @@
-﻿namespace Connected.Annotations.Entities;
+namespace Connected.Annotations.Entities;
 /// <summary>
 /// Base attribute for specifying Entity schema.
 /// </summary>
@@ -104,5 +104,5 @@ public abstract class SchemaAttribute : MappingAttribute
 	/// Gets or sets the name of the Schema that will be used when creating a storage object. If this
 	/// value is not set the Exception should be thrown by the Schema middleware.
 	/// </summary>
-	public string? Schema { get; set; } = DefaultSchema;
+	public string Schema { get; set; } = DefaultSchema;
 }

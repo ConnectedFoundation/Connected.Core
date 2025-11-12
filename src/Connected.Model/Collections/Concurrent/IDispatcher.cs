@@ -1,4 +1,4 @@
-﻿namespace Connected.Collections.Concurrent;
+namespace Connected.Collections.Concurrent;
 /// <summary>
 /// Defines a concurrent dispatcher that queues work items and assigns them to jobs capable of processing
 /// argument payloads of type <typeparamref name="TArgs"/>.

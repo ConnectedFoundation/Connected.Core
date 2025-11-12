@@ -1,4 +1,4 @@
-﻿using Connected.Annotations;
+using Connected.Annotations;
 using Connected.Net.Dtos;
 using Connected.Net.Events.Dtos;
 

@@ -1,4 +1,4 @@
-﻿namespace Connected.Identities;
+namespace Connected.Identities;
 
 /// <summary>
 /// Provides access to the current identity in the execution context.

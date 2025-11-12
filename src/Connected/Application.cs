@@ -1,4 +1,4 @@
-﻿using Connected.Annotations;
+using Connected.Annotations;
 using Connected.Authentication;
 using Connected.Configuration;
 using Connected.Globalization;
@@ -283,7 +283,7 @@ public static class Application
 		RegisterDependency("Connected.Authorization.dll");
 	}
 
-	private static void RegisterConfiguredDependencies(IConfiguration configuration)
+	private static void RegisterConfiguredDependencies(ConfigurationManager configuration)
 	{
 		var section = configuration.GetSection("dependencies");
 
@@ -296,7 +296,7 @@ public static class Application
 		}
 	}
 
-	private static void RegisterImages(IConfiguration configuration)
+	private static void RegisterImages(ConfigurationManager configuration)
 	{
 		var section = configuration.GetSection("images");
 

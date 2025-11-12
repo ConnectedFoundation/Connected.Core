@@ -1,4 +1,4 @@
-﻿using Connected.Services;
+using Connected.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using System.ComponentModel.DataAnnotations;

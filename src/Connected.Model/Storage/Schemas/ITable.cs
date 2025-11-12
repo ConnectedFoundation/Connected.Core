@@ -1,4 +1,4 @@
-﻿namespace Connected.Storage.Schemas;
+namespace Connected.Storage.Schemas;
 
 /// <summary>
 /// Represents a database table schema with columns and indexes.

@@ -1,4 +1,4 @@
-﻿using Connected.Net.Events.Dtos;
+using Connected.Net.Events.Dtos;
 using Connected.Net.Messaging;
 using Connected.Services;
 

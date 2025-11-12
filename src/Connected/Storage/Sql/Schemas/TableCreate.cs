@@ -64,7 +64,7 @@ internal class TableCreate
 
 			var name = Temporary ? TemporaryName ?? throw new NullReferenceException(SR.ErrExpectedTemporaryName) : Context.Schema.Name;
 
-			text.AppendLine($"CREATE TABLE {Escape(Context.Schema.SchemaName(), name)}");
+			text.AppendLine($"CREATE TABLE {Escape(Context.Schema.Schema, name)}");
 			text.AppendLine("(");
 			var comma = string.Empty;
 

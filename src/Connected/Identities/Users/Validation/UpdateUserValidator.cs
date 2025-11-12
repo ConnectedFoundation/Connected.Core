@@ -1,4 +1,4 @@
-﻿using Connected.Entities;
+using Connected.Entities;
 using Connected.Identities.Dtos;
 using Connected.Services.Validation;
 

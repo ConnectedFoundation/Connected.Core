@@ -26,7 +26,7 @@ internal class SpHelp
 		{
 			Name = "@objname",
 			Type = DbType.String,
-			Value = Escape(Context.Schema.SchemaName(), Context.Schema.Name)
+			Value = Escape(Context.Schema.Schema, Context.Schema.Name)
 		});
 
 		var rdr = await Context.OpenReader(operation);

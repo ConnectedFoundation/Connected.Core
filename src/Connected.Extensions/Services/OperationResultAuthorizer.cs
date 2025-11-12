@@ -1,4 +1,4 @@
-﻿using Connected.Authorization;
+using Connected.Authorization;
 using Connected.Entities;
 using Connected.Reflection;
 using System.Collections;
@@ -7,7 +7,7 @@ using System.Collections.Immutable;
 
 namespace Connected.Services;
 
-internal sealed class OperationResultAuthorizer<TDto, TResult>
+internal sealed class OperationResultAuthorizer<TDto, TResult>(IAuthorizationContext authorization)
 	where TDto : IDto
 {
 	static OperationResultAuthorizer()
@@ -15,13 +15,7 @@ internal sealed class OperationResultAuthorizer<TDto, TResult>
 		EntityMap = new();
 	}
 
-	public OperationResultAuthorizer(IAuthorizationContext authorization)
-	{
-		Authorization = authorization;
-	}
-
 	private static ConcurrentDictionary<Type, bool> EntityMap { get; }
-	private IAuthorizationContext Authorization { get; }
 
 	public async Task<TResult> Authorize(ICallerContext caller, TDto dto, TResult result)
 	{
@@ -85,7 +79,7 @@ internal sealed class OperationResultAuthorizer<TDto, TResult>
 		{
 			if (iterator.Current is IEntity e)
 			{
-				var authorizationResult = await Authorization.Authorize(caller, dto, e);
+				var authorizationResult = await authorization.Authorize(caller, dto, e);
 
 				if (authorizationResult != AuthorizationResult.Fail)
 					list = add.Invoke(list, [e]);
@@ -117,7 +111,7 @@ internal sealed class OperationResultAuthorizer<TDto, TResult>
 		{
 			if (iterator.Current is IEntity e)
 			{
-				var authorizationResult = await Authorization.Authorize(caller, dto, e);
+				var authorizationResult = await authorization.Authorize(caller, dto, e);
 
 				if (authorizationResult != AuthorizationResult.Fail)
 					list = add.Invoke(list, [e]);
@@ -132,7 +126,7 @@ internal sealed class OperationResultAuthorizer<TDto, TResult>
 		if (entity is not IEntity e)
 			return;
 
-		var result = await Authorization.Authorize(caller, dto, e);
+		var result = await authorization.Authorize(caller, dto, e);
 
 		if (result == AuthorizationResult.Fail)
 			throw new UnauthorizedAccessException(entity.GetType().Name);
@@ -166,7 +160,7 @@ internal sealed class OperationResultAuthorizer<TDto, TResult>
 
 	private async Task<bool> IsEntityProtected(ICallerContext caller, object value)
 	{
-		var entity = ResolveEntity(value);
+		var entity = OperationResultAuthorizer<TDto, TResult>.ResolveEntity(value);
 
 		if (entity is null)
 			return false;
@@ -179,22 +173,20 @@ internal sealed class OperationResultAuthorizer<TDto, TResult>
 		if (method is null)
 			return false;
 
-		var isProtected = Convert.ToBoolean(await method.InvokeAsync(Authorization, [caller, entity]));
+		var isProtected = Convert.ToBoolean(await method.InvokeAsync(authorization, [caller, entity]));
 
 		EntityMap.TryAdd(entity.GetType(), isProtected);
 
 		return isProtected;
 	}
 
-	private IEntity? ResolveEntity(object value)
+	private static IEntity? ResolveEntity(object value)
 	{
 		if (value is IEntity)
 			return value as IEntity;
 		else if (value.GetType().IsEnumerable())
 		{
-			var en = value as IEnumerable;
-
-			if (en is null)
+			if (value is not IEnumerable en)
 				return null;
 
 			var enm = en.GetEnumerator();

@@ -6,22 +6,22 @@ using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Expressions;
 
-public sealed class SelectExpression(Alias alias, IEnumerable<ColumnDeclaration> columns, Expression from, Expression? where,
+public sealed class SelectExpression(Alias alias, IEnumerable<ColumnDeclaration> columns, Expression? from, Expression? where,
 		 IEnumerable<OrderExpression>? orderBy, IEnumerable<Expression>? groupBy, bool isDistinct, Expression? skip, Expression? take, bool isReverse)
 		: AliasedExpression(DatabaseExpressionType.Select, typeof(void), alias)
 {
-	public SelectExpression(Alias alias, IEnumerable<ColumnDeclaration> columns, Expression from, Expression? where, IEnumerable<OrderExpression>? orderBy, IEnumerable<Expression>? groupBy)
+	public SelectExpression(Alias alias, IEnumerable<ColumnDeclaration> columns, Expression? from, Expression? where, IEnumerable<OrderExpression>? orderBy, IEnumerable<Expression>? groupBy)
 		 : this(alias, columns, from, where, orderBy, groupBy, false, null, null, false)
 	{
 	}
 
-	public SelectExpression(Alias alias, IEnumerable<ColumnDeclaration> columns, Expression from, Expression? where)
+	public SelectExpression(Alias alias, IEnumerable<ColumnDeclaration> columns, Expression? from, Expression? where)
 		 : this(alias, columns, from, where, null, null)
 	{
 	}
 
 	public ReadOnlyCollection<ColumnDeclaration> Columns { get; } = columns.ToReadOnly();
-	public Expression From { get; } = from;
+	public Expression? From { get; } = from;
 	public Expression? Where { get; } = where;
 	public ReadOnlyCollection<OrderExpression>? OrderBy { get; } = orderBy?.ToReadOnly();
 	public ReadOnlyCollection<Expression>? GroupBy { get; } = groupBy?.ToReadOnly();

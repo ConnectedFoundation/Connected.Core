@@ -2,14 +2,8 @@ using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation;
 
-internal sealed class GroupByDescriptor
+internal sealed class GroupByDescriptor(Alias alias, Expression element)
 {
-	public GroupByDescriptor(Alias alias, Expression element)
-	{
-		Alias = alias;
-		Element = element;
-	}
-
-	public Alias Alias { get; }
-	public Expression Element { get; }
+	public Alias Alias { get; } = alias;
+	public Expression Element { get; } = element;
 }

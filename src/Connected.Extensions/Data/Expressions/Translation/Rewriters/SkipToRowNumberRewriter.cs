@@ -14,7 +14,7 @@ public sealed class SkipToRowNumberRewriter : DatabaseVisitor
 
 	private QueryLanguage Language { get; set; }
 
-	public static Expression Rewrite(QueryLanguage language, Expression? expression)
+	public static Expression Rewrite(QueryLanguage language, Expression expression)
 	{
 		if (new SkipToRowNumberRewriter(language).Visit(expression) is not Expression skipToRowExpression)
 			throw new NullReferenceException(nameof(skipToRowExpression));
@@ -29,7 +29,7 @@ public sealed class SkipToRowNumberRewriter : DatabaseVisitor
 		if (expression.Skip is not null)
 		{
 			var newSelect = expression.SetSkip(null).SetTake(null);
-			var canAddColumn = !expression.IsDistinct && (expression.GroupBy is null || !expression.GroupBy.Any());
+			var canAddColumn = !expression.IsDistinct && (expression.GroupBy is null || expression.GroupBy.Count == 0);
 
 			if (!canAddColumn)
 				newSelect = newSelect.AddRedundantSelect(Language, Alias.New());
@@ -40,7 +40,10 @@ public sealed class SkipToRowNumberRewriter : DatabaseVisitor
 			newSelect = newSelect.AddRedundantSelect(Language, Alias.New());
 			newSelect = newSelect.RemoveColumn(newSelect.Columns.Single(c => c.Name == "_rownum"));
 
-			var newAlias = ((SelectExpression)newSelect.From).Alias;
+			if (newSelect.From is not SelectExpression se)
+				throw new NullReferenceException(SR.ErrExpectedExpression);
+
+			var newAlias = se.Alias;
 			var rnCol = new ColumnExpression(typeof(int), colType, newAlias, "_rownum");
 
 			Expression where;

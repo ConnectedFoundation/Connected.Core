@@ -1,13 +1,6 @@
-﻿using System.Threading.Tasks;
-using System;
-
 namespace Connected.Threading;
 
-public class AsyncLazy<T> : Lazy<Task<T>>
+public class AsyncLazy<T>(Task<T> value)
+	: Lazy<Task<T>>(value)
 {
-	public AsyncLazy(Task<T> value)
-		: base(value)
-	{
-
-	}
 }

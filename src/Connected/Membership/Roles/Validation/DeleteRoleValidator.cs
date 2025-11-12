@@ -1,4 +1,4 @@
-﻿using Connected.Annotations;
+using Connected.Annotations;
 using Connected.Services;
 using Connected.Services.Validation;
 using System.ComponentModel.DataAnnotations;

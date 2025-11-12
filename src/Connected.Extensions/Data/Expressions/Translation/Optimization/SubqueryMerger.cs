@@ -31,6 +31,9 @@ internal sealed class SubqueryMerger
 
 		while (CanMergeWithFrom(expression, wasTopLevel))
 		{
+			if (expression.From is null)
+				throw new NullReferenceException(SR.ErrExpectedExpression);
+
 			if (GetLeftMostSelect(expression.From) is not SelectExpression fromSelectExpression)
 				throw new NullReferenceException(nameof(fromSelectExpression));
 
@@ -87,6 +90,9 @@ internal sealed class SubqueryMerger
 
 	private static bool CanMergeWithFrom(SelectExpression select, bool isTopLevel)
 	{
+		if (select.From is null)
+			throw new NullReferenceException(SR.ErrExpectedExpression);
+
 		var fromSelect = GetLeftMostSelect(select.From);
 
 		if (fromSelect is null)

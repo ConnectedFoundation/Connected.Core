@@ -1,4 +1,4 @@
-﻿namespace Connected;
+namespace Connected;
 
 /// <summary>
 /// Provides contextual information about the caller of a service operation.

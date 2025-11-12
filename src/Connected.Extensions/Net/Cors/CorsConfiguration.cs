@@ -1,4 +1,4 @@
-﻿namespace Connected.Net.Cors;
+namespace Connected.Net.Cors;
 internal sealed class CorsConfiguration
 {
 	public bool Enabled { get; set; }

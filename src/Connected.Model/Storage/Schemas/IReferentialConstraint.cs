@@ -1,4 +1,4 @@
-﻿namespace Connected.Storage.Schemas;
+namespace Connected.Storage.Schemas;
 
 /// <summary>
 /// Represents a foreign key referential constraint in a database schema.

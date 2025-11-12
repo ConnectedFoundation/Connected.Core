@@ -1,4 +1,4 @@
-﻿using Connected.Authentication;
+using Connected.Authentication;
 using Connected.Net.Grpc.Dtos;
 using Connected.Reflection;
 using Connected.Services;
@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Connected.Net.Grpc;
 public static class GrpcExtensions
 {
-	public static async Task<TReturnValue?> Invoke<TService, TDto, TReturnValue>(this ServerCallContext context, string operation, object request, Func<AsyncServiceScope, Task>? invoking)
+	public static async Task<TReturnValue> Invoke<TService, TDto, TReturnValue>(this ServerCallContext context, string operation, object request, Func<AsyncServiceScope, Task>? invoking)
 		where TService : notnull
 		where TDto : IDto
 	{
@@ -29,7 +29,7 @@ public static class GrpcExtensions
 		return GrpcConverter.Convert<TReturnValue>(result);
 	}
 
-	public static async Task<TReturnValue?> Invoke<TService, TDto, TReturnValue>(this ServerCallContext context, string operation, object request)
+	public static async Task<TReturnValue> Invoke<TService, TDto, TReturnValue>(this ServerCallContext context, string operation, object request)
 		where TService : notnull
 		where TDto : IDto
 	{

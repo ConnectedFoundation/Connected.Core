@@ -1,4 +1,4 @@
-﻿namespace Connected.Storage;
+namespace Connected.Storage;
 
 public abstract class StorageReaderProvider : Middleware, IStorageReaderProvider
 {

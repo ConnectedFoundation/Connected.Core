@@ -1,4 +1,4 @@
-﻿using Connected.Reflection;
+using Connected.Reflection;
 using Google.Protobuf.Collections;
 using System.Collections;
 using System.Reflection;
@@ -6,10 +6,10 @@ using System.Reflection;
 namespace Connected.Net.Grpc;
 internal static class GrpcConverter
 {
-	public static TReturnValue? Convert<TReturnValue>(object? value)
+	public static TReturnValue Convert<TReturnValue>(object? value)
 	{
 		if (value is null)
-			return default;
+			return Activator.CreateInstance<TReturnValue>();
 
 		if (value.GetType().IsEnumerable())
 			return SerializeEnumerable<TReturnValue>(value);
@@ -21,35 +21,35 @@ internal static class GrpcConverter
 		return Serializer.Merge(instance, value);
 	}
 
-	private static TReturnValue? SerializePrimitive<TReturnValue>(object value)
+	private static TReturnValue SerializePrimitive<TReturnValue>(object value)
 	{
 		var properties = typeof(TReturnValue).GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.SetProperty);
 
 		if (properties.Length != 1)
-			return default;
+			return Activator.CreateInstance<TReturnValue>();
 
 		var property = properties[0].Name;
 		var instance = Activator.CreateInstance<TReturnValue>();
 
 		if (instance is null)
-			return default;
+			return Activator.CreateInstance<TReturnValue>();
 
 		typeof(TReturnValue).GetProperty(property)?.SetValue(instance, value);
 
 		return instance;
 	}
 
-	private static TReturnValue? SerializeEnumerable<TReturnValue>(object value)
+	private static TReturnValue SerializeEnumerable<TReturnValue>(object value)
 	{
 		var en = (IEnumerable)value;
 
 		if (en is null)
-			return default;
+			return Activator.CreateInstance<TReturnValue>();
 
 		var elementType = ResolveElementType<TReturnValue>();
 
 		if (elementType is null)
-			return default;
+			return Activator.CreateInstance<TReturnValue>();
 
 		var enumerator = en.GetEnumerator();
 		var result = new List<object?>();

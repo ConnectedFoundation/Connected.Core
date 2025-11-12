@@ -1,10 +1,10 @@
-﻿using System.Net;
+using System.Net;
 
 namespace Connected.Net.Http;
 
 public class HttpException : Exception
 {
-	private string? _message;
+	private readonly string? _message;
 
 	public HttpException(HttpStatusCode code) : this(code, null)
 	{

@@ -1,4 +1,4 @@
-﻿namespace Connected.Annotations.Entities;
+namespace Connected.Annotations.Entities;
 
 [AttributeUsage(AttributeTargets.Interface)]
 public sealed class EntityKeyAttribute(string key)

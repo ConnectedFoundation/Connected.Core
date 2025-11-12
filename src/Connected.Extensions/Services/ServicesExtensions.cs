@@ -1,4 +1,4 @@
-﻿using Connected.Annotations;
+using Connected.Annotations;
 using Connected.Entities;
 using Connected.Reflection;
 using Connected.Services.Middlewares;
@@ -101,7 +101,7 @@ public static class ServicesExtensions
 	{
 		var services = type.GetImplementedServices();
 
-		if (!services.Any())
+		if (services.Count == 0)
 			return null;
 
 		foreach (var service in services)

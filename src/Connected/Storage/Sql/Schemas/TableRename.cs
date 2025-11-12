@@ -16,7 +16,7 @@ internal class TableRename(string temporaryName)
 		{
 			var text = new StringBuilder();
 
-			text.AppendLine($"EXECUTE sp_rename N'{Unescape(Context.Schema.SchemaName())}.{Unescape(temporaryName)}', N'{Unescape(Context.Schema.Name)}', 'OBJECT'");
+			text.AppendLine($"EXECUTE sp_rename N'{Unescape(Context.Schema.Schema)}.{Unescape(temporaryName)}', N'{Unescape(Context.Schema.Name)}', 'OBJECT'");
 
 			return text.ToString();
 		}

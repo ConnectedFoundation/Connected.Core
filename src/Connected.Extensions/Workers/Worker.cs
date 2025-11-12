@@ -1,6 +1,3 @@
-﻿using System.Threading.Tasks;
-using System.Threading;
-using System;
 using Microsoft.Extensions.Hosting;
 
 namespace Connected.Workers;
@@ -42,11 +39,11 @@ public abstract class Worker : IHostedService, IWorker, IDisposable
 
 	public void Dispose()
 	{
-
+		GC.SuppressFinalize(this);
 	}
 
 	protected virtual void OnDisposing()
 	{
-		
+
 	}
 }

@@ -1,4 +1,4 @@
-﻿using Connected.Entities;
+using Connected.Entities;
 using Connected.Services;
 
 namespace Connected.Storage.Sharding.Nodes;

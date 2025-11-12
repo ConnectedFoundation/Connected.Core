@@ -1,4 +1,4 @@
-﻿namespace Connected.Entities.Protection;
+namespace Connected.Entities.Protection;
 
 public abstract class EntityProtector<TEntity> : Middleware, IEntityProtector<TEntity>
 	where TEntity : IEntity

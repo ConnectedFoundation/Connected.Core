@@ -1,4 +1,4 @@
-﻿using Connected.Authentication;
+using Connected.Authentication;
 using Connected.Identities;
 using Connected.Membership.Claims;
 using Connected.Membership.Claims.Dtos;

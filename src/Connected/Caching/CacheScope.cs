@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 
 namespace Connected.Caching;
@@ -113,7 +113,12 @@ internal sealed class CacheScope : ICache, IDisposable
 				options.KeyProperty ??= CachingUtils.GetCacheKeyProperty(instance)?.Name;
 
 				if (options.KeyProperty is not null)
-					options.Key = instance.GetType().GetProperty(options.KeyProperty)?.GetValue(instance)?.ToString();
+				{
+					var proposedKey = instance.GetType().GetProperty(options.KeyProperty)?.GetValue(instance)?.ToString();
+
+					if (proposedKey is not null)
+						options.Key = proposedKey;
+				}
 			}
 
 			if (options.Key is null)
@@ -135,7 +140,7 @@ internal sealed class CacheScope : ICache, IDisposable
 
 		var options = new CacheEntryOptions
 		{
-			Key = id?.ToString()
+			Key = id?.ToString() ?? throw new NullReferenceException(Exceptions.ErrCacheIdResolvedNull)
 		};
 
 		if (retrieve is null)

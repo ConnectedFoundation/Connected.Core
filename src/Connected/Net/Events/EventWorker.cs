@@ -1,10 +1,9 @@
-﻿using Connected.Net.Dtos;
-using Connected.Net.Events;
+using Connected.Net.Dtos;
 using Connected.Services;
 using Connected.Workers;
 using Microsoft.AspNetCore.SignalR;
 
-namespace Connected.Net.Messaging;
+namespace Connected.Net.Events;
 
 internal sealed class EventWorker
 	: ScheduledWorker

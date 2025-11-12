@@ -1,4 +1,4 @@
-﻿namespace Connected.Authorization.Services;
+namespace Connected.Authorization.Services;
 
 /// <summary>
 /// Defines authorization over a service boundary using a composite DTO.

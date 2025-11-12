@@ -1,4 +1,4 @@
-﻿using Connected.Annotations.Entities;
+using Connected.Annotations.Entities;
 using Connected.Entities;
 using Connected.Reflection;
 using System.Data;
@@ -17,7 +17,7 @@ internal class FieldMappings<TEntity>
 	/// <param name="reader">The <see cref="IDataReader"/> providing entity records.</param>
 	public FieldMappings(IDataReader reader)
 	{
-		Properties = new();
+		Properties = [];
 
 		Initialize(reader);
 	}

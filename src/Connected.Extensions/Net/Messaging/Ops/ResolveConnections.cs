@@ -1,4 +1,4 @@
-﻿using Connected.Net.Messaging.Dtos;
+using Connected.Net.Messaging.Dtos;
 using Connected.Services;
 using System.Collections.Immutable;
 

@@ -1,14 +1,10 @@
-﻿using System.Threading.Tasks;
-using System.Threading;
-using System;
-
 namespace Connected.Workers;
 
 public abstract class ScheduledWorker : Worker
 {
 	private Timer? _timer = null;
 	private Task? _executingTask = null;
-	private readonly CancellationTokenSource _stoppingCts = new CancellationTokenSource();
+	private readonly CancellationTokenSource _stoppingCts = new();
 
 	protected virtual TimeSpan Timer { get; set; } = TimeSpan.FromMinutes(1);
 	protected long Count { get; private set; }

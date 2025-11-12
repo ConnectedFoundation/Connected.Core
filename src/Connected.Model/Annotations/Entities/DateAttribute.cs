@@ -1,7 +1,13 @@
-﻿namespace Connected.Annotations.Entities;
+namespace Connected.Annotations.Entities;
+
 /// <summary>
 /// Specifies what date type should be used by storage provider.
 /// </summary>
+/// <remarks>
+/// This enumeration allows fine-grained control over how date and time values are stored
+/// in the underlying storage provider. Different storage providers may interpret these
+/// values differently based on their native date/time type support.
+/// </remarks>
 public enum DateKind
 {
 	/// <summary>
@@ -28,37 +34,39 @@ public enum DateKind
 	/// <summary>
 	/// A time data type should be used which contains only time without date component.
 	/// </summary>
-	Time = 5
+	Time = 5,
+	/// <summary>
+	/// A date and time data type with timezone offset information should be used.
+	/// </summary>
+	Offset = 6
 }
+
 /// <summary>
 /// Specifies how the storage provider should create and manage schema for date property.  
 /// </summary>
+/// <remarks>
+/// This attribute provides metadata to storage providers about how date and time values
+/// should be persisted. It supports various date formats and precision levels, allowing
+/// developers to optimize storage based on their specific requirements. The precision
+/// parameter is particularly useful for high-precision scenarios where millisecond or
+/// sub-millisecond accuracy is required.
+/// </remarks>
 [AttributeUsage(AttributeTargets.Property)]
-public sealed class DateAttribute : Attribute
+public sealed class DateAttribute(DateKind kind, int precision = 0) : Attribute
 {
-	/// <summary>
-	/// Creates a new instance of the Date class.
-	/// </summary>
-	/// <param name="kind">The kind of a date format that should be used when storing Entity's 
-	/// records.</param>
-	/// <param name="precision">The precision if high precision data type is used. This value might
-	/// not be supported by all storage providers.</param>
-	public DateAttribute(DateKind kind, int precision = 0)
-	{
-		/*
-		 * Capture both the desired storage kind and precision so providers can emit
-		 * an appropriate date/time column definition including scale where supported.
-		 */
-		Kind = kind;
-		Precision = precision;
-	}
 	/// <summary>
 	/// The kind of a date format which defines which parts of the date and time should records hold.
 	/// </summary>
-	public DateKind Kind { get; }
+	public DateKind Kind { get; } = kind;
+
 	/// <summary>
 	/// The precision of the high precision types such as DateTime2. 
-	/// Higher precision means more acurate values.
+	/// Higher precision means more accurate values.
 	/// </summary>
-	public int Precision { get; }
+	/// <remarks>
+	/// This value might not be supported by all storage providers. When supported, it typically
+	/// represents the number of decimal places for fractional seconds. Common values range from
+	/// 0 to 7, where 0 means no fractional seconds and 7 provides the highest precision.
+	/// </remarks>
+	public int Precision { get; } = precision;
 }

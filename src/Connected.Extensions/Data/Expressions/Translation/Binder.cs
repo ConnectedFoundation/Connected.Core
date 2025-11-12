@@ -47,8 +47,8 @@ public sealed class Binder
 		Context = context;
 		Expression = expression;
 
-		ParameterMapping = new();
-		GroupByMap = new();
+		ParameterMapping = [];
+		GroupByMap = [];
 	}
 
 	/// <summary>
@@ -74,7 +74,7 @@ public sealed class Binder
 	/// <summary>
 	/// The current element used when processing group projections.
 	/// </summary>
-	private Expression CurrentGroupElement { get; set; }
+	private Expression? CurrentGroupElement { get; set; }
 
 	/// <summary>
 	/// The root expression being bound.
@@ -186,7 +186,7 @@ public sealed class Binder
 				 */
 				var proj = (ProjectionExpression)source;
 				var newProjector = Bind(proj.Projector, member);
-				var mt = Members.GetMemberType(member);
+				var mt = Members.GetMemberType(member) ?? throw new NullReferenceException(SR.ErrCannotResolveMemberType);
 
 				return new ProjectionExpression(proj.Select, newProjector, Aggregator.GetAggregator(mt, typeof(IEnumerable<>).MakeGenericType(mt)));
 
@@ -220,7 +220,7 @@ public sealed class Binder
 				 * default CLR value for the member's type.
 				 */
 				var con = (ConstantExpression)source;
-				var memberType = Members.GetMemberType(member);
+				var memberType = Members.GetMemberType(member) ?? throw new NullReferenceException(SR.ErrCannotResolveMemberType);
 
 				if (con.Value is null)
 					return Expression.Constant(GetDefault(memberType), memberType);
@@ -238,7 +238,7 @@ public sealed class Binder
 	/// Visits a method call and dispatches to the appropriate Bind* implementation
 	/// for supported query operators (Where, Select, Join, GroupBy, etc.).
 	/// </summary>
-	protected override Expression? VisitMethodCall(MethodCallExpression expression)
+	protected override Expression VisitMethodCall(MethodCallExpression expression)
 	{
 		/*
 		 * Central dispatcher for LINQ method calls. Determine whether the called
@@ -390,7 +390,8 @@ public sealed class Binder
 		if (Context.Language.IsAggregate(expression.Method))
 		{
 			var lambda = expression.Arguments.Count > 1 ? GetLambda(expression.Arguments[1]) : null;
-			return BindAggregate(expression.Arguments[0], expression.Method.Name, expression.Method.ReturnType, lambda, expression == Expression);
+
+			return BindAggregate(expression.Arguments[0], expression.Method.Name, expression.Method.ReturnType, lambda, expression == Expression) ?? throw new NullReferenceException(SR.ErrExpectedExpression);
 		}
 
 		return base.VisitMethodCall(expression);
@@ -400,7 +401,7 @@ public sealed class Binder
 	/// Binds aggregate method calls (Sum, Count, Average, etc.) into aggregate
 	/// expressions or scalar subqueries depending on the query shape.
 	/// </summary>
-	private Expression BindAggregate(Expression expression, string aggregateName, Type returnType, LambdaExpression? argument, bool isRoot)
+	private Expression? BindAggregate(Expression expression, string aggregateName, Type returnType, LambdaExpression? argument, bool isRoot)
 	{
 		/*
 		 * Aggregate binding overview:
@@ -436,7 +437,7 @@ public sealed class Binder
 		if (argument is not null && hasPredicateArg)
 		{
 			var enType = expression.Type.GetEnumerableElementType();
-			expression = Expression.Call(typeof(Queryable), "Where", enType is null ? null : new[] { enType }, expression, argument);
+			expression = Expression.Call(typeof(Queryable), "Where", enType is null ? null : [enType], expression, argument);
 			argument = null;
 			argumentWasPredicate = true;
 		}
@@ -456,13 +457,16 @@ public sealed class Binder
 		else if (!hasPredicateArg || useAlternateArg)
 			argExpr = projection.Projector;
 
+		if (argExpr is null)
+			throw new NullReferenceException(SR.ErrExpectedExpression);
+
 		var alias = Alias.New();
 
 		ProjectColumns(projection.Projector, alias, projection.Select.Alias);
 
 		var aggExpr = new AggregateExpression(returnType, aggregateName, argExpr, isDistinct);
 		var colType = Context.Language.TypeSystem.ResolveColumnType(returnType);
-		var select = new SelectExpression(alias, new ColumnDeclaration[] { new ColumnDeclaration(string.Empty, aggExpr, colType) }, projection.Select, null);
+		var select = new SelectExpression(alias, [new ColumnDeclaration(string.Empty, aggExpr, colType)], projection.Select, null);
 
 		/*
 		 * Root-level aggregates must be materialized as a projection with an
@@ -472,7 +476,7 @@ public sealed class Binder
 		if (isRoot)
 		{
 			var p = Expression.Parameter(typeof(IEnumerable<>).MakeGenericType(aggExpr.Type), "p");
-			var gator = Expression.Lambda(Expression.Call(typeof(Enumerable), "Single", new Type[] { returnType }, p), p);
+			var gator = Expression.Lambda(Expression.Call(typeof(Enumerable), "Single", [returnType], p), p);
 
 			return new ProjectionExpression(select, new ColumnExpression(returnType, Context.Language.TypeSystem.ResolveColumnType(returnType), alias, ""), gator);
 		}
@@ -499,6 +503,9 @@ public sealed class Binder
 
 			if (projection == CurrentGroupElement)
 				return aggExpr;
+
+			if (aggExpr is null)
+				throw new NullReferenceException(SR.ErrExpectedExpression);
 
 			return new AggregateSubqueryExpression(info.Alias, aggExpr, subquery);
 		}
@@ -644,7 +651,7 @@ public sealed class Binder
 	/// <summary>
 	/// Bind a Select operator by translating the selector against the input projection.
 	/// </summary>
-	private Expression BindSelect(Expression source, LambdaExpression selector)
+	private ProjectionExpression BindSelect(Expression source, LambdaExpression selector)
 	{
 		/*
 		 * Translate selector by mapping its parameter to the source projector,
@@ -678,7 +685,7 @@ public sealed class Binder
 	/// <summary>
 	/// Bind SelectMany (flatMap) translating collection and result selectors and producing joins.
 	/// </summary>
-	private Expression BindSelectMany(Expression source, LambdaExpression collectionSelector, LambdaExpression resultSelector)
+	private ProjectionExpression BindSelectMany(Expression source, LambdaExpression collectionSelector, LambdaExpression? resultSelector)
 	{
 		/*
 		 * SelectMany translation outline:
@@ -732,7 +739,7 @@ public sealed class Binder
 	/// <summary>
 	/// Bind an inner join between two sequences using provided key selectors and result selector.
 	/// </summary>
-	private Expression BindJoin(Expression outerSource, Expression innerSource, LambdaExpression outerKey, LambdaExpression innerKey, LambdaExpression resultSelector)
+	private ProjectionExpression BindJoin(Expression outerSource, Expression innerSource, LambdaExpression outerKey, LambdaExpression innerKey, LambdaExpression resultSelector)
 	{
 		/*
 		 * Join binding steps:
@@ -798,7 +805,7 @@ public sealed class Binder
 	/// <summary>
 	/// Bind a GroupJoin by translating it into a grouped SelectMany-like structure.
 	/// </summary>
-	private Expression BindGroupJoin(MethodInfo groupJoinMethod, Expression outerSource, Expression innerSource, LambdaExpression outerKey,
+	private ProjectionExpression BindGroupJoin(MethodInfo groupJoinMethod, Expression outerSource, Expression innerSource, LambdaExpression outerKey,
 	 LambdaExpression innerKey, LambdaExpression resultSelector)
 	{
 		/*
@@ -817,7 +824,7 @@ public sealed class Binder
 		 * in the join result.
 		 */
 		var predicateLambda = Expression.Lambda(innerKey.Body.Equal(outerKey.Body), innerKey.Parameters[0]);
-		var callToWhere = Expression.Call(typeof(Enumerable), "Where", new Type[] { args[1] }, innerSource, predicateLambda);
+		var callToWhere = Expression.Call(typeof(Enumerable), "Where", [args[1]], innerSource, predicateLambda);
 		var group = Visit(callToWhere);
 
 		ParameterMapping[resultSelector.Parameters[0]] = outerProjection.Projector;
@@ -835,7 +842,7 @@ public sealed class Binder
 	/// <summary>
 	/// Bind ordering operations and incorporate any pending ThenBy chains.
 	/// </summary>
-	private Expression BindOrderBy(Expression source, LambdaExpression orderSelector, OrderType orderType)
+	private ProjectionExpression BindOrderBy(Expression source, LambdaExpression orderSelector, OrderType orderType)
 	{
 		/*
 		 * OrderBy binding algorithm:
@@ -852,7 +859,7 @@ public sealed class Binder
 
 		ParameterMapping[orderSelector.Parameters[0]] = projection.Projector;
 
-		var orderings = new List<OrderExpression> { new OrderExpression(orderType, Visit(orderSelector.Body)) };
+		var orderings = new List<OrderExpression> { new(orderType, Visit(orderSelector.Body)) };
 
 		if (myThenBys is not null)
 		{
@@ -882,7 +889,7 @@ public sealed class Binder
 		 * Defer ThenBy handling until the next OrderBy by capturing the ordering
 		 * lambda and its direction. This preserves fluent chaining semantics.
 		 */
-		ThenBys ??= new List<OrderExpression>();
+		ThenBys ??= [];
 
 		ThenBys.Add(new OrderExpression(orderType, orderSelector));
 
@@ -892,7 +899,7 @@ public sealed class Binder
 	/// <summary>
 	/// Bind a GroupBy, build grouping subqueries and register group descriptors for later aggregate binding.
 	/// </summary>
-	private Expression BindGroupBy(Expression source, LambdaExpression keySelector, LambdaExpression elementSelector, LambdaExpression resultSelector)
+	private ProjectionExpression BindGroupBy(Expression source, LambdaExpression keySelector, LambdaExpression? elementSelector, LambdaExpression? resultSelector)
 	{
 		/*
 		 * GroupBy binding summary (high level):
@@ -963,7 +970,7 @@ public sealed class Binder
 		else
 		{
 			resultExpr = Expression.New(typeof(Grouping<,>).MakeGenericType(keyExpr.Type, subqueryElemExpr.Type).GetTypeInfo().DeclaredConstructors.First(),
-				  new Expression[] { keyExpr, elementSubquery });
+				  [keyExpr, elementSubquery]);
 
 			resultExpr = Expression.Convert(resultExpr, typeof(IGrouping<,>).MakeGenericType(keyExpr.Type, subqueryElemExpr.Type));
 		}
@@ -985,7 +992,7 @@ public sealed class Binder
 	/// <summary>
 	/// Bind a Distinct operator by projecting server-side distinct columns.
 	/// </summary>
-	private Expression BindDistinct(Expression source)
+	private ProjectionExpression BindDistinct(Expression source)
 	{
 		/*
 		 * Project the source projector with server affinity so DISTINCT can be
@@ -993,7 +1000,7 @@ public sealed class Binder
 		 */
 		var projection = VisitSequence(source);
 		var alias = Alias.New();
-		var pc = ColumnProjector.ProjectColumns(Context.Language, ProjectionAffinity.Server, projection.Projector, null, alias, projection.Select.Alias);
+		var pc = ColumnProjector.ProjectColumns(Context.Language, ProjectionAffinity.Server, projection.Projector, [], alias, projection.Select.Alias);
 
 		return new ProjectionExpression(new SelectExpression(alias, pc.Columns, projection.Select, null, null, null, true, null, null, false), pc.Projector);
 	}
@@ -1001,7 +1008,7 @@ public sealed class Binder
 	/// <summary>
 	/// Bind a Take (LIMIT) operator.
 	/// </summary>
-	private Expression BindTake(Expression source, Expression take)
+	private ProjectionExpression BindTake(Expression source, Expression take)
 	{
 		/*
 		 * Attach a translated Take expression to a projected select so the
@@ -1020,7 +1027,7 @@ public sealed class Binder
 	/// <summary>
 	/// Bind a Skip (OFFSET) operator.
 	/// </summary>
-	private Expression BindSkip(Expression source, Expression skip)
+	private ProjectionExpression BindSkip(Expression source, Expression skip)
 	{
 		/*
 		 * Attach a translated Skip expression to a projected select so the
@@ -1040,7 +1047,7 @@ public sealed class Binder
 	/// Bind First/Single semantics by optionally applying a take/where and
 	/// returning either a projection or the root projection with an aggregator.
 	/// </summary>
-	private Expression BindFirst(Expression source, LambdaExpression predicate, string kind, bool isRoot)
+	private ProjectionExpression BindFirst(Expression source, LambdaExpression? predicate, string kind, bool isRoot)
 	{
 		/*
 		 * Behavior overview:
@@ -1075,7 +1082,7 @@ public sealed class Binder
 		{
 			var elementType = projection.Projector.Type;
 			var p = Expression.Parameter(typeof(IEnumerable<>).MakeGenericType(elementType), "p");
-			var gator = Expression.Lambda(Expression.Call(typeof(Enumerable), kind, new Type[] { elementType }, p), p);
+			var gator = Expression.Lambda(Expression.Call(typeof(Enumerable), kind, [elementType], p), p);
 
 			return new ProjectionExpression(projection.Select, projection.Projector, gator);
 		}
@@ -1086,14 +1093,13 @@ public sealed class Binder
 	/// <summary>
 	/// Bind Any/All semantics by converting to Exists or a count-based expression depending on environment.
 	/// </summary>
-	private Expression BindAnyAll(Expression source, MethodInfo method, LambdaExpression predicate, bool isRoot)
+	private Expression BindAnyAll(Expression source, MethodInfo method, LambdaExpression? predicate, bool isRoot)
 	{
 		/*
 		 * Implementation previously documented; preserved as-is.
 		 */
 		var isAll = string.Equals(method.Name, "All", StringComparison.Ordinal);
 		var constSource = source as ConstantExpression;
-
 		/*
 		 * Handle the simple case where the source is an in-memory collection (constant) and
 		 * not an IQueryable. In that situation we can evaluate the predicate for each
@@ -1104,28 +1110,49 @@ public sealed class Binder
 		 */
 		if (constSource is not null && !IsQuery(constSource))
 		{
-			System.Diagnostics.Debug.Assert(!isRoot);
-			Expression where = null;
+			Expression? where = null;
 
-			// For each concrete value in the collection, build an invocation of the predicate
-			// with the value as the parameter, then combine these invocations using AND/OR.
-			foreach (object value in (IEnumerable)constSource.Value)
+			if (predicate is not null && constSource.Value is IEnumerable en)
 			{
-				// Invoke the predicate against the constant value: predicate(value)
-				var expr = Expression.Invoke(predicate, Expression.Constant(value, predicate.Parameters[0].Type));
+				/*
+				 * For each concrete value in the collection, build an invocation of the predicate
+				 * with the value as the parameter, then combine these invocations using AND/OR.
+				 */
+				foreach (object value in en)
+				{
+					/*
+					 * Invoke the predicate against the constant value: predicate(value)
+					 */
+					var expr = Expression.Invoke(predicate, Expression.Constant(value, predicate.Parameters[0].Type));
 
-				if (where is null)
-					where = expr; // first element sets the initial expression
-				else if (isAll)
-					where = where.And(expr); // All -> conjunction of all invocations
-				else
-					where = where.Or(expr); // Any -> disjunction
+					if (where is null)
+					{
+						/*
+						 * first element sets the initial expression
+						 */
+						where = expr;
+					}
+					else if (isAll)
+					{
+						/*
+						 * All -> conjunction of all invocations
+						 */
+						where = where.And(expr);
+					}
+					else
+					{
+						/*
+						 * Any -> disjunction of all invocations
+						 */
+						where = where.Or(expr);
+					}
+				}
 			}
-
-			// Visit the combined expression so it is reduced/translated by the binder
-			return Visit(where);
+			/*
+			 * Visit the combined expression so it is reduced/translated by the binder
+			 */
+			return where is null ? source : Visit(where);
 		}
-
 		/*
 		 * For remote/queryable sources we need to translate All/Any into server-side
 		 * constructs. There are two common strategies:
@@ -1134,8 +1161,8 @@ public sealed class Binder
 		 */
 		else
 		{
-			if (isAll)
-				predicate = Expression.Lambda(Expression.Not(predicate.Body), predicate.Parameters.ToArray());
+			if (isAll && predicate is not null)
+				predicate = Expression.Lambda(Expression.Not(predicate.Body), [.. predicate.Parameters]);
 
 			if (predicate is not null)
 				source = Expression.Call(typeof(Enumerable), "Where", method.GetGenericArguments(), source, predicate);
@@ -1153,7 +1180,7 @@ public sealed class Binder
 				else
 				{
 					var colType = Context.Language.TypeSystem.ResolveColumnType(typeof(int));
-					var newSelect = projection.Select.SetColumns(new[] { new ColumnDeclaration("value", new AggregateExpression(typeof(int), "Count", null, false), colType) });
+					var newSelect = projection.Select.SetColumns([new ColumnDeclaration("value", new AggregateExpression(typeof(int), "Count", null, false), colType)]);
 					var colx = new ColumnExpression(typeof(int), colType, newSelect.Alias, "value");
 					var exp = isAll ? colx.Equal(Expression.Constant(0)) : colx.GreaterThan(Expression.Constant(0));
 
@@ -1183,8 +1210,11 @@ public sealed class Binder
 			System.Diagnostics.Debug.Assert(!isRoot);
 			var values = new List<Expression>();
 
-			foreach (object value in (IEnumerable)constSource.Value)
-				values.Add(Expression.Constant(Types.Convert(value, match.Type), match.Type));
+			if (constSource.Value is IEnumerable en)
+			{
+				foreach (object value in en)
+					values.Add(Expression.Constant(Types.Convert(value, match.Type), match.Type));
+			}
 
 			match = Visit(match);
 
@@ -1192,9 +1222,10 @@ public sealed class Binder
 		}
 		else if (isRoot && !Context.Language.AllowSubqueryInSelectWithoutFrom)
 		{
-			var p = Expression.Parameter(Enumerables.GetEnumerableElementType(source.Type), "x");
+			var elementType = Enumerables.GetEnumerableElementType(source.Type) ?? throw new NullReferenceException(SR.ErrCannotResolveElementType);
+			var p = Expression.Parameter(elementType, "x");
 			var predicate = Expression.Lambda(p.Equal(match), p);
-			var exp = Expression.Call(typeof(Queryable), "Any", new Type[] { p.Type }, source, predicate);
+			var exp = Expression.Call(typeof(Queryable), "Any", [p.Type], source, predicate);
 
 			Expression = exp;
 
@@ -1218,7 +1249,7 @@ public sealed class Binder
 	/// <summary>
 	/// Validate and bind a Cast operation between element types.
 	/// </summary>
-	private Expression BindCast(Expression source, Type targetElementType)
+	private ProjectionExpression BindCast(Expression source, Type targetElementType)
 	{
 		/*
 		 * Ensure the element type of the projected source is assignable to the
@@ -1237,7 +1268,7 @@ public sealed class Binder
 	/// <summary>
 	/// Bind an Intersect/Except operation by producing an EXISTS/NOT EXISTS predicate.
 	/// </summary>
-	private Expression BindIntersect(Expression outerSource, Expression innerSource, bool negate)
+	private ProjectionExpression BindIntersect(Expression outerSource, Expression innerSource, bool negate)
 	{
 		/*
 		 * Translate set operations to EXISTS expressions that compare the inner
@@ -1246,7 +1277,7 @@ public sealed class Binder
 		var outerProjection = VisitSequence(outerSource);
 		var innerProjection = VisitSequence(innerSource);
 
-		Expression exists = new ExistsExpression(new SelectExpression(Alias.New(), null, innerProjection.Select, innerProjection.Projector.Equal(outerProjection.Projector)));
+		Expression exists = new ExistsExpression(new SelectExpression(Alias.New(), [], innerProjection.Select, innerProjection.Projector.Equal(outerProjection.Projector)));
 
 		if (negate)
 			exists = Expression.Not(exists);
@@ -1260,7 +1291,7 @@ public sealed class Binder
 	/// <summary>
 	/// Bind Reverse by setting the reverse flag on the select.
 	/// </summary>
-	private Expression BindReverse(Expression expression)
+	private ProjectionExpression BindReverse(Expression expression)
 	{
 		/*
 		 * Project the source and mark the produced SelectExpression as reversed
@@ -1277,7 +1308,7 @@ public sealed class Binder
 	/// <summary>
 	/// Builds a predicate that compares two sequences of expressions treating nulls as equal.
 	/// </summary>
-	private static Expression? BuildPredicateWithNullsEqual(IEnumerable<Expression> source1, IEnumerable<Expression> source2)
+	private static Expression? BuildPredicateWithNullsEqual(Expression[] source1, Expression[] source2)
 	{
 		/*
 		 * Build a conjunction of equality comparisons for two expression lists
@@ -1290,7 +1321,10 @@ public sealed class Binder
 
 		while (en1.MoveNext() && en2.MoveNext())
 		{
-			var compare = Expression.Or(new IsNullExpression(en1.Current).And(new IsNullExpression(en2.Current)), en1.Current.Equal(en2.Current));
+			if (en1.Current is not Expression current1 || en2.Current is not Expression current2)
+				continue;
+
+			var compare = Expression.Or(new IsNullExpression(current1).And(new IsNullExpression(current2)), current1.Equal(current2));
 
 			result = result is null ? compare : result.And(compare);
 		}
@@ -1316,7 +1350,7 @@ public sealed class Binder
 	/// <summary>
 	/// Create a singleton projection around an expression using the provided aggregator.
 	/// </summary>
-	private Expression GetSingletonSequence(Expression expr, string aggregator)
+	private ProjectionExpression GetSingletonSequence(Expression expr, string aggregator)
 	{
 		/*
 		 * Wrap the expression in a one-column SelectExpression and optionally
@@ -1324,14 +1358,14 @@ public sealed class Binder
 		 * the caller can materialize a scalar from the singleton projection.
 		 */
 		var p = Expression.Parameter(typeof(IEnumerable<>).MakeGenericType(expr.Type), "p");
-		LambdaExpression gator = null;
+		LambdaExpression? gator = null;
 
 		if (aggregator is not null)
-			gator = Expression.Lambda(Expression.Call(typeof(Enumerable), aggregator, new Type[] { expr.Type }, p), p);
+			gator = Expression.Lambda(Expression.Call(typeof(Enumerable), aggregator, [expr.Type], p), p);
 
 		var alias = Alias.New();
 		var colType = Context.Language.TypeSystem.ResolveColumnType(expr.Type);
-		var select = new SelectExpression(alias, new[] { new ColumnDeclaration("value", expr, colType) }, null, null);
+		var select = new SelectExpression(alias, [new ColumnDeclaration("value", expr, colType)], null, null);
 
 		return new ProjectionExpression(select, new ColumnExpression(expr.Type, colType, alias, "value"), gator);
 	}
@@ -1365,9 +1399,9 @@ public sealed class Binder
 			return true;
 
 		if (a is MethodInfo && b is PropertyInfo info)
-			return a.Name == info.GetMethod.Name;
+			return string.Equals(a.Name, info.GetMethod?.Name, StringComparison.Ordinal);
 		else if (a is PropertyInfo info1 && b is MethodInfo)
-			return info1.GetMethod.Name == b.Name;
+			return string.Equals(info1.GetMethod?.Name, b.Name, StringComparison.Ordinal);
 
 		return false;
 	}
@@ -1397,13 +1431,13 @@ public sealed class Binder
 	/// <summary>
 	/// Returns the default value for a CLR type (null for nullable/reference types).
 	/// </summary>
-	private static object? GetDefault(Type type)
+	private static object? GetDefault(Type? type)
 	{
 		/*
 		 * Return null for reference or nullable types, otherwise construct a
 		 * default value for the value type using Activator.CreateInstance.
 		 */
-		if (!type.GetTypeInfo().IsValueType || type.IsNullable())
+		if (type is null || !type.GetTypeInfo().IsValueType || type.IsNullable())
 			return null;
 		else
 			return Activator.CreateInstance(type);
@@ -1421,6 +1455,9 @@ public sealed class Binder
 		 */
 		if (IsQuery(expression))
 		{
+			if (expression.Value is null)
+				throw new NullReferenceException(SR.ErrExpectedExpressionValue);
+
 			var q = (IQueryable)expression.Value;
 
 			if (q.Expression.NodeType == ExpressionType.Constant)
@@ -1482,33 +1519,13 @@ public sealed class Binder
 	/// </summary>
 	protected override Expression VisitMemberAccess(MemberExpression expression)
 	{
-		/*
-		 * Attempt to resolve member accesses that target query sources or remote
-		 * aggregates. If the member corresponds to a known aggregate and the
-		 * source is remote, bind it using BindAggregate; otherwise delegate to
-		 * the static Bind helper which maps members to columns/projections.
-		 */
-		if (expression.Expression is not null
-			 && expression.Expression.NodeType == ExpressionType.Parameter
-			 && !ParameterMapping.ContainsKey((ParameterExpression)expression.Expression)
-			 && IsQuery(expression))
-		{
-			/*
-			 * Original implementation had a commented-out mapping hook here for
-			 * entity mapping resolution. Preserve that intent as a block comment.
-			 */
-			/*
-			var mapping = MappingsCache.Get();
-
-
-			  return this.VisitSequence(MappingsCache.Mapper.GetQueryExpression(Mapper.Mapping.GetMapping(expression.Member)));
-			*/
-		}
+		if (expression.Expression is null)
+			throw new NullReferenceException(SR.ErrExpectedExpression);
 
 		var source = Visit(expression.Expression);
 
 		if (Context.Language.IsAggregate(expression.Member) && IsRemoteQuery(source))
-			return BindAggregate(expression.Expression, expression.Member.Name, Members.GetMemberType(expression.Member), null, expression == Expression);
+			return BindAggregate(expression.Expression, expression.Member.Name, Members.GetMemberType(expression.Member) ?? throw new NullReferenceException(SR.ErrCannotResolveMemberType), null, expression == Expression) ?? throw new NullReferenceException(SR.ErrExpectedExpression);
 
 		var result = Bind(source, expression.Member);
 		var mex = result as MemberExpression;
@@ -1523,7 +1540,7 @@ public sealed class Binder
 	/// Determines whether the provided expression represents a remote (database) query
 	/// or contains nodes that originate from the database expression model.
 	/// </remarks>
-	private bool IsRemoteQuery(Expression expression)
+	private static bool IsRemoteQuery(Expression expression)
 	{
 		/*
 		 * Recursively determine if the expression is or contains a database
@@ -1536,7 +1553,10 @@ public sealed class Binder
 		switch (expression.NodeType)
 		{
 			case ExpressionType.MemberAccess:
-				return IsRemoteQuery(((MemberExpression)expression).Expression);
+				if (expression is not MemberExpression mae || mae.Expression is null)
+					throw new ArgumentException(SR.ErrExpectedExpression);
+
+				return IsRemoteQuery(mae.Expression);
 			case ExpressionType.Call:
 				var mc = (MethodCallExpression)expression;
 

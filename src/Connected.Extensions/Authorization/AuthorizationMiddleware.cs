@@ -1,4 +1,4 @@
-﻿namespace Connected.Authorization;
+namespace Connected.Authorization;
 
 public abstract class AuthorizationMiddleware : Middleware, IAuthorization
 {

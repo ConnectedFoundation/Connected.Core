@@ -1,4 +1,4 @@
-﻿using Connected.Entities;
+using Connected.Entities;
 using Connected.Membership.Claims.Dtos;
 using Connected.Services;
 using System.Collections.Immutable;

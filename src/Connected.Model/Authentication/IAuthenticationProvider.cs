@@ -1,4 +1,4 @@
-﻿namespace Connected.Authentication;
+namespace Connected.Authentication;
 /// <summary>
 /// An interface for implementing authentication providers.
 /// </summary>

@@ -1,4 +1,4 @@
-﻿using Connected.Services;
+using Connected.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Connected.Collections.Concurrent;

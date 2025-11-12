@@ -1,4 +1,4 @@
-﻿namespace Connected.Annotations;
+namespace Connected.Annotations;
 /// <summary>
 /// Specifies that a type will inject into a specific pipeline.
 /// </summary>

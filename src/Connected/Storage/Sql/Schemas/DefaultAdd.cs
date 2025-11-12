@@ -18,8 +18,8 @@ internal class DefaultAdd(ISchemaColumn column, string tableName) : ColumnTransa
 
 			var defValue = SchemaExtensions.ParseDefaultValue(Column.DefaultValue);
 
-			text.AppendLine($"ALTER TABLE {Escape(Context.Schema.SchemaName(), tableName)}");
-			text.AppendLine($"ADD CONSTRAINT {Context.GenerateConstraintName(Context.Schema.SchemaName(), tableName, ConstraintNameType.Default)} DEFAULT {defValue} FOR {Column.Name}");
+			text.AppendLine($"ALTER TABLE {Escape(Context.Schema.Schema, tableName)}");
+			text.AppendLine($"ADD CONSTRAINT {Context.GenerateConstraintName(Context.Schema.Schema, tableName, ConstraintNameType.Default)} DEFAULT {defValue} FOR {Column.Name}");
 
 			return text.ToString();
 		}

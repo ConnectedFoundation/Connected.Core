@@ -1,4 +1,4 @@
-﻿namespace Connected.Entities;
+namespace Connected.Entities;
 /// <summary>
 /// Represents the logical availability of a record in the domain model.
 /// </summary>

@@ -1,30 +1,22 @@
-using System.Linq;
 using System.Collections;
-using System.Collections.Generic;
 
 namespace Connected.Data.Expressions.Translation;
 
-internal sealed class Grouping<TKey, TElement> : IGrouping<TKey, TElement>
+internal sealed class Grouping<TKey, TElement>(TKey key, IEnumerable<TElement> group)
+	: IGrouping<TKey, TElement>
 {
-	public Grouping(TKey key, IEnumerable<TElement> group)
-	{
-		Key = key;
-		Group = group;
-	}
-
-	public TKey Key { get; }
-	private IEnumerable<TElement> Group { get; set; }
+	public TKey Key { get; } = key;
 
 	public IEnumerator<TElement> GetEnumerator()
 	{
-		if (!(Group is List<TElement>))
-			Group = Group.ToList();
+		if (group is not List<TElement>)
+			group = [.. group];
 
-		return Group.GetEnumerator();
+		return group.GetEnumerator();
 	}
 
 	IEnumerator IEnumerable.GetEnumerator()
 	{
-		return Group.GetEnumerator();
+		return group.GetEnumerator();
 	}
 }

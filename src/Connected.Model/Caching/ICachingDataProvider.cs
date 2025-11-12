@@ -1,4 +1,4 @@
-﻿namespace Connected.Caching;
+namespace Connected.Caching;
 /// <summary>
 /// Specifies a provider for the data in the cache.
 /// </summary>

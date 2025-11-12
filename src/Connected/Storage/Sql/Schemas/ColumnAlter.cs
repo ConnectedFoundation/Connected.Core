@@ -42,7 +42,7 @@ internal class ColumnAlter(ISchemaColumn column, ExistingSchema existing, ISchem
 		{
 			var text = new StringBuilder();
 
-			text.AppendLine($"ALTER TABLE {Escape(Context.Schema.SchemaName(), Context.Schema.Name)}");
+			text.AppendLine($"ALTER TABLE {Escape(Context.Schema.Schema, Context.Schema.Name)}");
 			text.AppendLine($"ALTER COLUMN {CreateColumnCommandText(Column)}");
 
 			return text.ToString();

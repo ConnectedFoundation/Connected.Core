@@ -1,4 +1,4 @@
-﻿namespace Connected.Identities.Dtos;
+namespace Connected.Identities.Dtos;
 
 /// <summary>
 /// Represents a data transfer object for inserting a new user.

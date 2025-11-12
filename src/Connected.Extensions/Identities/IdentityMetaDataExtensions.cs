@@ -1,4 +1,4 @@
-﻿using Connected.Identities.MetaData;
+using Connected.Identities.MetaData;
 using Connected.Services;
 using Microsoft.Extensions.DependencyInjection;
 

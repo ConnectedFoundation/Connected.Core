@@ -2,7 +2,7 @@ namespace Connected.Caching;
 
 public class CacheEntryOptions : IEntryOptions
 {
-	public string? Key { get; set; }
+	public string Key { get; set; }
 	public string? KeyProperty { get; set; }
 	public TimeSpan Duration { get; set; }
 	public bool SlidingExpiration { get; set; }
@@ -12,5 +12,6 @@ public class CacheEntryOptions : IEntryOptions
 	{
 		Duration = TimeSpan.FromMinutes(5);
 		SlidingExpiration = true;
+		Key = ".";
 	}
 }

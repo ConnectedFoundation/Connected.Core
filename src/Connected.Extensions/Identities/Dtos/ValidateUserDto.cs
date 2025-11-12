@@ -1,4 +1,4 @@
-﻿using Connected.Services;
+using Connected.Services;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;

@@ -23,8 +23,8 @@ internal class ExpressionSerializer
 	private const string Null = "null";
 	static ExpressionSerializer()
 	{
-		Splitters = new char[] { '\n', '\r' };
-		Special = new char[] { '\n', '\n', '\\' };
+		Splitters = ['\n', '\r'];
+		Special = ['\n', '\n', '\\'];
 	}
 	protected ExpressionSerializer(TextWriter writer)
 	{
@@ -338,8 +338,11 @@ internal class ExpressionSerializer
 		return original;
 	}
 
-	protected override ReadOnlyCollection<Expression> VisitExpressionList(ReadOnlyCollection<Expression> original)
+	protected override ReadOnlyCollection<Expression> VisitExpressionList(ReadOnlyCollection<Expression>? original)
 	{
+		if (original is null)
+			return new ReadOnlyCollection<Expression>([]);
+
 		var length = original.Count;
 
 		for (var i = 0; i < length; i++)

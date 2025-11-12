@@ -21,7 +21,7 @@ internal class TableExists
 		{
 			var text = new StringBuilder();
 
-			text.AppendLine($"IF (EXISTS (SELECT *  FROM INFORMATION_SCHEMA.TABLES  WHERE TABLE_SCHEMA = '{Unescape(Context.Schema.SchemaName())}' AND TABLE_NAME = '{Unescape(Context.Schema.Name)}')) SELECT 1 as result ELSE SELECT 0 as result");
+			text.AppendLine($"IF (EXISTS (SELECT *  FROM INFORMATION_SCHEMA.TABLES  WHERE TABLE_SCHEMA = '{Unescape(Context.Schema.Schema)}' AND TABLE_NAME = '{Unescape(Context.Schema.Name)}')) SELECT 1 as result ELSE SELECT 0 as result");
 
 			return text.ToString();
 		}

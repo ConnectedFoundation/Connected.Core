@@ -37,7 +37,7 @@ public sealed class CrossApplyRewriter
 			{
 				var select = expression.Right as SelectExpression;
 
-				if (select is not null && select.Take is null && select.Skip is null && !AggregateChecker.HasAggregates(select) && (select.GroupBy is null || !select.GroupBy.Any()))
+				if (select is not null && select.Take is null && select.Skip is null && !AggregateChecker.HasAggregates(select) && (select.GroupBy is null || select.GroupBy.Count == 0))
 				{
 					var selectWithoutWhere = select.SetWhere(null);
 					var referencedAliases = ReferencedAliasesResolver.Resolve(selectWithoutWhere);
@@ -45,16 +45,19 @@ public sealed class CrossApplyRewriter
 
 					referencedAliases.IntersectWith(declaredAliases);
 
-					if (!referencedAliases.Any())
+					if (referencedAliases.Count == 0)
 					{
 						var where = select.Where;
 
 						select = selectWithoutWhere;
 
-						var pc = ColumnProjector.ProjectColumns(Language, where, select.Columns, select.Alias, DeclaredAliasesResolver.Resolve(select.From));
+						if (where is not null && select.From is not null)
+						{
+							var pc = ColumnProjector.ProjectColumns(Language, where, select.Columns, select.Alias, DeclaredAliasesResolver.Resolve(select.From));
 
-						select = select.SetColumns(pc.Columns);
-						where = pc.Projector;
+							select = select.SetColumns(pc.Columns);
+							where = pc.Projector;
+						}
 
 						var jt = where == null ? JoinType.CrossJoin : expression.Join == JoinType.CrossApply ? JoinType.InnerJoin : JoinType.LeftOuter;
 

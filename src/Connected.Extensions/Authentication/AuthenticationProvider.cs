@@ -1,4 +1,4 @@
-﻿namespace Connected.Authentication;
+namespace Connected.Authentication;
 /// <summary>
 /// A default base implementation of an authentication provider that integrates with
 /// the middleware pipeline. It prepares the DTO and delegates to an overridable hook

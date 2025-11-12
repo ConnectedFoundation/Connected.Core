@@ -1,4 +1,4 @@
-﻿using Connected.Collections.Concurrent;
+using Connected.Collections.Concurrent;
 using System.Collections.Concurrent;
 
 namespace Connected.Collections.Queues;

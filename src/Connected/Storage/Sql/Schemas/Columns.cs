@@ -71,7 +71,7 @@ internal class Columns(ExistingSchema existing) : SynchronizationQuery<List<ISch
 		{
 			var text = new StringBuilder();
 
-			text.AppendLine($"SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{Context.Schema.SchemaName()}' AND TABLE_NAME = '{Context.Schema.Name}'");
+			text.AppendLine($"SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{Context.Schema.Schema}' AND TABLE_NAME = '{Context.Schema.Name}'");
 
 			return text.ToString();
 		}

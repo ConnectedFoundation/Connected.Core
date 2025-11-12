@@ -1,4 +1,4 @@
-﻿using Connected.Identities.Authentication.Dtos;
+using Connected.Identities.Authentication.Dtos;
 using Connected.Identities.Authentication.Ops;
 using Connected.Services;
 using System.Collections.Immutable;

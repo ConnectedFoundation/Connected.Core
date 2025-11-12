@@ -1,4 +1,4 @@
-﻿using Connected.Net.Routing.Server;
+using Connected.Net.Routing.Server;
 using Connected.Services;
 
 namespace Connected.Net.Routing.Server.Ops;

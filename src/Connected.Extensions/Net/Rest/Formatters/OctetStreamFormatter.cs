@@ -5,7 +5,7 @@ namespace Connected.Net.Rest.Formatters;
 internal class OctetStreamFormatter : Formatter
 {
 	public const string ContentType = "application/octet-stream";
-	private static readonly JsonSerializerOptions _options = new JsonSerializerOptions
+	private static readonly JsonSerializerOptions _options = new()
 	{
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase
 	};
@@ -19,7 +19,7 @@ internal class OctetStreamFormatter : Formatter
 
 		foreach (var header in Context.Request.Headers)
 		{
-			if (header.Key.ToLowerInvariant().StartsWith("x-tp-param-"))
+			if (header.Key.StartsWith("x-tp-param-", StringComparison.OrdinalIgnoreCase))
 				items.Add(header.Key[11..], header.Value.ToString());
 		}
 

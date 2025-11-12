@@ -6,9 +6,7 @@ using Connected.Data.Expressions.Translation;
 using Connected.Entities;
 using Connected.Services;
 using Connected.Storage.Sql.Query;
-using System.Collections.ObjectModel;
 using System.Linq.Expressions;
-using System.Reflection;
 
 namespace Connected.Storage.Sql;
 
@@ -26,7 +24,7 @@ internal sealed class SqlStorage(IStorageProvider storage)
 		return Task.FromResult(true);
 	}
 
-	protected override object? OnExecute(Expression expression)
+	protected override object OnExecute(Expression expression)
 	{
 		return CreateExecutionPlan(expression).Compile()(this);
 	}
@@ -41,18 +39,8 @@ internal sealed class SqlStorage(IStorageProvider storage)
 		var context = new ExpressionCompilationContext(new TSqlLanguage());
 		var translator = new Translator(context);
 		var translation = translator.Translate(expression);
-		var parameters = lambda?.Parameters ?? new ReadOnlyCollection<ParameterExpression>([]);
-		var provider = Resolve(expression, parameters, typeof(IStorage<>));
 
-		if (provider is null)
-		{
-			var rootQueryable = Resolve(expression, parameters, typeof(IQueryable));
-			var property = typeof(IQueryable).GetTypeInfo().GetDeclaredProperty(nameof(IQueryable.Provider))!;
-
-			provider = Expression.Property(rootQueryable, property);
-		}
-
-		return ExecutionBuilder.Build(context, new TSqlLinguist(context, TSqlLanguage.Default, translator), translation, provider);
+		return ExecutionBuilder.Build(context, new TSqlLinguist(context, TSqlLanguage.Default, translator), translation);
 	}
 
 	/// <summary>

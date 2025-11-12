@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using Connected.Data.Expressions.Translation.Resolvers;
 using Connected.Data.Expressions.Expressions;
+using Connected.Data.Expressions.Translation.Resolvers;
 using Connected.Data.Expressions.Visitors;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation.Rewriters;
 
@@ -53,7 +50,7 @@ public sealed class CrossJoinRewriter : DatabaseVisitor
 			var exprs = CurrentWhere.Split(ExpressionType.And, ExpressionType.AndAlso);
 			var good = exprs.Where(e => CanBeJoinCondition(e, declaredLeft, declaredRight, declared)).ToList();
 
-			if (good.Any())
+			if (good.Count != 0)
 			{
 				if (good.Join(ExpressionType.And) is not Expression conditionExpression)
 					throw new NullReferenceException(nameof(conditionExpression));

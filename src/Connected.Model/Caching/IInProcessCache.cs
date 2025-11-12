@@ -1,4 +1,4 @@
-﻿namespace Connected.Caching;
+namespace Connected.Caching;
 /// <summary>
 /// In-process cache interface combining general cache operations with merge semantics.
 /// </summary>

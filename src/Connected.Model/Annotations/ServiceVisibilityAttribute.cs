@@ -1,4 +1,4 @@
-﻿namespace Connected.Annotations;
+namespace Connected.Annotations;
 /// <summary>
 /// Defines visibility scopes that control how a service can be accessed.
 /// </summary>

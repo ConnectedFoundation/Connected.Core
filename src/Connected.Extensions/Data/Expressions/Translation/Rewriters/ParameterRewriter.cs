@@ -1,9 +1,6 @@
-using System.Linq;
-using System.Collections.Generic;
-using System.Linq.Expressions;
-using Connected.Data.Expressions;
-using Connected.Data.Expressions.Visitors;
 using Connected.Data.Expressions.Expressions;
+using Connected.Data.Expressions.Visitors;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation.Rewriters;
 
@@ -28,7 +25,7 @@ public class ParameterRewriter : DatabaseVisitor
 			if (Context.Variables.TryGetValue(column.Name, out List<object?>? existing) && existing is not null)
 				existing.Add(constant.Value);
 			else
-				Context.Variables.Add(column.Name, new List<object?> { constant.Value });
+				Context.Variables.Add(column.Name, [constant.Value]);
 		}
 
 		return base.VisitBinary(expression);

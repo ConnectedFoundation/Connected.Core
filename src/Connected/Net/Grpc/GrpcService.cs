@@ -1,4 +1,4 @@
-﻿using Connected.Net.Grpc.Dtos;
+using Connected.Net.Grpc.Dtos;
 using Connected.Net.Grpc.Ops;
 using Connected.Services;
 using Grpc.Net.Client;

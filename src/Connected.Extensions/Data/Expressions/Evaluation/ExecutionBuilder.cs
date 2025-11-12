@@ -22,7 +22,7 @@ public sealed class ExecutionBuilder
 	private Linguist Linguist { get; }
 	private Expression Executor { get; }
 
-	public static Expression<Func<IStorageExecutor, object>> Build(ExpressionCompilationContext context, Linguist linguist, Expression expression, Expression provider)
+	public static Expression<Func<IStorageExecutor, object>> Build(ExpressionCompilationContext context, Linguist linguist, Expression expression)
 	{
 		var executor = Expression.Parameter(typeof(IStorageExecutor), "executor");
 		var builder = new ExecutionBuilder(context, linguist, executor);
@@ -86,7 +86,7 @@ public sealed class ExecutionBuilder
 			typeArgument = projection.Type;
 
 		var constant = Expression.Constant(operation);
-		Expression body = Expression.Call(Executor, nameof(IStorageExecutor.Execute), new Type[] { typeArgument }, constant);
+		Expression body = Expression.Call(Executor, nameof(IStorageExecutor.Execute), [typeArgument], constant);
 
 		if (projection.Aggregator is not null)// apply aggregator
 			body = ExpressionReplacer.Replace(projection.Aggregator.Body, projection.Aggregator.Parameters[0], body);

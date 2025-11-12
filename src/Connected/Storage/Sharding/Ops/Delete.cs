@@ -9,14 +9,10 @@ internal sealed class Delete(IShardingCache cache, IStorageProvider storage, IEv
 {
 	protected override async Task OnInvoke()
 	{
-		var existing = SetState(await cache.AsEntity(f => f.Id == Dto.Id)) as Shard;
-
-		if (existing is null)
-			throw new NullReferenceException($"{Strings.ErrEntityExpected} ('{typeof(IShard).Name}')");
+		var entity = SetState(await cache.AsEntity(f => f.Id == Dto.Id) as Shard).Required();
 
 		await storage.Open<Shard>().Update(Dto.AsEntity<Shard>(State.Delete));
-
-		await cache.Remove(existing.Id);
-		await events.Deleted(this, shards, existing.Id);
+		await cache.Remove(entity.Id);
+		await events.Deleted(this, shards, entity.Id);
 	}
 }

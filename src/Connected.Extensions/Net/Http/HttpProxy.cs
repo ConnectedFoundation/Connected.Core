@@ -1,22 +1,16 @@
-﻿using Connected.Reflection;
-using System.IO.Compression;
+using Connected.Reflection;
 using System.Net;
 using System.Text;
 using System.Text.Json;
 
 namespace Connected.Net.Http;
 
-public abstract class HttpProxy
+public abstract class HttpProxy(IHttpService http)
 {
 	public const string LegacyServerSettingName = "legacyServer";
 	public const string LegacyServerSysToken = "sysToken";
 
-	protected HttpProxy(IHttpService http)
-	{
-		Http = http;
-	}
-
-	protected IHttpService Http { get; }
+	protected IHttpService Http { get; } = http;
 
 	private async Task<HttpClient> CreateClient()
 	{
@@ -59,13 +53,13 @@ public abstract class HttpProxy
 		return await HandleResponse<TResult>(response, cancel);
 	}
 
-	private async Task HandleResponse(HttpResponseMessage response, CancellationToken cancel = default)
+	private static async Task HandleResponse(HttpResponseMessage response, CancellationToken cancel = default)
 	{
 		if (!response.IsSuccessStatusCode)
 			await HandleResponseException(response, cancel);
 	}
 
-	private async Task<T?> HandleResponse<T>(HttpResponseMessage response, CancellationToken cancel = default)
+	private static async Task<T?> HandleResponse<T>(HttpResponseMessage response, CancellationToken cancel = default)
 	{
 		if (!response.IsSuccessStatusCode)
 			await HandleResponseException(response, cancel);
@@ -78,7 +72,7 @@ public abstract class HttpProxy
 		return await Serializer.Deserialize<T>(content);
 	}
 
-	private async Task HandleResponseException(HttpResponseMessage response, CancellationToken cancel = default)
+	private static async Task HandleResponseException(HttpResponseMessage response, CancellationToken cancel = default)
 	{
 		if (await ParseException(response.Content, cancel) is not JsonDocument exception)
 			throw new Exception(response.ReasonPhrase);
@@ -118,7 +112,7 @@ public abstract class HttpProxy
 			 || string.IsNullOrWhiteSpace(content);
 	}
 
-	private async Task<HttpContent?> CreateContent(object? content)
+	private static async Task<HttpContent?> CreateContent(object? content)
 	{
 		if (content is null)
 			return null;
@@ -128,35 +122,10 @@ public abstract class HttpProxy
 		if (c is null)
 			return null;
 
-		content = CompressString(c);
-
 		var sc = new StringContent(c, Encoding.UTF8, "application/json");
 
 		sc.Headers.Add("Content-Encoding", "gzip");
 
 		return sc;
-	}
-
-	private string CompressString(string text)
-	{
-		var buffer = Encoding.UTF8.GetBytes(text);
-
-		using var ms = new MemoryStream();
-		using var zip = new GZipStream(ms, CompressionMode.Compress, true);
-
-		zip.Write(buffer, 0, buffer.Length);
-
-		ms.Position = 0;
-
-		var compressedData = new byte[ms.Length];
-
-		ms.Read(compressedData, 0, compressedData.Length);
-
-		var zipBuffer = new byte[compressedData.Length + 4];
-
-		Buffer.BlockCopy(compressedData, 0, zipBuffer, 4, compressedData.Length);
-		Buffer.BlockCopy(BitConverter.GetBytes(buffer.Length), 0, zipBuffer, 0, 4);
-
-		return Convert.ToBase64String(zipBuffer);
 	}
 }

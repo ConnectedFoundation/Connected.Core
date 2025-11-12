@@ -18,8 +18,8 @@ internal class UniqueConstraintAdd(IndexDescriptor index)
 		{
 			var text = new StringBuilder();
 
-			text.AppendLine($"ALTER TABLE {Escape(Context.Schema.SchemaName(), Context.Schema.Name)}");
-			text.AppendLine($"ADD CONSTRAINT [{Context.GenerateConstraintName(Context.Schema.SchemaName(), Context.Schema.Name, ConstraintNameType.Index)}] UNIQUE NONCLUSTERED (");
+			text.AppendLine($"ALTER TABLE {Escape(Context.Schema.Schema, Context.Schema.Name)}");
+			text.AppendLine($"ADD CONSTRAINT [{Context.GenerateConstraintName(Context.Schema.Schema, Context.Schema.Name, ConstraintNameType.Index)}] UNIQUE NONCLUSTERED (");
 			var comma = string.Empty;
 
 			foreach (var column in Index.Columns)

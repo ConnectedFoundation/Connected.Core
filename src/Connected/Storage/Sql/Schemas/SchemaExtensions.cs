@@ -1,4 +1,3 @@
-using Connected.Annotations.Entities;
 using Connected.Reflection;
 using Connected.Storage.Schemas;
 using System.Data;
@@ -142,12 +141,7 @@ internal static class SchemaExtensions
 		return defaultValue;
 	}
 
-	public static string SchemaName(this ISchema schema)
-	{
-		return string.IsNullOrWhiteSpace(schema.Schema) ? SchemaAttribute.DefaultSchema : schema.Schema;
-	}
-
-	public static string ParseDefaultValue(string value)
+	public static string? ParseDefaultValue(string? value)
 	{
 		if (string.IsNullOrEmpty(value))
 			return value;

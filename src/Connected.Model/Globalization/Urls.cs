@@ -1,4 +1,4 @@
-﻿namespace Connected.Globalization;
+namespace Connected.Globalization;
 
 /// <summary>
 /// Provides URL constants for globalization service endpoints.

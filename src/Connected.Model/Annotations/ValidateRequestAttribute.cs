@@ -1,4 +1,4 @@
-﻿namespace Connected.Annotations;
+namespace Connected.Annotations;
 /// <summary>
 /// Indicates whether a request associated with the decorated property should be validated by the pipeline.
 /// </summary>

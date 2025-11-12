@@ -1,4 +1,4 @@
-﻿namespace Connected.Entities;
+namespace Connected.Entities;
 
 /// <summary>
 /// Represents an entity that exposes a strongly-typed primary key.

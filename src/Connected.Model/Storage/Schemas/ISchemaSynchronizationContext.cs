@@ -1,4 +1,4 @@
-﻿namespace Connected.Storage.Schemas;
+namespace Connected.Storage.Schemas;
 
 /// <summary>
 /// Provides context information for schema synchronization operations.

@@ -1,4 +1,4 @@
-﻿using Connected.Identities.Dtos;
+using Connected.Identities.Dtos;
 using System.ComponentModel.DataAnnotations;
 
 namespace Connected.Identities.Users.Dtos;

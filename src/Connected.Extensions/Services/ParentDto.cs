@@ -1,4 +1,4 @@
-﻿namespace Connected.Services;
+namespace Connected.Services;
 
 internal class ParentDto<T> : Dto, IParentDto<T>
 {

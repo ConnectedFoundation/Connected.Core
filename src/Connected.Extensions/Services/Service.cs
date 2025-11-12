@@ -1,4 +1,4 @@
-﻿using Connected.Authorization;
+using Connected.Authorization;
 using Connected.Reflection;
 using Connected.Services.Middlewares;
 using Connected.Services.Validation;
@@ -84,7 +84,7 @@ public abstract class Service : IService, IDisposable
 
 		if (operation is ServiceOperation<TDto> op)
 			op.Caller = ctx;
-		
+
 		await ProvideDtoValues(dto);
 		await InitializeAmbient(dto);
 		await Calibrate(ctx, dto);
@@ -94,7 +94,7 @@ public abstract class Service : IService, IDisposable
 		return ctx;
 	}
 
-	public TOperation GetOperation<TOperation>([CallerMemberName] string? method = null)
+	public TOperation GetOperation<TOperation>()
 	{
 		var result = ServiceLocator.GetService<TOperation>();
 
@@ -119,7 +119,7 @@ public abstract class Service : IService, IDisposable
 		await validationContext.Validate(caller, dto);
 	}
 
-	private async Task Authorize<TDto>(ICallerContext caller, TDto dto)
+	private async Task Authorize<TDto>(CallerContext caller, TDto dto)
 		where TDto : IDto
 	{
 		if (caller.Sender is null || ServiceLocator.GetService<IAuthorizationContext>() is not IAuthorizationContext authorization)

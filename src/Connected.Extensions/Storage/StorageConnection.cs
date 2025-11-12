@@ -1,4 +1,4 @@
-﻿using Connected.Services;
+using Connected.Services;
 using Connected.Threading;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
@@ -7,28 +7,20 @@ using System.Data.Common;
 
 namespace Connected.Storage;
 
-public abstract class StorageConnection : Middleware, IStorageConnection
+public abstract class StorageConnection(ICancellationContext context) : Middleware, IStorageConnection
 {
 	private readonly AsyncLocker<int> _lock = new();
 	private IDbConnection? _connection;
 
-	protected StorageConnection(ICancellationContext context)
-	{
-		Context = context;
-
-		Commands = new();
-	}
-
-	protected ICancellationContext Context { get; }
+	protected ICancellationContext Context { get; } = context;
 	private IDbTransaction? Transaction { get; set; }
 	public StorageConnectionMode Mode { get; set; }
 	public virtual string? ConnectionString { get; private set; }
-	private ConcurrentDictionary<IStorageCommand, IDbCommand> Commands { get; }
+	private ConcurrentDictionary<IStorageCommand, IDbCommand> Commands { get; } = new();
 
 	public async Task Initialize(IStorageConnectionDto dto)
 	{
-		if (ConnectionString is null)
-			ConnectionString = dto.ConnectionString;
+		ConnectionString ??= dto.ConnectionString;
 
 		Mode = dto.Mode;
 
@@ -187,10 +179,7 @@ public abstract class StorageConnection : Middleware, IStorageConnection
 	{
 		await EnsureOpen(true);
 
-		var com = await ResolveCommand(command);
-
-		if (com is null)
-			throw new NullReferenceException("Couldn't create a command");
+		var com = await ResolveCommand(command) ?? throw new NullReferenceException("Couldn't create a command");
 
 		SetupParameters(command, com);
 
@@ -245,11 +234,7 @@ public abstract class StorageConnection : Middleware, IStorageConnection
 	{
 		await EnsureOpen(false);
 
-		var com = await ResolveCommand(command);
-
-		if (com is null)
-			throw new NullReferenceException("Couldn't create a command");
-
+		var com = await ResolveCommand(command) ?? throw new NullReferenceException("Couldn't create a command");
 		IDataReader? rdr = null;
 
 		try
@@ -305,10 +290,7 @@ public abstract class StorageConnection : Middleware, IStorageConnection
 	{
 		await EnsureOpen(false);
 
-		var com = await ResolveCommand(command);
-
-		if (com is null)
-			throw new NullReferenceException("Couldn't create a command");
+		var com = await ResolveCommand(command) ?? throw new NullReferenceException("Couldn't create a command");
 
 		IDataReader? rdr = null;
 
@@ -360,11 +342,7 @@ public abstract class StorageConnection : Middleware, IStorageConnection
 	{
 		await EnsureOpen(false);
 
-		var com = await ResolveCommand(command);
-
-		if (com is null)
-			throw new NullReferenceException("Couldn't create a command");
-
+		var com = await ResolveCommand(command) ?? throw new NullReferenceException("Couldn't create a command");
 		SetupParameters(command, com);
 
 		if (command.Operation.Parameters is not null)

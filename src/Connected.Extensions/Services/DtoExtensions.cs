@@ -1,4 +1,4 @@
-﻿using Connected.Entities;
+using Connected.Entities;
 using Connected.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 

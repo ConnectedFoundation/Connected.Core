@@ -15,10 +15,14 @@ internal sealed class Select : ServiceFunction<ISelectSchemaDto, ISchema?>
 		var properties = Dto.Type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
 		var att = ResolveSchemaAttribute();
 
+		if (string.IsNullOrWhiteSpace(att.Name))
+			throw new NullReferenceException(att.Name);
+
 		var result = new EntitySchema
 		{
 			Name = att.Name,
-			Schema = att.Schema
+			Schema = att.Schema ?? SchemaAttribute.DefaultSchema,
+			Type = SchemaAttribute.SchemaTypeTable
 		};
 
 		var columns = new List<SchemaColumn>();
@@ -95,6 +99,28 @@ internal sealed class Select : ServiceFunction<ISelectSchemaDto, ISchema?>
 				{
 					column.DateKind = dateAtt.Kind;
 					column.DatePrecision = dateAtt.Precision;
+
+					switch (dateAtt.Kind)
+					{
+						case DateKind.Date:
+							column.DataType = DbType.Date;
+							break;
+						case DateKind.DateTime:
+							column.DataType = DbType.DateTime;
+							break;
+						case DateKind.DateTime2:
+							column.DataType = DbType.DateTime2;
+							break;
+						case DateKind.SmallDateTime:
+							column.DataType = DbType.DateTime;
+							break;
+						case DateKind.Time:
+							column.DataType = DbType.Time;
+							break;
+						case DateKind.Offset:
+							column.DataType = DbType.DateTimeOffset;
+							break;
+					}
 				}
 				else
 				{
@@ -123,6 +149,7 @@ internal sealed class Select : ServiceFunction<ISelectSchemaDto, ISchema?>
 			{
 				column.IsVersion = true;
 				column.DataType = DbType.Binary;
+				column.MaxLength = 0;
 			}
 			else
 			{
@@ -139,6 +166,9 @@ internal sealed class Select : ServiceFunction<ISelectSchemaDto, ISchema?>
 					column.IsNullable = nullable.IsNullable;
 			}
 
+			if (column.MaxLength > 0 && !IsLengthSupported(column.DataType))
+				column.MaxLength = 0;
+
 			columns.Add(column);
 		}
 
@@ -148,15 +178,15 @@ internal sealed class Select : ServiceFunction<ISelectSchemaDto, ISchema?>
 		return Task.FromResult<ISchema?>(result);
 	}
 
-	private SchemaAttribute ResolveSchemaAttribute()
+	private TableAttribute ResolveSchemaAttribute()
 	{
-		var att = Dto.Type.GetCustomAttribute<SchemaAttribute>() ?? new TableAttribute();
+		var att = Dto.Type.GetCustomAttribute<TableAttribute>() ?? new TableAttribute();
 
 		if (string.IsNullOrWhiteSpace(att.Name))
 			att.Name = Dto.Type.Name.ToCamelCase();
 
 		if (string.IsNullOrEmpty(att.Schema))
-			att.Schema = SchemaAttribute.DefaultSchema;
+			att.Schema = TableAttribute.DefaultSchema;
 
 		return att;
 	}
@@ -180,5 +210,14 @@ internal sealed class Select : ServiceFunction<ISelectSchemaDto, ISchema?>
 			value = Types.Convert(def.Value, def.Value.GetType().GetEnumUnderlyingType());
 
 		column.DefaultValue = Convert.ToString(value, CultureInfo.InvariantCulture);
+	}
+
+	private static bool IsLengthSupported(DbType type)
+	{
+		return type == DbType.AnsiString
+			|| type == DbType.AnsiStringFixedLength
+			|| type == DbType.String
+			|| type == DbType.StringFixedLength
+			|| type == DbType.Binary;
 	}
 }

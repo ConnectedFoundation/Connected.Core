@@ -1,4 +1,4 @@
-﻿namespace Connected.Entities;
+namespace Connected.Entities;
 
 /// <summary>
 /// Represents an entity that is split into a lightweight head portion and a

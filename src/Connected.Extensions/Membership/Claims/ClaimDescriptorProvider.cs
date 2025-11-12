@@ -1,4 +1,4 @@
-﻿using Connected.Authorization;
+using Connected.Authorization;
 using Connected.Membership.Claims.Dtos;
 using System.Collections.Immutable;
 

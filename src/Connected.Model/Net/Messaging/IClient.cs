@@ -1,4 +1,4 @@
-﻿namespace Connected.Net.Messaging;
+namespace Connected.Net.Messaging;
 
 /// <summary>
 /// Represents a connected client in the messaging system.

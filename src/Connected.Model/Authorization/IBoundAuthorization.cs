@@ -1,4 +1,4 @@
-﻿namespace Connected.Authorization;
+namespace Connected.Authorization;
 /// <summary>
 /// Represents authorization tied (bound) to a specific entity identity.
 /// </summary>

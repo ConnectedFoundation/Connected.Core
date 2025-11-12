@@ -1,4 +1,4 @@
-﻿namespace Connected.Identities.MetaData.Dtos;
+namespace Connected.Identities.MetaData.Dtos;
 
 /// <summary>
 /// Represents a data transfer object for inserting new identity metadata.

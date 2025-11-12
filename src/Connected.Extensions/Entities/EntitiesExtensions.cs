@@ -1,4 +1,4 @@
-﻿using Connected.Annotations.Entities;
+using Connected.Annotations.Entities;
 using Connected.Reflection;
 using Connected.Services;
 using Connected.Storage;
@@ -96,7 +96,7 @@ public static class EntitiesExtensions
 		return Task.FromResult<IImmutableList<TDestination>>(source.Cast<TDestination>().ToImmutableList());
 	}
 
-	public static async Task<TSource?> AsEntity<TSource>(this IQueryable<TSource> source, CancellationToken cancellationToken = default)
+	public static async Task<TSource?> AsEntity<TSource>(this IQueryable<TSource> source)
 	{
 		if (source is null)
 			return default;
@@ -227,10 +227,7 @@ public static class EntitiesExtensions
 
 	public static string EntityKey(this Type type)
 	{
-		var attribute = type.GetCustomAttribute<EntityKeyAttribute>();
-
-		if (attribute is null)
-			throw new NullReferenceException($"{SR.ErrEntityKeyExpected} ({type.ShortName()})");
+		var attribute = type.GetCustomAttribute<EntityKeyAttribute>() ?? throw new NullReferenceException($"{SR.ErrEntityKeyExpected} ({type.ShortName()})");
 
 		return attribute.Key;
 	}

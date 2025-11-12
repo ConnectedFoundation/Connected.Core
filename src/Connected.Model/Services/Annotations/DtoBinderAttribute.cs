@@ -1,4 +1,4 @@
-﻿namespace Connected.Services.Annotations;
+namespace Connected.Services.Annotations;
 
 /// <summary>
 /// Specifies that a DTO has a custom binder.

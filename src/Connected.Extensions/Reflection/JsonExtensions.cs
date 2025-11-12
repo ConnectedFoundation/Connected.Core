@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace Connected.Reflection;
@@ -38,29 +38,22 @@ public static class JsonExtensions
 		{
 			var element = value.GetValue<JsonElement>();
 
-			switch (element.ValueKind)
+			return element.ValueKind switch
 			{
-				case JsonValueKind.Undefined:
-					return null;
-				case JsonValueKind.False:
-					return false;
-				case JsonValueKind.Null:
-					return null;
-				case JsonValueKind.Number:
-					return element.GetDouble();
-				case JsonValueKind.True:
-					return true;
-				case JsonValueKind.String:
-					return element.GetString();
-				default:
-					return null;
-			}
+				JsonValueKind.Undefined => null,
+				JsonValueKind.False => false,
+				JsonValueKind.Null => null,
+				JsonValueKind.Number => element.GetDouble(),
+				JsonValueKind.True => true,
+				JsonValueKind.String => element.GetString(),
+				_ => null,
+			};
 		}
 
 		return null;
 	}
 
-	private static object? DeserializeObject(JsonObject value)
+	private static Dictionary<string, object?> DeserializeObject(JsonObject value)
 	{
 		var result = new Dictionary<string, object?>();
 
@@ -70,7 +63,7 @@ public static class JsonExtensions
 		return result;
 	}
 
-	private static object? DeserializeArray(JsonArray value)
+	private static List<object?> DeserializeArray(JsonArray value)
 	{
 		var result = new List<object?>();
 

@@ -11,8 +11,8 @@ internal sealed class Parameterizer : DatabaseVisitor
 	private Parameterizer(QueryLanguage language)
 	{
 		Language = language;
-		Map = new();
-		ParameterMap = new();
+		Map = [];
+		ParameterMap = [];
 	}
 
 	private QueryLanguage Language { get; }
@@ -132,7 +132,7 @@ internal sealed class Parameterizer : DatabaseVisitor
 		return expression;
 	}
 
-	private Expression GetNamedValue(Expression expression)
+	private NamedValueExpression GetNamedValue(Expression expression)
 	{
 		var he = new HashedExpression(expression);
 

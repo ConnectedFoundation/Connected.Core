@@ -1,4 +1,4 @@
-﻿using Connected.Authorization.Dtos;
+using Connected.Authorization.Dtos;
 
 namespace Connected.Authorization;
 

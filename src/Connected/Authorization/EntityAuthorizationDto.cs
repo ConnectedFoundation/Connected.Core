@@ -1,4 +1,4 @@
-﻿using Connected.Annotations;
+using Connected.Annotations;
 using Connected.Authorization.Entities;
 using Connected.Entities;
 using Connected.Services;

@@ -1,4 +1,4 @@
-﻿namespace Connected.Caching;
+namespace Connected.Caching;
 /// <summary>
 /// A synchronized cache combining data provisioning with container-style access.
 /// </summary>

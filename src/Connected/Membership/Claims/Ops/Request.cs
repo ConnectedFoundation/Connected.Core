@@ -1,4 +1,4 @@
-﻿using Connected.Entities;
+using Connected.Entities;
 using Connected.Membership.Claims.Dtos;
 using Connected.Membership.Roles;
 using Connected.Services;

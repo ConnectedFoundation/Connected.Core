@@ -1,10 +1,9 @@
-using System.Collections.Generic;
-using System;
-using System.Linq.Expressions;
-using Connected.Data.Expressions.Translation.Resolvers;
 using Connected.Data.Expressions.Expressions;
 using Connected.Data.Expressions.Languages;
+using Connected.Data.Expressions.Translation.Resolvers;
 using Connected.Data.Expressions.Visitors;
+using System.Collections.ObjectModel;
+using System.Linq.Expressions;
 
 namespace Connected.Data.Expressions.Translation.Rewriters;
 
@@ -63,6 +62,9 @@ public sealed class OrderByRewriter : DatabaseVisitor
 			{
 				if (canPassOnOrderings)
 				{
+					if (select.From is null)
+						throw new NullReferenceException(SR.ErrExpectedExpression);
+
 					var producedAliases = DeclaredAliasesResolver.Resolve(select.From);
 					var project = RebindOrderings(ResolvedOrderings, select.Alias, producedAliases, select.Columns);
 
@@ -76,7 +78,7 @@ public sealed class OrderByRewriter : DatabaseVisitor
 					ResolvedOrderings = null;
 			}
 			if (orderings != select.OrderBy || columns != select.Columns || select.IsReverse)
-				select = new SelectExpression(select.Alias, columns, select.From, select.Where, orderings, select.GroupBy, select.IsDistinct, select.Skip, select.Take, false);
+				select = new SelectExpression(select.Alias, columns ?? new ReadOnlyCollection<ColumnDeclaration>([]), select.From, select.Where, orderings, select.GroupBy, select.IsDistinct, select.Skip, select.Take, false);
 
 			return select;
 		}
@@ -112,10 +114,13 @@ public sealed class OrderByRewriter : DatabaseVisitor
 
 		PrependOrderings(leftOrders);
 
-		var condition = Visit(join.Condition);
+		if (join.Condition is not null)
+		{
+			var condition = Visit(join.Condition);
 
-		if (left != join.Left || right != join.Right || condition != join.Condition)
-			return new JoinExpression(join.Join, left, right, condition);
+			if (left != join.Left || right != join.Right || condition != join.Condition)
+				return new JoinExpression(join.Join, left, right, condition);
+		}
 
 		return join;
 	}
@@ -124,7 +129,7 @@ public sealed class OrderByRewriter : DatabaseVisitor
 	{
 		if (newOrderings is not null)
 		{
-			ResolvedOrderings ??= new List<OrderExpression>();
+			ResolvedOrderings ??= [];
 
 			for (var i = newOrderings.Count - 1; i >= 0; i--)
 				ResolvedOrderings.Insert(0, newOrderings[i]);
@@ -137,14 +142,12 @@ public sealed class OrderByRewriter : DatabaseVisitor
 				{
 					var hash = $"{column.Alias}:{column.Name}";
 
-					if (unique.Contains(hash))
+					if (!unique.Add(hash))
 					{
 						ResolvedOrderings.RemoveAt(i);
 
 						continue;
 					}
-					else
-						unique.Add(hash);
 				}
 
 				i++;
@@ -168,7 +171,7 @@ public sealed class OrderByRewriter : DatabaseVisitor
 	private BindResultRewriter RebindOrderings(IEnumerable<OrderExpression> orderings, Alias alias, HashSet<Alias> existingAliases, IEnumerable<ColumnDeclaration> existingColumns)
 	{
 		List<ColumnDeclaration>? newColumns = null;
-		List<OrderExpression> newOrderings = new();
+		List<OrderExpression> newOrderings = [];
 
 		foreach (var ordering in orderings)
 		{
@@ -185,6 +188,9 @@ public sealed class OrderByRewriter : DatabaseVisitor
 
 					if (existingColumn.Expression == ordering.Expression || column is not null && declColumn is not null && column.Alias == declColumn.Alias && column.Name == declColumn.Name)
 					{
+						if (column is null)
+							throw new NullReferenceException(SR.ErrExpectedExpression);
+
 						expr = new ColumnExpression(column.Type, column.QueryType, alias, existingColumn.Name);
 
 						break;
@@ -196,7 +202,7 @@ public sealed class OrderByRewriter : DatabaseVisitor
 				{
 					if (newColumns is null)
 					{
-						newColumns = new List<ColumnDeclaration>(existingColumns);
+						newColumns = [.. existingColumns];
 						existingColumns = newColumns;
 					}
 

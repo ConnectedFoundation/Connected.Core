@@ -1,4 +1,4 @@
-﻿using Connected.Globalization.Languages;
+using Connected.Globalization.Languages;
 
 namespace Connected.Globalization;
 

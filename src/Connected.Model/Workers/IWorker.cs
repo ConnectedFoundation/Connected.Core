@@ -1,4 +1,4 @@
-﻿namespace Connected.Workers;
+namespace Connected.Workers;
 
 /// <summary>
 /// Represents a background worker that executes scheduled or continuous operations.

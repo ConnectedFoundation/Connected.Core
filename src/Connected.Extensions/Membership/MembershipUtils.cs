@@ -1,4 +1,4 @@
-﻿using Connected.Membership.Dtos;
+using Connected.Membership.Dtos;
 using Connected.Membership.Roles;
 using Connected.Services;
 using System.Collections.Immutable;

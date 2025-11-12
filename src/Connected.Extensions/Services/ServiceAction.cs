@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 namespace Connected.Services;
 
 public abstract class ServiceAction<TDto> : ServiceOperation<TDto>, IAction<TDto>

@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Connected.Reflection;
 
@@ -94,7 +94,7 @@ public static class StringExtensions
 		if (string.IsNullOrWhiteSpace(value))
 			return value;
 
-		return $"{char.ToLowerInvariant(value[0])}{value.Substring(1)}";
+		return $"{char.ToLowerInvariant(value[0])}{value[1..]}";
 	}
 
 	public static string ToPascalCase(this string value)
@@ -102,6 +102,6 @@ public static class StringExtensions
 		if (string.IsNullOrWhiteSpace(value))
 			return value;
 
-		return $"{char.ToUpperInvariant(value[0])}{value.Substring(1)}";
+		return $"{char.ToUpperInvariant(value[0])}{value[1..]}";
 	}
 }

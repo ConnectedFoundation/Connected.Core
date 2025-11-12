@@ -1,4 +1,4 @@
-﻿using Connected.Services;
+using Connected.Services;
 
 namespace Connected.Storage.Sharding.Nodes;
 public interface IUpdateShardingNodeDto : IDto
