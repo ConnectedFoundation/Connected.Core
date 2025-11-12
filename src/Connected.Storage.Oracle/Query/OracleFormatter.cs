@@ -6,17 +6,19 @@ using Connected.Reflection;
 using System.Collections;
 using System.Linq.Expressions;
 
-namespace Connected.Storage.Sql.Query;
+namespace Connected.Storage.Oracle.Query;
 
 /// <summary>
-/// Provides T-SQL specific formatting capabilities for converting expression trees into SQL Server query strings.
+/// Provides Oracle specific formatting capabilities for converting expression trees into Oracle query strings.
 /// </summary>
 /// <remarks>
-/// This sealed class extends <see cref="SqlFormatter"/> to handle T-SQL dialect-specific syntax and functions,
+/// This sealed class extends <see cref="SqlFormatter"/> to handle Oracle dialect-specific syntax and functions,
 /// including string manipulation, date/time operations, mathematical functions, and aggregate functions.
-/// It translates LINQ expression trees into executable T-SQL statements with proper parameter handling.
+/// It translates LINQ expression trees into executable Oracle SQL statements with proper parameter handling.
+/// Oracle-specific features include bind variables with colon prefix (:param), ROWNUM for pagination,
+/// DUAL table for queries without FROM, and Oracle-specific functions like LENGTH, SUBSTR, INSTR, and TO_DATE.
 /// </remarks>
-internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryLanguage? language)
+internal sealed class OracleFormatter(ExpressionCompilationContext context, QueryLanguage? language)
 		: SqlFormatter(language)
 {
 	/// <summary>
@@ -25,26 +27,26 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 	public ExpressionCompilationContext Context { get; } = context;
 
 	/// <summary>
-	/// Formats an expression tree into a T-SQL query string using the default T-SQL language.
+	/// Formats an expression tree into an Oracle query string using the default Oracle language.
 	/// </summary>
 	/// <param name="context">The expression compilation context.</param>
 	/// <param name="expression">The expression tree to format.</param>
-	/// <returns>A T-SQL query string representation of the expression.</returns>
+	/// <returns>An Oracle query string representation of the expression.</returns>
 	public static string Format(ExpressionCompilationContext context, Expression expression)
 	{
-		return Format(context, expression, new TSqlLanguage());
+		return Format(context, expression, new OracleLanguage());
 	}
 
 	/// <summary>
-	/// Formats an expression tree into a T-SQL query string using the specified query language.
+	/// Formats an expression tree into an Oracle query string using the specified query language.
 	/// </summary>
 	/// <param name="context">The expression compilation context.</param>
 	/// <param name="expression">The expression tree to format.</param>
 	/// <param name="language">The query language configuration to use.</param>
-	/// <returns>A T-SQL query string representation of the expression.</returns>
+	/// <returns>An Oracle query string representation of the expression.</returns>
 	public static string Format(ExpressionCompilationContext context, Expression expression, QueryLanguage language)
 	{
-		var formatter = new TSqlFormatter(context, language);
+		var formatter = new OracleFormatter(context, language);
 
 		formatter.Visit(expression);
 
@@ -52,29 +54,30 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 	}
 
 	/// <summary>
-	/// Writes the T-SQL specific aggregate function name.
+	/// Writes the Oracle specific aggregate function name.
 	/// </summary>
 	/// <param name="aggregateName">The name of the aggregate function.</param>
 	/// <remarks>
-	/// Translates LINQ aggregate functions to their T-SQL equivalents, such as converting
-	/// "LongCount" to "COUNT_BIG" for large result sets.
+	/// Oracle aggregate functions are mostly standard SQL. LongCount is handled as COUNT which returns
+	/// NUMBER type capable of holding large values in Oracle.
 	/// </remarks>
 	protected override void WriteAggregateName(string aggregateName)
 	{
 		if (string.Equals(aggregateName, "LongCount", StringComparison.Ordinal))
-			Write("COUNT_BIG");
+			Write("COUNT");
 		else
 			base.WriteAggregateName(aggregateName);
 	}
 
 	/// <summary>
-	/// Visits a member access expression and translates it to T-SQL syntax.
+	/// Visits a member access expression and translates it to Oracle syntax.
 	/// </summary>
 	/// <param name="m">The member access expression to visit.</param>
 	/// <returns>The visited expression.</returns>
 	/// <remarks>
 	/// Handles member access for string properties (e.g., Length) and DateTime/DateTimeOffset properties
-	/// (e.g., Day, Month, Year, Hour) by converting them to appropriate T-SQL functions.
+	/// (e.g., Day, Month, Year, Hour) by converting them to appropriate Oracle functions using LENGTH
+	/// and EXTRACT functions.
 	/// </remarks>
 	/// <exception cref="NullReferenceException">Thrown when a required expression is null.</exception>
 	protected override Expression VisitMemberAccess(MemberExpression m)
@@ -85,12 +88,12 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 			{
 				case "Length":
 					/*
-					 * Convert string.Length to LEN() function
+					 * Convert string.Length to LENGTH() function
 					 */
-					Write("LEN(");
+					Write("LENGTH(");
 
 					if (m.Expression is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Expression);
 
@@ -104,12 +107,12 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 			{
 				case "Day":
 					/*
-					 * Convert DateTime.Day to DAY() function
+					 * Convert DateTime.Day to EXTRACT(DAY FROM ...) function
 					 */
-					Write("DAY(");
+					Write("EXTRACT(DAY FROM ");
 
 					if (m.Expression is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Expression);
 
@@ -118,12 +121,12 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 					return m;
 				case "Month":
 					/*
-					 * Convert DateTime.Month to MONTH() function
+					 * Convert DateTime.Month to EXTRACT(MONTH FROM ...) function
 					 */
-					Write("MONTH(");
+					Write("EXTRACT(MONTH FROM ");
 
 					if (m.Expression is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Expression);
 
@@ -132,12 +135,12 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 					return m;
 				case "Year":
 					/*
-					 * Convert DateTime.Year to YEAR() function
+					 * Convert DateTime.Year to EXTRACT(YEAR FROM ...) function
 					 */
-					Write("YEAR(");
+					Write("EXTRACT(YEAR FROM ");
 
 					if (m.Expression is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Expression);
 
@@ -146,86 +149,86 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 					return m;
 				case "Hour":
 					/*
-					 * Convert DateTime.Hour to DATEPART(hour, ...) function
+					 * Convert DateTime.Hour to EXTRACT(HOUR FROM CAST(... AS TIMESTAMP))
 					 */
-					Write("DATEPART(hour, ");
+					Write("EXTRACT(HOUR FROM CAST(");
 
 					if (m.Expression is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Expression);
 
-					Write(")");
+					Write(" AS TIMESTAMP))");
 
 					return m;
 				case "Minute":
 					/*
-					 * Convert DateTime.Minute to DATEPART(minute, ...) function
+					 * Convert DateTime.Minute to EXTRACT(MINUTE FROM CAST(... AS TIMESTAMP))
 					 */
-					Write("DATEPART(minute, ");
+					Write("EXTRACT(MINUTE FROM CAST(");
 
 					if (m.Expression is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Expression);
 
-					Write(")");
+					Write(" AS TIMESTAMP))");
 
 					return m;
 				case "Second":
 					/*
-					 * Convert DateTime.Second to DATEPART(second, ...) function
+					 * Convert DateTime.Second to EXTRACT(SECOND FROM CAST(... AS TIMESTAMP))
 					 */
-					Write("DATEPART(second, ");
+					Write("FLOOR(EXTRACT(SECOND FROM CAST(");
 
 					if (m.Expression is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Expression);
 
-					Write(")");
+					Write(" AS TIMESTAMP)))");
 
 					return m;
 				case "Millisecond":
 					/*
-					 * Convert DateTime.Millisecond to DATEPART(millisecond, ...) function
+					 * Convert DateTime.Millisecond to EXTRACT milliseconds
 					 */
-					Write("DATEPART(millisecond, ");
+					Write("MOD(EXTRACT(SECOND FROM CAST(");
 
 					if (m.Expression is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Expression);
 
-					Write(")");
+					Write(" AS TIMESTAMP)) * 1000, 1000)");
 
 					return m;
 				case "DayOfWeek":
 					/*
-					 * Convert DateTime.DayOfWeek to DATEPART(weekday, ...) - 1 (zero-based)
+					 * Convert DateTime.DayOfWeek to TO_CHAR(date, 'D') - 1 (zero-based, Sunday=0)
 					 */
-					Write("(DATEPART(weekday, ");
+					Write("(TO_NUMBER(TO_CHAR(");
 
 					if (m.Expression is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Expression);
 
-					Write(") - 1)");
+					Write(", 'D')) - 1)");
 
 					return m;
 				case "DayOfYear":
 					/*
-					 * Convert DateTime.DayOfYear to DATEPART(dayofyear, ...) - 1 (zero-based)
+					 * Convert DateTime.DayOfYear to TO_CHAR(date, 'DDD') - 1 (zero-based)
 					 */
-					Write("(DATEPART(dayofyear, ");
+					Write("(TO_NUMBER(TO_CHAR(");
 
 					if (m.Expression is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Expression);
 
-					Write(") - 1)");
+					Write(", 'DDD')) - 1)");
 
 					return m;
 			}
@@ -235,14 +238,15 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 	}
 
 	/// <summary>
-	/// Visits a method call expression and translates it to T-SQL syntax.
+	/// Visits a method call expression and translates it to Oracle syntax.
 	/// </summary>
 	/// <param name="m">The method call expression to visit.</param>
 	/// <returns>The visited expression.</returns>
 	/// <remarks>
-	/// Translates method calls from various types (String, DateTime, Math, Decimal) to their T-SQL equivalents.
-	/// Handles string operations (Contains, StartsWith, EndsWith, Substring, etc.), date/time arithmetic,
-	/// mathematical functions, and type comparisons.
+	/// Translates method calls from various types (String, DateTime, Math, Decimal) to their Oracle equivalents.
+	/// Handles string operations (Contains, StartsWith, EndsWith, Substring using SUBSTR, etc.), date/time arithmetic
+	/// using INTERVAL, mathematical functions, and type comparisons. Oracle uses 1-based string indexing unlike
+	/// .NET's 0-based indexing, requiring index adjustments.
 	/// </remarks>
 	/// <exception cref="NullReferenceException">Thrown when a required expression object is null.</exception>
 	protected override Expression VisitMethodCall(MethodCallExpression m)
@@ -258,13 +262,13 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 					Write("(");
 
 					if (m.Object is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Object);
 
 					Write(" LIKE ");
 					Visit(m.Arguments[0]);
-					Write(" + '%')");
+					Write(" || '%')");
 
 					return m;
 				case "EndsWith":
@@ -274,33 +278,33 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 					Write("(");
 
 					if (m.Object is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Object);
 
-					Write(" LIKE '%' + ");
+					Write(" LIKE '%' || ");
 					Visit(m.Arguments[0]);
 					Write(")");
 
 					return m;
 				case "Contains":
 					/*
-					 * Convert string.Contains to LIKE pattern
+					 * Convert string.Contains to INSTR function (returns position, >0 means found)
 					 */
-					Write("(");
+					Write("(INSTR(");
 
 					if (m.Object is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Object);
-					Write(" LIKE '%' + ");
+					Write(", ");
 					Visit(m.Arguments[0]);
-					Write(" + '%')");
+					Write(") > 0)");
 
 					return m;
 				case "Concat":
 					/*
-					 * Convert string.Concat to + operator
+					 * Convert string.Concat to || operator (Oracle concatenation)
 					 */
 					var args = m.Arguments;
 
@@ -310,20 +314,18 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 					for (var i = 0; i < args.Count; i++)
 					{
 						if (i > 0)
-							Write(" + ");
+							Write(" || ");
 
 						Visit(args[i]);
 					}
 					return m;
 				case "IsNullOrEmpty":
 					/*
-					 * Convert string.IsNullOrEmpty to IS NULL OR = '' check
+					 * Convert string.IsNullOrEmpty to IS NULL check (Oracle treats '' as NULL)
 					 */
 					Write("(");
 					Visit(m.Arguments[0]);
-					Write(" IS NULL OR ");
-					Visit(m.Arguments[0]);
-					Write(" = '')");
+					Write(" IS NULL)");
 					return m;
 				case "ToUpper":
 					/*
@@ -332,7 +334,7 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 					Write("UPPER(");
 
 					if (m.Object is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Object);
 					Write(")");
@@ -345,7 +347,7 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 					Write("LOWER(");
 
 					if (m.Object is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Object);
 					Write(")");
@@ -358,7 +360,7 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 					Write("REPLACE(");
 
 					if (m.Object is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Object);
 
@@ -371,64 +373,78 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 					return m;
 				case "Substring":
 					/*
-					 * Convert string.Substring to SUBSTRING() function
-					 * Note: T-SQL SUBSTRING is 1-based, so we add 1 to the start index
+					 * Convert string.Substring to SUBSTR() function
+					 * Note: Oracle SUBSTR is 1-based, so add 1 to start index
 					 */
-					Write("SUBSTRING(");
+					Write("SUBSTR(");
 
 					if (m.Object is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Object);
 
 					Write(", ");
 					Visit(m.Arguments[0]);
-					Write(" + 1, ");
+					Write(" + 1");
 
 					if (m.Arguments.Count == 2)
+					{
+						Write(", ");
 						Visit(m.Arguments[1]);
-					else
-						Write("8000");
+					}
 
 					Write(")");
 
 					return m;
 				case "Remove":
 					/*
-					 * Convert string.Remove to STUFF() function
+					 * Convert string.Remove using combination of SUBSTR
 					 */
-					Write("STUFF(");
+					Write("(SUBSTR(");
 
 					if (m.Object is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Object);
-
-					Write(", ");
+					Write(", 1, ");
 					Visit(m.Arguments[0]);
-					Write(" + 1, ");
+					Write(")");
 
-					if (m.Arguments.Count == 2)
-						Visit(m.Arguments[1]);
+					if (m.Arguments.Count == 1)
+					{
+						/*
+						 * Remove to end - just return substring up to index
+						 */
+						Write(")");
+					}
 					else
-						Write("8000");
-
-					Write(", '')");
+					{
+						/*
+						 * Remove specific length - concatenate before and after parts
+						 */
+						Write(" || SUBSTR(");
+						Visit(m.Object);
+						Write(", ");
+						Visit(m.Arguments[0]);
+						Write(" + ");
+						Visit(m.Arguments[1]);
+						Write(" + 1))");
+					}
 
 					return m;
 				case "IndexOf":
 					/*
-					 * Convert string.IndexOf to CHARINDEX() function
+					 * Convert string.IndexOf to INSTR() function
 					 * Subtract 1 to convert from 1-based to 0-based indexing
 					 */
-					Write("(CHARINDEX(");
-					Visit(m.Arguments[0]);
-					Write(", ");
+					Write("(INSTR(");
 
 					if (m.Object is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Object);
+					Write(", ");
+					Visit(m.Arguments[0]);
 
 					if (m.Arguments.Count == 2 && m.Arguments[1].Type == typeof(int))
 					{
@@ -442,15 +458,15 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 					return m;
 				case "Trim":
 					/*
-					 * Convert string.Trim to RTRIM(LTRIM()) functions
+					 * Convert string.Trim to TRIM() function
 					 */
-					Write("RTRIM(LTRIM(");
+					Write("TRIM(");
 
 					if (m.Object is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Object);
-					Write("))");
+					Write(")");
 
 					return m;
 			}
@@ -461,13 +477,14 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 			{
 				case "op_Subtract":
 					/*
-					 * Convert DateTime subtraction to DATEDIFF() function
+					 * Convert DateTime subtraction to date arithmetic
+					 * Oracle returns NUMBER of days for date subtraction
 					 */
 					if (m.Arguments[1].Type == typeof(DateTime))
 					{
-						Write("DATEDIFF(");
+						Write("(");
 						Visit(m.Arguments[0]);
-						Write(", ");
+						Write(" - ");
 						Visit(m.Arguments[1]);
 						Write(")");
 						return m;
@@ -475,107 +492,107 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 					break;
 				case "AddYears":
 					/*
-					 * Convert DateTime.AddYears to DATEADD(YYYY, ...) function
+					 * Convert DateTime.AddYears to ADD_MONTHS
 					 */
-					Write("DATEADD(YYYY,");
-					Visit(m.Arguments[0]);
-					Write(",");
+					Write("ADD_MONTHS(");
 
 					if (m.Object is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Object);
-					Write(")");
+					Write(", ");
+					Visit(m.Arguments[0]);
+					Write(" * 12)");
 
 					return m;
 				case "AddMonths":
 					/*
-					 * Convert DateTime.AddMonths to DATEADD(MM, ...) function
+					 * Convert DateTime.AddMonths to ADD_MONTHS
 					 */
-					Write("DATEADD(MM,");
-					Visit(m.Arguments[0]);
-					Write(",");
+					Write("ADD_MONTHS(");
 
 					if (m.Object is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Object);
+					Write(", ");
+					Visit(m.Arguments[0]);
 					Write(")");
 
 					return m;
 				case "AddDays":
 					/*
-					 * Convert DateTime.AddDays to DATEADD(DAY, ...) function
+					 * Convert DateTime.AddDays to date arithmetic
 					 */
-					Write("DATEADD(DAY,");
-					Visit(m.Arguments[0]);
-					Write(",");
+					Write("(");
 
 					if (m.Object is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Object);
+					Write(" + ");
+					Visit(m.Arguments[0]);
 					Write(")");
 
 					return m;
 				case "AddHours":
 					/*
-					 * Convert DateTime.AddHours to DATEADD(HH, ...) function
+					 * Convert DateTime.AddHours to date arithmetic (divide by 24)
 					 */
-					Write("DATEADD(HH,");
-					Visit(m.Arguments[0]);
-					Write(",");
+					Write("(");
 
 					if (m.Object is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Object);
-					Write(")");
+					Write(" + ");
+					Visit(m.Arguments[0]);
+					Write(" / 24)");
 
 					return m;
 				case "AddMinutes":
 					/*
-					 * Convert DateTime.AddMinutes to DATEADD(MI, ...) function
+					 * Convert DateTime.AddMinutes to date arithmetic (divide by 1440)
 					 */
-					Write("DATEADD(MI,");
-					Visit(m.Arguments[0]);
-					Write(",");
+					Write("(");
 
 					if (m.Object is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Object);
-					Write(")");
+					Write(" + ");
+					Visit(m.Arguments[0]);
+					Write(" / 1440)");
 
 					return m;
 				case "AddSeconds":
 					/*
-					 * Convert DateTime.AddSeconds to DATEADD(SS, ...) function
+					 * Convert DateTime.AddSeconds to date arithmetic (divide by 86400)
 					 */
-					Write("DATEADD(SS,");
-					Visit(m.Arguments[0]);
-					Write(",");
+					Write("(");
 
 					if (m.Object is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Object);
-					Write(")");
+					Write(" + ");
+					Visit(m.Arguments[0]);
+					Write(" / 86400)");
 
 					return m;
 				case "AddMilliseconds":
 					/*
-					 * Convert DateTime.AddMilliseconds to DATEADD(MS, ...) function
+					 * Convert DateTime.AddMilliseconds to date arithmetic (divide by 86400000)
 					 */
-					Write("DATEADD(MS,");
-					Visit(m.Arguments[0]);
-					Write(",");
+					Write("(");
 
 					if (m.Object is null)
-						throw new NullReferenceException(SR.ErrExpectedExpression);
+						throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 					Visit(m.Object);
-					Write(")");
+					Write(" + ");
+					Visit(m.Arguments[0]);
+					Write(" / 86400000)");
 
 					return m;
 			}
@@ -611,16 +628,15 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 				case "Ceiling":
 				case "Floor":
 					/*
-					 * Convert decimal.Ceiling/Floor to T-SQL CEILING/FLOOR functions
+					 * Convert decimal.Ceiling/Floor to Oracle CEIL/FLOOR functions
 					 */
-					Write(m.Method.Name.ToUpper());
-					Write("(");
+					Write(m.Method.Name == "Ceiling" ? "CEIL(" : "FLOOR(");
 					Visit(m.Arguments[0]);
 					Write(")");
 					return m;
 				case "Round":
 					/*
-					 * Convert decimal.Round to T-SQL ROUND function
+					 * Convert decimal.Round to Oracle ROUND function
 					 */
 					if (m.Arguments.Count == 1)
 					{
@@ -641,11 +657,11 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 					break;
 				case "Truncate":
 					/*
-					 * Convert decimal.Truncate to ROUND with truncation mode
+					 * Convert decimal.Truncate to TRUNC function
 					 */
-					Write("ROUND(");
+					Write("TRUNC(");
 					Visit(m.Arguments[0]);
-					Write(", 0, 1)");
+					Write(", 0)");
 					return m;
 			}
 		}
@@ -659,26 +675,39 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 				case "Atan":
 				case "Cos":
 				case "Exp":
-				case "Log10":
 				case "Sin":
 				case "Tan":
 				case "Sqrt":
 				case "Sign":
-				case "Ceiling":
-				case "Floor":
 					/*
-					 * Convert Math functions to their T-SQL equivalents
+					 * Convert Math functions to their Oracle equivalents
 					 */
 					Write(m.Method.Name.ToUpper());
 					Write("(");
 					Visit(m.Arguments[0]);
 					Write(")");
 					return m;
+				case "Ceiling":
+					/*
+					 * Convert Math.Ceiling to CEIL function
+					 */
+					Write("CEIL(");
+					Visit(m.Arguments[0]);
+					Write(")");
+					return m;
+				case "Floor":
+					/*
+					 * Convert Math.Floor to FLOOR function
+					 */
+					Write("FLOOR(");
+					Visit(m.Arguments[0]);
+					Write(")");
+					return m;
 				case "Atan2":
 					/*
-					 * Convert Math.Atan2 to ATN2 function
+					 * Convert Math.Atan2 to ATAN2 function
 					 */
-					Write("ATN2(");
+					Write("ATAN2(");
 					Visit(m.Arguments[0]);
 					Write(", ");
 					Visit(m.Arguments[1]);
@@ -686,12 +715,24 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 					return m;
 				case "Log":
 					/*
-					 * Convert Math.Log to LOG10 if single argument
+					 * Convert Math.Log to LN (natural log) function
 					 */
 					if (m.Arguments.Count == 1)
-						goto case "Log10";
-
+					{
+						Write("LN(");
+						Visit(m.Arguments[0]);
+						Write(")");
+						return m;
+					}
 					break;
+				case "Log10":
+					/*
+					 * Convert Math.Log10 to LOG function
+					 */
+					Write("LOG(10, ");
+					Visit(m.Arguments[0]);
+					Write(")");
+					return m;
 				case "Pow":
 					/*
 					 * Convert Math.Pow to POWER function
@@ -704,7 +745,7 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 					return m;
 				case "Round":
 					/*
-					 * Convert Math.Round to T-SQL ROUND function
+					 * Convert Math.Round to Oracle ROUND function
 					 */
 					if (m.Arguments.Count == 1)
 					{
@@ -725,11 +766,11 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 					break;
 				case "Truncate":
 					/*
-					 * Convert Math.Truncate to ROUND with truncation mode
+					 * Convert Math.Truncate to TRUNC function
 					 */
-					Write("ROUND(");
+					Write("TRUNC(");
 					Visit(m.Arguments[0]);
-					Write(", 0, 1)");
+					Write(", 0)");
 					return m;
 			}
 		}
@@ -737,14 +778,14 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 		if (m.Method.Name == "ToString")
 		{
 			/*
-			 * Convert ToString() calls to CONVERT(NVARCHAR, ...) for non-string types
-			 */
+			 * Convert ToString() calls to TO_CHAR for non-string types
+					 */
 			if (m.Object?.Type != typeof(string))
 			{
-				Write("CONVERT(NVARCHAR, ");
+				Write("TO_CHAR(");
 
 				if (m.Object is null)
-					throw new NullReferenceException(SR.ErrExpectedExpression);
+					throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 				Visit(m.Object);
 
@@ -763,7 +804,7 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 			Write("(CASE WHEN ");
 
 			if (m.Object is null)
-				throw new NullReferenceException(SR.ErrExpectedExpression);
+				throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 			Visit(m.Object);
 
@@ -803,7 +844,7 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 				Write(" IN (");
 
 				if (m.Object is null)
-					throw new NullReferenceException(SR.ErrExpectedExpression);
+					throw new NullReferenceException(Schemas.SR.ErrExpectedExpression);
 
 				Visit(m.Object);
 
@@ -827,12 +868,13 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 	}
 
 	/// <summary>
-	/// Visits a new object expression and translates it to T-SQL syntax.
+	/// Visits a new object expression and translates it to Oracle syntax.
 	/// </summary>
 	/// <param name="nex">The new expression to visit.</param>
 	/// <returns>The visited expression.</returns>
 	/// <remarks>
-	/// Handles DateTime constructor calls by converting them to T-SQL CONVERT expressions with string concatenation.
+	/// Handles DateTime constructor calls by converting them to Oracle TO_DATE function with
+	/// appropriate format strings.
 	/// </remarks>
 	protected override NewExpression VisitNew(NewExpression nex)
 	{
@@ -841,44 +883,35 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 			if (nex.Arguments.Count == 3)
 			{
 				/*
-				 * Convert DateTime constructor with date components to CONVERT expression
+				 * Convert DateTime constructor with date components to TO_DATE
 				 */
-				Write("Convert(DateTime, ");
-				Write("Convert(nvarchar, ");
+				Write("TO_DATE(");
 				Visit(nex.Arguments[0]);
-				Write(") + '/' + ");
-				Write("Convert(nvarchar, ");
+				Write(" || '-' || ");
 				Visit(nex.Arguments[1]);
-				Write(") + '/' + ");
-				Write("Convert(nvarchar, ");
+				Write(" || '-' || ");
 				Visit(nex.Arguments[2]);
-				Write("))");
+				Write(", 'YYYY-MM-DD')");
 				return nex;
 			}
 			else if (nex.Arguments.Count == 6)
 			{
 				/*
-				 * Convert DateTime constructor with date and time components to CONVERT expression
+				 * Convert DateTime constructor with date and time components to TO_TIMESTAMP
 				 */
-				Write("Convert(DateTime, ");
-				Write("Convert(nvarchar, ");
+				Write("TO_TIMESTAMP(");
 				Visit(nex.Arguments[0]);
-				Write(") + '/' + ");
-				Write("Convert(nvarchar, ");
+				Write(" || '-' || ");
 				Visit(nex.Arguments[1]);
-				Write(") + '/' + ");
-				Write("Convert(nvarchar, ");
+				Write(" || '-' || ");
 				Visit(nex.Arguments[2]);
-				Write(") + ' ' + ");
-				Write("Convert(nvarchar, ");
+				Write(" || ' ' || ");
 				Visit(nex.Arguments[3]);
-				Write(") + ':' + ");
-				Write("Convert(nvarchar, ");
+				Write(" || ':' || ");
 				Visit(nex.Arguments[4]);
-				Write(") + ':' + ");
-				Write("Convert(nvarchar, ");
+				Write(" || ':' || ");
 				Visit(nex.Arguments[5]);
-				Write("))");
+				Write(", 'YYYY-MM-DD HH24:MI:SS')");
 				return nex;
 			}
 		}
@@ -887,13 +920,13 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 	}
 
 	/// <summary>
-	/// Visits a binary expression and translates it to T-SQL syntax.
+	/// Visits a binary expression and translates it to Oracle syntax.
 	/// </summary>
 	/// <param name="b">The binary expression to visit.</param>
 	/// <returns>The visited expression.</returns>
 	/// <remarks>
-	/// Handles special binary operations like Power, Coalesce, LeftShift, and RightShift by converting
-	/// them to T-SQL POWER, COALESCE, and bitwise shift operations using multiplication/division.
+	/// Handles special binary operations like Power, Coalesce by converting them to Oracle
+	/// POWER and NVL/COALESCE functions.
 	/// </remarks>
 	protected override Expression VisitBinary(BinaryExpression b)
 	{
@@ -912,51 +945,14 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 		else if (b.NodeType == ExpressionType.Coalesce)
 		{
 			/*
-			 * Convert Coalesce operator to COALESCE function with multiple arguments
+			 * Convert Coalesce operator to NVL or COALESCE function
 			 */
-			Write("COALESCE(");
+			Write("NVL(");
 			VisitValue(b.Left);
 			Write(", ");
-
-			var right = b.Right;
-
-			while (right.NodeType == ExpressionType.Coalesce)
-			{
-				var rb = (BinaryExpression)right;
-
-				VisitValue(rb.Left);
-				Write(", ");
-
-				right = rb.Right;
-			}
-
-			VisitValue(right);
+			VisitValue(b.Right);
 			Write(")");
 
-			return b;
-		}
-		else if (b.NodeType == ExpressionType.LeftShift)
-		{
-			/*
-			 * Convert left shift to multiplication by power of 2
-			 */
-			Write("(");
-			VisitValue(b.Left);
-			Write(" * POWER(2, ");
-			VisitValue(b.Right);
-			Write("))");
-			return b;
-		}
-		else if (b.NodeType == ExpressionType.RightShift)
-		{
-			/*
-			 * Convert right shift to division by power of 2
-			 */
-			Write("(");
-			VisitValue(b.Left);
-			Write(" / POWER(2, ");
-			VisitValue(b.Right);
-			Write("))");
 			return b;
 		}
 
@@ -964,13 +960,13 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 	}
 
 	/// <summary>
-	/// Visits a constant expression and translates it to T-SQL syntax.
+	/// Visits a constant expression and translates it to Oracle syntax.
 	/// </summary>
 	/// <param name="c">The constant expression to visit.</param>
 	/// <returns>The visited expression.</returns>
 	/// <remarks>
 	/// Handles enumerable constants by expanding them inline, and parameter references by writing
-	/// parameter names prefixed with @.
+	/// parameter names prefixed with : (Oracle bind variable style).
 	/// </remarks>
 	protected override Expression VisitConstant(ConstantExpression c)
 	{
@@ -1003,12 +999,13 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 		{
 			/*
 			 * Check if constant is a registered parameter and write parameter reference
+			 * Oracle uses colon prefix for bind variables (:param)
 			 */
 			var parameter = Context.Parameters.FirstOrDefault(f => f.Value == c);
 
 			if (parameter.Value is not null)
 			{
-				Write($"@{parameter.Key}");
+				Write($":{parameter.Key}");
 
 				return c;
 			}
@@ -1042,13 +1039,12 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 	}
 
 	/// <summary>
-	/// Visits a conditional expression and translates it to T-SQL CASE expression.
+	/// Visits a conditional expression and translates it to Oracle CASE expression.
 	/// </summary>
 	/// <param name="c">The conditional expression to visit.</param>
 	/// <returns>The visited expression.</returns>
 	/// <remarks>
-	/// Converts conditional expressions to T-SQL CASE WHEN THEN ELSE END syntax, handling
-	/// both predicate-based and value-based conditionals.
+	/// Converts conditional expressions to Oracle CASE WHEN THEN ELSE END syntax.
 	/// </remarks>
 	protected override Expression VisitConditional(ConditionalExpression c)
 	{
@@ -1087,11 +1083,11 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 		else
 		{
 			/*
-			 * Handle value-based conditional (test value 0 = false, else true)
+			 * Handle value-based conditional
 			 */
-			Write("(CASE ");
+			Write("(CASE WHEN ");
 			VisitValue(c.Test);
-			Write(" WHEN 0 THEN ");
+			Write(" = 0 THEN ");
 			VisitValue(c.IfFalse);
 			Write(" ELSE ");
 			VisitValue(c.IfTrue);
@@ -1102,12 +1098,13 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 	}
 
 	/// <summary>
-	/// Visits a row number expression and translates it to T-SQL ROW_NUMBER() function.
+	/// Visits a row number expression and translates it to Oracle ROW_NUMBER() function.
 	/// </summary>
 	/// <param name="rowNumber">The row number expression to visit.</param>
 	/// <returns>The visited expression.</returns>
 	/// <remarks>
-	/// Generates T-SQL ROW_NUMBER() OVER(ORDER BY ...) clause for ranking and pagination.
+	/// Generates Oracle ROW_NUMBER() OVER(ORDER BY ...) clause for ranking.
+	/// Oracle also supports traditional ROWNUM for simpler pagination scenarios.
 	/// </remarks>
 	protected override Expression VisitRowNumber(RowNumberExpression rowNumber)
 	{
@@ -1137,157 +1134,5 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 		Write(")");
 
 		return rowNumber;
-	}
-
-	/// <summary>
-	/// Visits an IF command expression and translates it to T-SQL IF...BEGIN...END syntax.
-	/// </summary>
-	/// <param name="ifx">The IF command expression to visit.</param>
-	/// <returns>The visited expression.</returns>
-	/// <remarks>
-	/// Generates T-SQL IF statement with BEGIN/END blocks for true and optional ELSE blocks for false conditions.
-	/// Only used when the language allows multiple commands.
-	/// </remarks>
-	protected override Expression VisitIf(IfCommandExpression ifx)
-	{
-		if (Language is not null && !Language.AllowsMultipleCommands)
-			return base.VisitIf(ifx);
-
-		Write("IF ");
-		Visit(ifx.Check);
-		WriteLine(Indentation.Same);
-		Write("BEGIN");
-		WriteLine(Indentation.Inner);
-		VisitStatement(ifx.IfTrue);
-		WriteLine(Indentation.Outer);
-
-		if (ifx.IfFalse is not null)
-		{
-			Write("END ELSE BEGIN");
-			WriteLine(Indentation.Inner);
-			VisitStatement(ifx.IfFalse);
-			WriteLine(Indentation.Outer);
-		}
-
-		Write("END");
-
-		return ifx;
-	}
-
-	/// <summary>
-	/// Visits a block expression containing multiple commands.
-	/// </summary>
-	/// <param name="block">The block expression to visit.</param>
-	/// <returns>The visited expression.</returns>
-	/// <remarks>
-	/// Processes multiple statements in sequence with proper spacing.
-	/// Only used when the language allows multiple commands.
-	/// </remarks>
-	protected override Expression VisitBlock(Data.Expressions.Expressions.BlockExpression block)
-	{
-		if (Language is not null && !Language.AllowsMultipleCommands)
-			return base.VisitBlock(block);
-
-		for (var i = 0; i < block.Commands.Count; i++)
-		{
-			if (i > 0)
-			{
-				WriteLine(Indentation.Same);
-				WriteLine(Indentation.Same);
-			}
-
-			VisitStatement(block.Commands[i]);
-		}
-
-		return block;
-	}
-
-	/// <summary>
-	/// Visits a variable declaration expression and translates it to T-SQL DECLARE and SELECT/SET statements.
-	/// </summary>
-	/// <param name="decl">The declaration expression to visit.</param>
-	/// <returns>The visited expression.</returns>
-	/// <remarks>
-	/// Generates T-SQL variable declarations with DECLARE statements and initializes them using either
-	/// SELECT statements (for query-based initialization) or SET statements (for expression-based initialization).
-	/// Only used when the language allows multiple commands.
-	/// </remarks>
-	protected override Expression VisitDeclaration(DeclarationExpression decl)
-	{
-		if (Language is not null && !Language.AllowsMultipleCommands)
-			return base.VisitDeclaration(decl);
-
-		for (var i = 0; i < decl.Variables.Count; i++)
-		{
-			var v = decl.Variables[i];
-
-			if (i > 0)
-				WriteLine(Indentation.Same);
-
-			/*
-			 * Declare each variable with its data type
-			 */
-			Write("DECLARE @");
-			Write(v.Name);
-			Write(" ");
-
-			if (Language is not null)
-				Write(Language.TypeSystem.Format(v.DataType, false));
-		}
-
-		if (decl.Source is not null)
-		{
-			/*
-			 * Initialize variables from a SELECT query
-			 */
-			WriteLine(Indentation.Same);
-			Write("SELECT ");
-
-			for (var i = 0; i < decl.Variables.Count; i++)
-			{
-				if (i > 0)
-					Write(", ");
-
-				Write("@");
-				Write(decl.Variables[i].Name);
-				Write(" = ");
-				Visit(decl.Source.Columns[i].Expression);
-			}
-
-			if (decl.Source.From is not null)
-			{
-				WriteLine(Indentation.Same);
-				Write("FROM ");
-				VisitSource(decl.Source.From);
-			}
-
-			if (decl.Source.Where is not null)
-			{
-				WriteLine(Indentation.Same);
-				Write("WHERE ");
-				Visit(decl.Source.Where);
-			}
-		}
-		else
-		{
-			/*
-			 * Initialize variables with SET statements
-			 */
-			for (var i = 0; i < decl.Variables.Count; i++)
-			{
-				var v = decl.Variables[i];
-
-				if (v.Expression is not null)
-				{
-					WriteLine(Indentation.Same);
-					Write("SET @");
-					Write(v.Name);
-					Write(" = ");
-					Visit(v.Expression);
-				}
-			}
-		}
-
-		return decl;
 	}
 }
