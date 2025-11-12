@@ -5,18 +5,42 @@ using System.Text;
 
 namespace Connected.Storage.Sql.Schemas;
 
+/// <summary>
+/// Base class for table-related schema synchronization transactions.
+/// </summary>
+/// <remarks>
+/// This abstract class provides common functionality for operations that work with entire tables
+/// during schema synchronization. It extends <see cref="SynchronizationTransaction"/> and adds
+/// utility methods for generating SQL DDL statements including column definitions with appropriate
+/// data types, lengths, and constraints. The class includes sophisticated data type mapping logic
+/// that converts from DbType enumeration values to SQL Server-specific type declarations with
+/// proper length, precision, and scale specifications. It also provides index parsing functionality
+/// to extract index definitions from schema column metadata, supporting both single-column and
+/// multi-column indexes with unique constraints.
+/// </remarks>
 internal abstract class TableTransaction
 	: SynchronizationTransaction
 {
+	/// <summary>
+	/// Creates the SQL command text for a column definition.
+	/// </summary>
+	/// <param name="column">The column to generate definition for.</param>
+	/// <returns>The SQL column definition string including name, data type, identity, and nullability.</returns>
 	protected static string CreateColumnCommandText(ISchemaColumn column)
 	{
 		var builder = new StringBuilder();
 
 		builder.AppendFormat($"{Escape(column.Name)} {CreateDataTypeMetaData(column)} ");
 
+		/*
+		 * Add IDENTITY specification if the column has identity property.
+		 */
 		if (column.IsIdentity)
 			builder.Append("IDENTITY(1,1) ");
 
+		/*
+		 * Add nullability specification.
+		 */
 		if (column.IsNullable)
 			builder.Append("NULL ");
 		else
@@ -25,6 +49,15 @@ internal abstract class TableTransaction
 		return builder.ToString();
 	}
 
+	/// <summary>
+	/// Resolves the appropriate length or precision value for a column type.
+	/// </summary>
+	/// <param name="column">The column to resolve length for.</param>
+	/// <returns>The length value as a string, which may be "MAX" for maximum length types.</returns>
+	/// <remarks>
+	/// This method handles special cases like MAX length for large text/binary types,
+	/// precision/scale for decimal types, and fractional seconds precision for temporal types.
+	/// </remarks>
 	protected static string ResolveColumnLength(ISchemaColumn column)
 	{
 		if (column.MaxLength == -1)
@@ -33,6 +66,9 @@ internal abstract class TableTransaction
 		if (column.MaxLength > 0)
 			return column.MaxLength.ToString();
 
+		/*
+		 * Apply default lengths based on data type when not explicitly specified.
+		 */
 		return column.DataType switch
 		{
 			DbType.AnsiString or DbType.String or DbType.AnsiStringFixedLength or DbType.StringFixedLength => 50.ToString(),
@@ -45,6 +81,17 @@ internal abstract class TableTransaction
 		};
 	}
 
+	/// <summary>
+	/// Creates the SQL Server data type declaration for a column.
+	/// </summary>
+	/// <param name="column">The column to create data type for.</param>
+	/// <returns>The SQL Server data type declaration with appropriate length, precision, or scale.</returns>
+	/// <exception cref="NotSupportedException">Thrown when the data type is not supported.</exception>
+	/// <remarks>
+	/// This method performs comprehensive data type mapping from DbType to SQL Server native types,
+	/// including special handling for version columns (timestamp), date/time kinds, binary kinds,
+	/// and length specifications for variable-length types.
+	/// </remarks>
 	protected static string CreateDataTypeMetaData(ISchemaColumn column)
 	{
 		return column.DataType switch
@@ -80,17 +127,36 @@ internal abstract class TableTransaction
 		};
 	}
 
+	/// <summary>
+	/// Parses index descriptors from schema column metadata.
+	/// </summary>
+	/// <param name="schema">The schema containing column definitions.</param>
+	/// <returns>A list of index descriptors representing all non-primary-key indexes.</returns>
+	/// <remarks>
+	/// This method extracts index information from column attributes, grouping columns with
+	/// the same index name into multi-column indexes and creating separate descriptors for
+	/// single-column indexes. Primary key indexes are excluded as they are handled separately.
+	/// </remarks>
 	protected static List<IndexDescriptor> ParseIndexes(ISchema schema)
 	{
 		var result = new List<IndexDescriptor>();
 
+		/*
+		 * Process each column to extract index information.
+		 */
 		foreach (var column in schema.Columns)
 		{
+			/*
+			 * Skip primary key columns as they are handled separately.
+			 */
 			if (column.IsPrimaryKey)
 				continue;
 
 			if (column.IsIndex)
 			{
+				/*
+				 * Single-column index without a named group.
+				 */
 				if (string.IsNullOrWhiteSpace(column.Index))
 				{
 					var index = new IndexDescriptor
@@ -104,6 +170,10 @@ internal abstract class TableTransaction
 				}
 				else
 				{
+					/*
+					 * Multi-column index with a named group.
+					 * Find or create the index descriptor for this group.
+					 */
 					var index = result.FirstOrDefault(f => string.Equals(f.Group, column.Index, StringComparison.OrdinalIgnoreCase));
 
 					if (index is null)

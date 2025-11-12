@@ -2,15 +2,43 @@ using Connected.Storage.Schemas;
 
 namespace Connected.Storage.Sql.Schemas;
 
-internal class ColumnComparer : IEqualityComparer<ISchemaColumn>
+/// <summary>
+/// Provides equality comparison for schema columns.
+/// </summary>
+/// <remarks>
+/// This comparer performs comprehensive equality checks on schema columns by comparing all
+/// relevant properties including data types, constraints, indexes, precision, scale, and
+/// default values. It is used during schema synchronization operations to detect changes
+/// between existing and desired column definitions. The comparison is ordinal and exact,
+/// ensuring that even minor differences in column characteristics are properly identified.
+/// </remarks>
+internal class ColumnComparer
+	: IEqualityComparer<ISchemaColumn>
 {
+	/// <summary>
+	/// Gets the default singleton instance of the column comparer.
+	/// </summary>
 	public static ColumnComparer Default => new();
 
+	/// <inheritdoc/>
 	public int GetHashCode(ISchemaColumn value)
 	{
 		return value.GetHashCode();
 	}
 
+	/// <summary>
+	/// Determines whether two schema columns are equal.
+	/// </summary>
+	/// <param name="left">The first column to compare.</param>
+	/// <param name="right">The second column to compare.</param>
+	/// <returns>
+	/// <c>true</c> if the columns are equal; otherwise, <c>false</c>.
+	/// </returns>
+	/// <remarks>
+	/// This method performs a comprehensive property-by-property comparison of all column
+	/// characteristics to determine equality. Any difference in data type, constraints,
+	/// precision, nullability, or other properties results in inequality.
+	/// </remarks>
 	public bool Equals(ISchemaColumn? left, ISchemaColumn? right)
 	{
 		if (left is null || right is null)
