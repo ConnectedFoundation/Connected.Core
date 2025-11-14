@@ -1,4 +1,6 @@
+using Connected.Identities;
 using Connected.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Connected.Authentication;
@@ -60,5 +62,26 @@ public static class AuthenticationExtensions
 		 * Execute the asynchronous update, applying the new identity to the current scope.
 		 */
 		await authentication.UpdateIdentity(dto);
+	}
+
+	public static async Task<AsyncServiceScope> WithRequestIdentity(this AsyncServiceScope scope)
+	{
+		var service = scope.ServiceProvider.GetRequiredService<IAuthenticationService>();
+		var http = scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>();
+
+		if (http.HttpContext is null)
+			return scope;
+
+		if (http.HttpContext.User.Identity is not null && http.HttpContext.User.Identity.IsAuthenticated
+			&& http.HttpContext.User.Identity is IIdentityAccessor id && id.Identity is not null)
+		{
+			var dto = Dto.Factory.Create<IUpdateIdentityDto>();
+
+			dto.Identity = id.Identity;
+
+			await service.UpdateIdentity(dto);
+		}
+
+		return scope;
 	}
 }

@@ -1,3 +1,4 @@
+using Connected.Authentication;
 using Connected.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,8 +13,6 @@ public abstract class RestRequest : IDisposable
 	protected RestRequest(HttpContext httpContext)
 	{
 		HttpContext = httpContext;
-
-		_scope = Services.Scope.Create();
 
 		HttpContext.RequestAborted.Register(async () =>
 		{
@@ -36,6 +35,8 @@ public abstract class RestRequest : IDisposable
 	{
 		try
 		{
+			_scope = await Services.Scope.Create().WithRequestIdentity();
+
 			var result = await OnInvoke();
 			/*
 			 * Now, commit changes made in the context.

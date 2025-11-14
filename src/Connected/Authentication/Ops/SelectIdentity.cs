@@ -10,17 +10,6 @@ internal sealed class SelectIdentity(IAuthenticationService authentication, IHtt
 		if (authentication is not AuthenticationService service)
 			return null;
 
-		if (service.Identity is not null)
-			return service.Identity;
-
-		if (http?.HttpContext is null)
-			return null;
-
-		if (http.HttpContext.User.Identity is HttpIdentity identity)
-			return identity.Identity;
-
-		await Task.CompletedTask;
-
-		return null;
+		return await Task.FromResult(service.Identity);
 	}
 }

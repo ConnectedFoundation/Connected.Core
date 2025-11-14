@@ -23,12 +23,10 @@ internal class RequestAuthentication(RequestDelegate next)
 		 * and then continue down the middleware pipeline by invoking the next delegate.
 		 */
 		await OnInvoke(context);
+
 		await next(context);
 	}
-	/// <summary>
-	/// Gets the current <see cref="HttpContext"/> being processed by the middleware.
-	/// </summary>
-	protected HttpContext? Context { get; private set; }
+
 	/// <summary>
 	/// Performs the core authentication flow by querying providers and extracting credentials
 	/// from headers or query parameters.
@@ -37,10 +35,6 @@ internal class RequestAuthentication(RequestDelegate next)
 	/// <returns>A task that completes when authentication dispatch has finished.</returns>
 	private async Task OnInvoke(HttpContext context)
 	{
-		/*
-		 * Capture the context for downstream usage in this class.
-		 */
-		Context = context;
 		/*
 		 * Create a system-elevated scope to access middleware services, then resolve the
 		 * middleware registry to discover registered authentication providers.
@@ -56,16 +50,19 @@ internal class RequestAuthentication(RequestDelegate next)
 		 * Query the list of authentication providers that will process the request.
 		 */
 		var providers = await middlewares.Query<IAuthenticationProvider>();
+
 		/*
 		 * Attempt to read credentials from the Authorization header. If absent, fall
 		 * back to the "access_token" query parameter often used for WebSocket scenarios.
 		 */
-		var header = Context?.Request.Headers.Authorization.ToString();
+		var header = context.Request.Headers.Authorization.ToString();
+
 		string? schema = null;
 		string? token = null;
 
 		if (string.IsNullOrWhiteSpace(header))
-			header = Context?.Request.Query["access_token"].ToString();
+			header = context?.Request.Query["access_token"].ToString();
+
 		/*
 		 * When a credential string is present, split into scheme and token parts using
 		 * the first space as delimiter (e.g., "Bearer abc..." or "Basic xyz...").

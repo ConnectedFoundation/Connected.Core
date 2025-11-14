@@ -1,10 +1,7 @@
-using Connected.Services;
 using Microsoft.AspNetCore.Http;
 
 namespace Connected.Authentication;
-internal sealed class MaintenanceAuthenticationProvider(
-	IHttpContextAccessor http,
-	IAuthenticationService authentication)
+internal sealed class MaintenanceAuthenticationProvider(IHttpContextAccessor http)
 	: BearerAuthenticationProvider
 {
 	protected override async Task OnAuthenticate()
@@ -22,13 +19,10 @@ internal sealed class MaintenanceAuthenticationProvider(
 		if (!string.Equals(Token, raw, StringComparison.Ordinal))
 			return;
 
-		var dto = Dto.Create<IUpdateIdentityDto>();
 		var identity = new MaintenanceIdentity
 		{
 			Token = raw
 		};
-
-		dto.Identity = identity;
 
 		if (http.HttpContext is not null)
 		{
@@ -38,6 +32,6 @@ internal sealed class MaintenanceAuthenticationProvider(
 			});
 		}
 
-		await authentication.UpdateIdentity(dto);
+		await Task.CompletedTask;
 	}
 }

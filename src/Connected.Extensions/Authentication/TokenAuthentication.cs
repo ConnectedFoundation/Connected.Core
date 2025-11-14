@@ -31,12 +31,14 @@ internal sealed class TokenAuthentication(IHttpContextAccessor http)
 		 * authentication) can be accessed securely.
 		 */
 		using var scope = await Scope.Create().WithSystemIdentity();
+
 		/*
 		 * Resolve required services for authentication: the service that applies identity updates,
 		 * the token service for retrieving and validating authentication tokens, and extensions for
 		 * loading domain identities.
 		 */
 		var authentication = scope.ServiceProvider.GetRequiredService<IAuthenticationService>();
+
 		var tokens = scope.ServiceProvider.GetRequiredService<IIdentityAuthenticationTokenService>();
 		/*
 		 * Query the token record using the raw token string. If not found, abort early.
@@ -77,6 +79,7 @@ internal sealed class TokenAuthentication(IHttpContextAccessor http)
 		if (identityDto.Identity is not null)
 		{
 			await authentication.UpdateIdentity(identityDto);
+
 			/*
 			 * Assign a ClaimsPrincipal bridging to the domain identity when an HTTP context exists.
 			 */

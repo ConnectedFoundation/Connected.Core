@@ -266,8 +266,6 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 		foreach (var connection in Connections)
 			await connection.DisposeAsync();
 
-		Connections.Clear();
-
 		OnDisposing(false);
 		GC.SuppressFinalize(this);
 	}
@@ -282,7 +280,5 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 
 		foreach (var connection in Connections)
 			connection.Dispose();
-
-		Connections.Clear();
 	}
 }

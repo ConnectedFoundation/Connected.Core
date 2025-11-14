@@ -12,7 +12,7 @@ internal sealed class IdentityCultureProvider : CultureProviderBase
 {
 	public override async Task<ProviderCultureResult?> DetermineProviderCultureResult(HttpContext httpContext)
 	{
-		using var scope = Scope.Create();
+		using var scope = await Scope.Create().WithSystemIdentity();
 
 		var authenticationService = scope.ServiceProvider.GetRequiredService<IAuthenticationService>();
 		var identityGlobalizationService = scope.ServiceProvider.GetRequiredService<IIdentityGlobalizationService>();
