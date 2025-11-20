@@ -169,7 +169,7 @@ internal class FieldMappings<TEntity>
 			else
 				value = Convert.ToBase64String(bv);
 		}
-		else if (type == typeof(DateTimeOffset))
+		else if (type == typeof(DateTimeOffset) || type == typeof(Nullable<DateTimeOffset>))
 		{
 			/*
 			 * We don't perform any conversions on dates. All dates should be stored in a UTC
@@ -179,7 +179,7 @@ internal class FieldMappings<TEntity>
 			if (value is DateTime time)
 				value = new DateTimeOffset(DateTime.SpecifyKind(time, DateTimeKind.Utc));
 		}
-		else if (type == typeof(DateTime))
+		else if (type == typeof(DateTime) || type == typeof(Nullable<DateTime>))
 		{
 			/*
 			 * Like DateTimeOffset, the same is true for DateTime values
