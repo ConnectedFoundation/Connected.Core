@@ -36,6 +36,11 @@ public static class ServiceOperations
 	public const string SelectByName = "select-by-name";
 
 	/// <summary>
+	/// The operation name for selecting an entity by its head.
+	/// </summary>
+	public const string SelectByHead = "select-by-head";
+
+	/// <summary>
 	/// The operation name for querying entities by parent identifier.
 	/// </summary>
 	public const string QueryByParent = "query-by-parent";
