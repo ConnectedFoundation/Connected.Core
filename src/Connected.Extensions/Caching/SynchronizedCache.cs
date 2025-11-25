@@ -12,16 +12,16 @@ public abstract class SynchronizedCache<TEntry, TKey>(ICachingService cachingSer
 		Initializers = [];
 	}
 
-	private static Lock Lock => new();
+	private static Lock Lock { get; } = new();
 	private static HashSet<string> Initializers { get; }
 	private AsyncLockerSlim? Locker { get; set; } = new();
 
 	protected bool Initialized
 	{
-		get => Initializers.Contains(Key);
+		get => IsInitialized(Key);
 		private set
 		{
-			if (Initializers.Contains(Key))
+			if (IsInitialized(Key))
 				return;
 
 			lock (Lock)
@@ -33,7 +33,7 @@ public abstract class SynchronizedCache<TEntry, TKey>(ICachingService cachingSer
 
 	protected async Task Reset()
 	{
-		if (!Initializers.Contains(Key))
+		if (!IsInitialized(Key))
 			return;
 
 		foreach (var key in Keys)
@@ -149,5 +149,13 @@ public abstract class SynchronizedCache<TEntry, TKey>(ICachingService cachingSer
 		((ICachingDataProvider)this).Initialize().Wait();
 
 		return base.GetEnumerator();
+	}
+
+	private bool IsInitialized(string key)
+	{
+		lock (Lock)
+		{
+			return Initializers.Contains(key);
+		}
 	}
 }
