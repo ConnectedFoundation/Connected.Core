@@ -3,10 +3,11 @@ using Connected.Net.Dtos;
 using Connected.Net.Events.Dtos;
 using Connected.Net.Messaging;
 using Connected.Services;
+using Microsoft.AspNetCore.Http;
 
 namespace Connected.Net.Events;
 
-internal sealed class EventHub(IAuthenticationService authentication, IEventServer server, EventClients clients)
+internal sealed class EventHub(IAuthenticationService authentication, IHttpContextAccessor http, IEventServer server, EventClients clients)
 	: ServerHub(clients)
 {
 	public override async Task OnDisconnectedAsync(Exception? ex)
@@ -26,6 +27,7 @@ internal sealed class EventHub(IAuthenticationService authentication, IEventServ
 	public async Task Subscribe(List<EventSubscription> subscriptions)
 	{
 		await HubAuthentication.Authenticate(Context, clients);
+		await authentication.WithRequestIdentity(http);
 
 		foreach (var subscription in subscriptions)
 		{
@@ -42,6 +44,7 @@ internal sealed class EventHub(IAuthenticationService authentication, IEventServ
 	public async Task Unsubscribe(List<EventSubscription> subscriptions)
 	{
 		await HubAuthentication.Authenticate(Context, clients);
+		await authentication.WithRequestIdentity(http);
 
 		foreach (var subscription in subscriptions)
 		{
@@ -58,6 +61,7 @@ internal sealed class EventHub(IAuthenticationService authentication, IEventServ
 	public async Task Acknowledge(MessageAcknowledgeDto dto)
 	{
 		await HubAuthentication.Authenticate(Context, clients);
+		await authentication.WithRequestIdentity(http);
 
 		var boundDto = new Dto<IBoundMessageAcknowledgeDto>().Value;
 

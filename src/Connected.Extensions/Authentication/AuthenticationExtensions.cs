@@ -84,4 +84,21 @@ public static class AuthenticationExtensions
 
 		return scope;
 	}
+
+	public static async Task WithRequestIdentity(this IAuthenticationService authentication, IHttpContextAccessor http)
+	{
+
+		if (http.HttpContext is null)
+			return;
+
+		if (http.HttpContext.User.Identity is not null && http.HttpContext.User.Identity.IsAuthenticated
+			&& http.HttpContext.User.Identity is IIdentityAccessor id && id.Identity is not null)
+		{
+			var dto = Dto.Factory.Create<IUpdateIdentityDto>();
+
+			dto.Identity = id.Identity;
+
+			await authentication.UpdateIdentity(dto);
+		}
+	}
 }
