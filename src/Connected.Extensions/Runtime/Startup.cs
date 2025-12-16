@@ -3,9 +3,12 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+using System.Collections.Immutable;
 
 namespace Connected.Runtime;
+
 public abstract class Startup : IStartup
 {
 	public bool IsUpdated { get; }
@@ -85,5 +88,15 @@ public abstract class Startup : IStartup
 	protected virtual Task OnConfigureEndpoints()
 	{
 		return Task.CompletedTask;
+	}
+
+	public async Task<IImmutableList<IFileProvider>> QueryStaticFileProviders()
+	{
+		return await OnQueryStaticFileProviders();
+	}
+
+	protected virtual async Task<IImmutableList<IFileProvider>> OnQueryStaticFileProviders()
+	{
+		return await Task.FromResult(ImmutableList<IFileProvider>.Empty);
 	}
 }

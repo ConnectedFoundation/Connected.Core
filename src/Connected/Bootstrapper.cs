@@ -44,6 +44,7 @@ internal sealed class Bootstrapper
 		else
 			RuntimeExtensions.AddService(typeof(Net.Routing.Client.RoutingService));
 	}
+
 	/// <summary>
 	/// Asynchronously initializes startup state such as the maintenance identity token.
 	/// </summary>

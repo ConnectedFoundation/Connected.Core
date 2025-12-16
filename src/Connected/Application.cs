@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Net.Mime;
@@ -73,6 +74,8 @@ public static class Application
 			});
 
 			var webApp = builder.Build();
+
+			OnConfigureStaticFiles(webApp);
 
 			webApp.ActivateRequestAuthentication();
 			webApp.ActivateLocalization();
@@ -333,5 +336,29 @@ public static class Application
 	internal static void TriggerDiscoverType(IServiceCollection services, Type type)
 	{
 		DiscoverType?.Invoke(services, new DependencyTypeDiscoveryEventArgs(services, type));
+	}
+
+	private static async Task OnConfigureStaticFiles(IApplicationBuilder app)
+	{
+		var fileProviders = new List<IFileProvider>();
+		var startups = Dependencies.Startups;
+
+		foreach (var startup in startups)
+		{
+			var items = await startup.QueryStaticFileProviders();
+
+			if (items.Any())
+				fileProviders.AddRange(items);
+		}
+
+		if (fileProviders.Count == 0)
+			return;
+
+		var staticOptions = new StaticFileOptions
+		{
+			FileProvider = new CompositeFileProvider(fileProviders)
+		};
+
+		app.UseStaticFiles(staticOptions);
 	}
 }

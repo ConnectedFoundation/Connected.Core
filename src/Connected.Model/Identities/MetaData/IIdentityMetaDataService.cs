@@ -53,7 +53,7 @@ public interface IIdentityMetaDataService
 	/// </summary>
 	/// <param name="dto">The data transfer object containing the list of primary keys to query.</param>
 	/// <returns>A task that represents the asynchronous operation. The task result contains an immutable list of identity metadata matching the specified primary keys.</returns>
-	[ServiceOperation(ServiceOperationVerbs.Get)]
+	[ServiceOperation(ServiceOperationVerbs.Get), ServiceUrl(ServiceOperations.Lookup)]
 	Task<IImmutableList<IIdentityMetaData>> Query(IPrimaryKeyListDto<string> dto);
 
 	/// <summary>

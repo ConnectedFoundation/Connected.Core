@@ -1,3 +1,6 @@
+using Microsoft.Extensions.FileProviders;
+using System.Collections.Immutable;
+
 namespace Connected.Runtime;
 
 /// <summary>
@@ -102,4 +105,6 @@ public interface IStartup
 	/// when the application enters its running state.
 	/// </remarks>
 	Task Start();
+
+	Task<IImmutableList<IFileProvider>> QueryStaticFileProviders();
 }
