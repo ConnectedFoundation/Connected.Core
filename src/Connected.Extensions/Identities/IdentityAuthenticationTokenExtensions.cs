@@ -1,19 +1,21 @@
+using Connected.Authentication;
 using Connected.Identities.Authentication;
 using Connected.Identities.Authentication.Dtos;
 using Connected.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Connected.Identities;
+
 public static class IdentityAuthenticationTokenExtensions
 {
 	public static bool IsValid(this IIdentityAuthenticationToken value)
 	{
-		return value.Status == AuthenticationTokenStatus.Enabled && (value.Expire is null || value.Expire < DateTimeOffset.UtcNow);
+		return value.Status == AuthenticationTokenStatus.Enabled && (value.Expire is null || value.Expire > DateTimeOffset.UtcNow);
 	}
 
 	public static async Task<string?> AuthenticationToken(this IIdentity identity)
 	{
-		using var scope = Scope.Create();
+		using var scope = await Scope.Create().WithSystemIdentity();
 
 		var tokenService = scope.ServiceProvider.GetRequiredService<IIdentityAuthenticationTokenService>();
 		var dto = scope.ServiceProvider.GetRequiredService<IQueryIdentityAuthenticationTokensDto>();
@@ -33,7 +35,7 @@ public static class IdentityAuthenticationTokenExtensions
 			if (target is null)
 				return null;
 
-			if (target.Expire is not null && target.Expire.Value <= DateTimeOffset.UtcNow)
+			if (target.Expire is not null && target.Expire.Value >= DateTimeOffset.UtcNow)
 				return target.Token;
 			else
 				return null;
@@ -61,14 +63,13 @@ public static class IdentityAuthenticationTokenExtensions
 
 		if (existingKey is not null)
 		{
-			var tokensDto = new Dto<IUpdateIdentityAuthenticationTokenDto>().Value;
+			var tokensDto = existingKey.AsDto<IUpdateIdentityAuthenticationTokenDto>();
 			DateTimeOffset? expire = permanent ? null : DateTimeOffset.UtcNow.AddMinutes(30);
 
-			tokensDto.Patch<IUpdateIdentityAuthenticationTokenDto, IIdentityAuthenticationToken>(existingKey, new
-			{
-				token,
-				expire
-			});
+			tokensDto.Token = token;
+			tokensDto.Expire = expire;
+
+			await service.Update(tokensDto);
 		}
 		else
 		{
