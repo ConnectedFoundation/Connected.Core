@@ -43,7 +43,7 @@ internal abstract class Cache : ICache
 
 	public virtual async Task<T?> Get<T>(string key, object id, Func<IEntryOptions, Task<T?>>? retrieve)
 	{
-		return await Get(key, id, retrieve);
+		return await _scope.Get(key, id, retrieve);
 	}
 
 	public virtual async Task Clear(string key)
