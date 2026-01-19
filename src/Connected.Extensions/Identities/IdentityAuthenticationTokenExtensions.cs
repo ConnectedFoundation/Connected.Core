@@ -68,6 +68,7 @@ public static class IdentityAuthenticationTokenExtensions
 
 			tokensDto.Token = token;
 			tokensDto.Expire = expire;
+			tokensDto.Status = AuthenticationTokenStatus.Enabled;
 
 			await service.Update(tokensDto);
 		}
@@ -78,6 +79,7 @@ public static class IdentityAuthenticationTokenExtensions
 			tokensDto.Identity = identity;
 			tokensDto.Key = IdentityAuthenticationTokens.AuthenticationToken;
 			tokensDto.Token = token;
+			tokensDto.Status = AuthenticationTokenStatus.Enabled;
 
 			if (permanent)
 				tokensDto.Expire = null;
