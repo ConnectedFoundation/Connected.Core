@@ -189,10 +189,10 @@ internal sealed class ServiceRequestDelegate : RestRequest
 				}
 				else
 				{
+					var argument = Dto.Factory.Create(parameter.ParameterType);
+
 					try
 					{
-						var argument = Dto.Factory.Create(parameter.ParameterType);
-
 						/*
 						 * Merge request properties into argument instance.
 						 */
@@ -202,7 +202,7 @@ internal sealed class ServiceRequestDelegate : RestRequest
 					}
 					catch
 					{
-						throw new InvalidOperationException($"{RestStrings.ValParseRequestArguments} ('{parameter.ParameterType.ShortName()}')");
+						throw new ValidationException($"{RestStrings.ValParseRequestArguments} ('{parameter.ParameterType.ShortName()}')");
 					}
 				}
 			}
