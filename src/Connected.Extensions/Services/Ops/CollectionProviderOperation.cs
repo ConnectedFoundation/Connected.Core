@@ -6,7 +6,7 @@ using System.Collections.Immutable;
 
 namespace Connected.Services.Ops;
 
-public class CollectionProviderOperation<TDto, TCollectionItem, TMiddleware>(IMiddlewareService middlewares) : ServiceFunction<TDto, ImmutableList<TCollectionItem>> where TDto : IDto
+public class CollectionProviderOperation<TDto, TCollectionItem, TMiddleware>(IMiddlewareService middlewares) : ServiceFunction<TDto, IImmutableList<TCollectionItem>> where TDto : IDto
 																																												 where TMiddleware : ICollectionProviderMiddleware<TCollectionItem, TDto>
 {
 	protected override async Task<ImmutableList<TCollectionItem>> OnInvoke()
