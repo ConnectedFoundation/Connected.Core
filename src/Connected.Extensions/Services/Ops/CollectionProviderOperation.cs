@@ -13,6 +13,6 @@ public class CollectionProviderOperation<TDto, TCollectionItem, TMiddleware>(IMi
 		var tasks = valueProviders.Select(e => e.Invoke(Dto));
 		var results = await Task.WhenAll(tasks);
 
-		return ImmutableList.CreateRange(results.SelectMany(e => e));
+		return [.. results.SelectMany(e => e)];
 	}
 }
