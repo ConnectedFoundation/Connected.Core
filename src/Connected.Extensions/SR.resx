@@ -117,6 +117,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="ErrCannotCreateInstance" xml:space="preserve">
+    <value>Cannot create instance</value>
+  </data>
   <data name="ErrCannotResolveConstructor" xml:space="preserve">
     <value>Cannot resolve constructor</value>
   </data>
@@ -140,5 +143,8 @@
   </data>
   <data name="ErrExpectedExpressionValue" xml:space="preserve">
     <value>Expected expression value</value>
+  </data>
+  <data name="ErrInterfaceNoImplementation" xml:space="preserve">
+    <value>Interface has no implementation</value>
   </data>
 </root>
