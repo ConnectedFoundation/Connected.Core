@@ -50,7 +50,9 @@ internal sealed class DtoRequestDelegate(HttpContext context)
 	private static DtoDescriptor CreateDescriptor(Type type)
 	{
 		var result = new DtoDescriptor();
-		var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.GetProperty);
+		var properties = type.IsInterface
+				  ? GetInterfaceProperties(type)
+				  : type.GetProperties(BindingFlags.Public | BindingFlags.GetProperty | BindingFlags.Instance);
 
 		foreach (var property in properties)
 		{
@@ -77,6 +79,18 @@ internal sealed class DtoRequestDelegate(HttpContext context)
 		}
 
 		return result;
+	}
+
+	private static PropertyInfo[] GetInterfaceProperties(Type interfaceType)
+	{
+		var properties = new List<PropertyInfo>(interfaceType.GetProperties());
+
+		foreach (var baseInterface in interfaceType.GetInterfaces())
+		{
+			properties.AddRange(baseInterface.GetProperties());
+		}
+
+		return properties.ToArray();
 	}
 
 	private static string ResolvePropertyType(PropertyInfo property)
