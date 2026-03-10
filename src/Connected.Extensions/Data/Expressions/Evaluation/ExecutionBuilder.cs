@@ -59,7 +59,7 @@ public sealed class ExecutionBuilder
 				Value = parameter.Value.Value
 			});
 		}
-		;
+
 
 		foreach (var variable in Context.Variables)
 		{

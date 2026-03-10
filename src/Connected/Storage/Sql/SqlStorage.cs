@@ -16,10 +16,12 @@ internal sealed class SqlStorage(IStorageProvider storage)
 {
 	private IStorageProvider Storage { get; } = storage;
 	private StorageConnectionMode ConnectionMode { get; set; } = StorageConnectionMode.Shared;
+	private IStorageVariableProvider? VariableProvider { get; set; }
 
-	public Task<bool> Invoke(Type type, StorageConnectionMode connectionMode)
+	public Task<bool> Invoke(Type type, StorageConnectionMode connectionMode, IStorageVariableProvider variableProvider)
 	{
 		ConnectionMode = connectionMode;
+		VariableProvider = variableProvider;
 
 		return Task.FromResult(true);
 	}
@@ -64,7 +66,7 @@ internal sealed class SqlStorage(IStorageProvider storage)
 	{
 		var dto = Dto.Factory.Create<IStorageContextDto>();
 
-		dto.Operation = operation;
+		dto.Operation = operation.WithStorageVariables(VariableProvider);
 		dto.ConnectionMode = ConnectionMode;
 
 		return Storage.Open<TResult>(ConnectionMode).Query(dto).Result;

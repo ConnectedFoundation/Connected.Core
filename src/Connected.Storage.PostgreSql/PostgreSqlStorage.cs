@@ -40,7 +40,7 @@ internal sealed class PostgreSqlStorage(IStorageProvider storage)
 	/// Defaults to <see cref="StorageConnectionMode.Shared"/>.
 	/// </value>
 	private StorageConnectionMode ConnectionMode { get; set; } = StorageConnectionMode.Shared;
-
+	private IStorageVariableProvider? VariableProvider { get; set; }
 	/// <summary>
 	/// Invokes the middleware to configure connection mode for the specified entity type.
 	/// </summary>
@@ -51,9 +51,10 @@ internal sealed class PostgreSqlStorage(IStorageProvider storage)
 	/// This method is called by the middleware pipeline to configure connection mode before
 	/// query execution. It stores the connection mode for use during query execution.
 	/// </remarks>
-	public Task<bool> Invoke(Type type, StorageConnectionMode connectionMode)
+	public Task<bool> Invoke(Type type, StorageConnectionMode connectionMode, IStorageVariableProvider variableProvider)
 	{
 		ConnectionMode = connectionMode;
+		VariableProvider = variableProvider;
 
 		return Task.FromResult(true);
 	}
@@ -162,7 +163,7 @@ internal sealed class PostgreSqlStorage(IStorageProvider storage)
 		 */
 		var dto = Dto.Factory.Create<IStorageContextDto>();
 
-		dto.Operation = operation;
+		dto.Operation = operation.WithStorageVariables(VariableProvider);
 		dto.ConnectionMode = ConnectionMode;
 
 		/*

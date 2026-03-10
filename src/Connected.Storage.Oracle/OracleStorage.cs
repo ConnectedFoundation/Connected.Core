@@ -42,6 +42,7 @@ internal sealed class OracleStorage(IStorageProvider storage)
 	/// Defaults to <see cref="StorageConnectionMode.Shared"/>.
 	/// </value>
 	private StorageConnectionMode ConnectionMode { get; set; } = StorageConnectionMode.Shared;
+	private IStorageVariableProvider? VariableProvider { get; set; }
 
 	/// <summary>
 	/// Invokes the middleware to configure connection mode for the specified entity type.
@@ -55,9 +56,10 @@ internal sealed class OracleStorage(IStorageProvider storage)
 	/// mode reuses connections from the Oracle connection pool; Isolated mode creates dedicated
 	/// connections for each operation.
 	/// </remarks>
-	public Task<bool> Invoke(Type type, StorageConnectionMode connectionMode)
+	public Task<bool> Invoke(Type type, StorageConnectionMode connectionMode, IStorageVariableProvider variableProvider)
 	{
 		ConnectionMode = connectionMode;
+		VariableProvider = variableProvider;
 
 		return Task.FromResult(true);
 	}
@@ -171,7 +173,7 @@ internal sealed class OracleStorage(IStorageProvider storage)
 		 */
 		var dto = Dto.Factory.Create<IStorageContextDto>();
 
-		dto.Operation = operation;
+		dto.Operation = operation.WithStorageVariables(VariableProvider);
 		dto.ConnectionMode = ConnectionMode;
 
 		/*

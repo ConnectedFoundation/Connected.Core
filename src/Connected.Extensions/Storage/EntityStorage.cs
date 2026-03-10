@@ -1,3 +1,4 @@
+using Connected.Data.Expressions.Evaluation;
 using Connected.Entities;
 using Connected.Entities.Protection;
 using Connected.Services;
@@ -17,6 +18,7 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 	  where TEntity : IEntity
 {
 	private IQueryProvider? _provider;
+	private List<IStorageVariable> _variables;
 	/// <summary>
 	/// Creates a new <see cref="EntityStorage{TEntity}"/> instance.
 	/// </summary>
@@ -34,6 +36,8 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 		Transactions = transactions;
 		Expression = Expression.Constant(this);
 		Mode = mode;
+
+		_variables = [];
 	}
 	/// <summary>
 	/// The middleware used when performing entity operations.
@@ -86,6 +90,8 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 	/// Middleware providing saga transactions orchestration. 
 	/// </summary>
 	private ITransactionContext Transactions { get; }
+
+	public IImmutableList<IStorageVariable> Variables => _variables.ToImmutableList();
 	/// <summary>
 	/// Gets enumerator for entities retrieved via <see cref="Expression"/>.
 	/// </summary>
@@ -555,7 +561,7 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 			/*
 			 * The first middleware supporting the entity wins.
 			 */
-			if (await middleware.Invoke(ElementType, Mode))
+			if (await middleware.Invoke(ElementType, Mode, this))
 			{
 				_provider = middleware;
 
@@ -579,7 +585,7 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 			var operation = await middleware.Invoke(entity);
 
 			if (operation is not null)
-				return operation;
+				return operation.WithStorageVariables(this);
 		}
 
 		return null;
@@ -588,5 +594,22 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 	public async Task Initialize()
 	{
 		await ResolveProvider();
+	}
+
+	public void AddVariable(string name, object? value)
+	{
+		if (_variables.FirstOrDefault(f => string.Equals(f.Name, name, StringComparison.OrdinalIgnoreCase)) is IStorageVariable v)
+		{
+			if (v.Values.FirstOrDefault(f => Comparer.Default.Compare(f, value) == 0) is null)
+				v.Values.Add(value);
+		}
+		else
+			_variables.Add(new StorageVariable { Name = name, Values = [value] });
+	}
+
+	public void RemoveVariable(string name)
+	{
+		if (_variables.FirstOrDefault(f => string.Equals(f.Name, name, StringComparison.OrdinalIgnoreCase)) is IStorageVariable existing)
+			_variables.Remove(existing);
 	}
 }

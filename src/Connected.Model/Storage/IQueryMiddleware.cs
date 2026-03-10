@@ -2,5 +2,5 @@ namespace Connected.Storage;
 
 public interface IQueryMiddleware : IQueryProvider, IMiddleware
 {
-	Task<bool> Invoke(Type entityType, StorageConnectionMode connectionMode);
+	Task<bool> Invoke(Type entityType, StorageConnectionMode connectionMode, IStorageVariableProvider variableProvider);
 }

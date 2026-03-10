@@ -10,7 +10,9 @@ namespace Connected.Storage;
 /// Defines the read and write operations on the supported storage providers.
 /// </summary>
 /// <typeparam name="TEntity">>The type of the entitiy on which operations are performed.</typeparam>
-public interface IStorage<TEntity> : IQueryable<TEntity>, IQueryable, IEnumerable<TEntity>, IEnumerable, IOrderedQueryable<TEntity>, IOrderedQueryable
+public interface IStorage<TEntity>
+	: IQueryable<TEntity>, IQueryable, IEnumerable<TEntity>, IEnumerable,
+		IOrderedQueryable<TEntity>, IOrderedQueryable, IStorageVariableProvider
 	where TEntity : IEntity
 {
 	/// <summary>
