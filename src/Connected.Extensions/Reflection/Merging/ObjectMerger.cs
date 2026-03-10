@@ -1,3 +1,4 @@
+using Connected.Services;
 using System.Collections;
 using System.Reflection;
 
@@ -113,7 +114,7 @@ internal sealed class ObjectMerger : Merger
 		object? instance = null;
 
 		if (addMethod is not null)
-			instance = Activator.CreateInstance(property.PropertyType);
+			instance = CreateInstance(property.PropertyType);
 		else
 		{
 			var arrayType = property.PropertyType.GetElementType();
@@ -156,7 +157,7 @@ internal sealed class ObjectMerger : Merger
 					item = Types.Convert(sourceElement, elementType);
 				else
 				{
-					item = Activator.CreateInstance(elementType);
+					item = CreateInstance(elementType);
 
 					if (item is null)
 						continue;
@@ -189,5 +190,13 @@ internal sealed class ObjectMerger : Merger
 			propertyValue = sourceProperty.GetValue(value);
 
 		property.SetValue(destination, propertyValue);
+	}
+
+	private static object CreateInstance(Type propertyType)
+	{
+		if (propertyType.IsInterface)
+			return Dto.Factory.Create(propertyType) ?? throw new NullReferenceException(SR.ErrInterfaceNoImplementation);
+
+		return Activator.CreateInstance(propertyType) ?? throw new NullReferenceException(SR.ErrCannotCreateInstance);
 	}
 }

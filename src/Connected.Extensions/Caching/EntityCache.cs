@@ -15,19 +15,12 @@ public abstract class EntityCache<TEntity, TEntityImplementation, TPrimaryKey>(I
 
 	protected override sealed async Task OnInitializing()
 	{
-		try
-		{
-			var entities = await OnInitializingEntities();
-			if (entities is not IImmutableList<TEntity> ds)
-				return;
+		var entities = await OnInitializingEntities();
+		if (entities is not IImmutableList<TEntity> ds)
+			return;
 
-			foreach (var r in ds)
-				Set(r.Id, r, TimeSpan.Zero);
-		}
-		catch (Exception ex)
-		{
-			throw;
-		}
+		foreach (var r in ds)
+			Set(r.Id, r, TimeSpan.Zero);
 	}
 
 	protected virtual async Task<IImmutableList<TEntity>?> OnInitializingEntities()
