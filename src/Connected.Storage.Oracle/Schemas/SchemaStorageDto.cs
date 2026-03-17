@@ -1,3 +1,4 @@
+using Connected.Annotations;
 using Connected.Storage.Schemas;
 
 namespace Connected.Storage.Oracle.Schemas;
@@ -16,6 +17,7 @@ namespace Connected.Storage.Oracle.Schemas;
 /// isolation during schema modifications. The default connection mode is Shared for efficient connection
 /// pooling during schema operations.
 /// </remarks>
+[ServiceRegistration(ServiceRegistrationMode.Manual)]
 internal sealed class SchemaStorageDto(Type connectionType, string connectionString, IStorageOperation operation)
 	: IStorageContextDto, ISchemaSynchronizationContext
 {

@@ -1,3 +1,4 @@
+using Connected.Annotations;
 using Connected.Storage.Schemas;
 
 namespace Connected.Storage.Sql.Schemas;
@@ -14,6 +15,7 @@ namespace Connected.Storage.Sql.Schemas;
 /// are executed with the correct connection settings and operational parameters. The default connection
 /// mode is Shared, allowing connection pooling for efficient resource utilization during schema operations.
 /// </remarks>
+[ServiceRegistration(ServiceRegistrationMode.Manual)]
 internal sealed class SchemaStorageDto(Type connectionType, string connectionString, IStorageOperation operation)
 	: IStorageContextDto, ISchemaSynchronizationContext
 {
