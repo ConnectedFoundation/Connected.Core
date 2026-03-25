@@ -93,12 +93,17 @@ internal abstract class Cache : ICache
 
 	public virtual T? Set<T>(string key, object id, T? instance, TimeSpan duration, bool slidingExpiration)
 	{
-		return Set(key, id, instance, duration, slidingExpiration, false);
+		return Set(key, id, instance, duration, slidingExpiration, CacheEntryMergeBehavior.Merge, false);
 	}
 
-	public virtual T? Set<T>(string key, object id, T? instance, TimeSpan duration, bool slidingExpiration, bool performSynchronization)
+	public virtual T? Set<T>(string key, object id, T? instance, TimeSpan duration, bool slidingExpiration, CacheEntryMergeBehavior merge)
 	{
-		var result = _scope.Set(key, id, instance, duration, slidingExpiration);
+		return Set(key, id, instance, duration, slidingExpiration, merge, false);
+	}
+
+	public virtual T? Set<T>(string key, object id, T? instance, TimeSpan duration, bool slidingExpiration, CacheEntryMergeBehavior merge, bool performSynchronization)
+	{
+		var result = _scope.Set(key, id, instance, duration, slidingExpiration, merge);
 
 		if (performSynchronization)
 			OnSynchronize(new InvalidateCacheDto { Id = Convert.ToString(id), Key = key }).Wait();

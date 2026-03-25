@@ -77,9 +77,9 @@ internal class Entries
 			v.Dispose();
 	}
 
-	public void Set(string key, object? instance, TimeSpan duration, bool slidingExpiration)
+	public void Set(string key, object? instance, TimeSpan duration, bool slidingExpiration, CacheEntryMergeBehavior merge)
 	{
-		Items[key] = new Entry(key, instance, duration, slidingExpiration);
+		Items[key] = new Entry(key, instance, duration, slidingExpiration, merge);
 	}
 
 	public IEnumerator<T> GetEnumerator<T>()

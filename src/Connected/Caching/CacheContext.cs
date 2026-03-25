@@ -188,6 +188,13 @@ internal class CacheContext : ICacheContext
 		return _scope.Set(key, id, instance, duration, slidingExpiration);
 	}
 
+	public T? Set<T>(string key, object id, T? instance, TimeSpan duration, bool slidingExpiration, CacheEntryMergeBehavior merge)
+	{
+		RemoveFromRemoveList(key, id);
+
+		return _scope.Set(key, id, instance, duration, slidingExpiration, merge);
+	}
+
 	public async Task Remove(string key, object id)
 	{
 		await _scope.Remove(key, id);

@@ -4,12 +4,19 @@ namespace Connected.Caching;
 /// <summary>
 /// Represents the cache container.
 /// </summary>
+/// <remarks>
+/// Contract-only interface: concrete cache implementations provide storage and retrieval mechanics,
+/// expiration semantics (absolute/sliding), and synchronization/merge behavior across scopes.
+/// </remarks>
 public interface ICache
 	: IDisposable
 {
 	/// <summary>
 	/// Returns all non expired items for the specified key.
 	/// </summary>
+	/// <typeparam name="T">The type of the entries stored in the container.</typeparam>
+	/// <param name="key">The container key from which entries will be retrieved.</param>
+	/// <returns>An immutable list of all non-expired entries of type T for the specified key.</returns>
 	IImmutableList<T> All<T>(string key);
 	/// <summary>
 	/// Returns an item from the container if exists, otherwise null.
@@ -108,21 +115,38 @@ public interface ICache
 	/// <summary>
 	/// Adds a new entry or updates existing one if exists for the specified id with a specific duration.
 	/// </summary>
+	/// <typeparam name="T">The type of the entry to be stored.</typeparam>
 	/// <param name="key">The container to which entry will be added or updated.</param>
 	/// <param name="id">The id of the entry.</param>
 	/// <param name="instance">The actual instance to be stored in the container.</param>
 	/// <param name="duration">The duration until the entry expires.</param>
+	/// <returns>The stored instance.</returns>
 	T? Set<T>(string key, object id, T? instance, TimeSpan duration);
 	/// <summary>
 	/// Adds a new entry or updates existing one if exists for the specified id with a specific duration 
 	/// and expiration behavior.
 	/// </summary>
+	/// <typeparam name="T">The type of the entry to be stored.</typeparam>
 	/// <param name="key">The container to which entry will be added or updated.</param>
 	/// <param name="id">The id of the entry.</param>
 	/// <param name="instance">The actual instance to be stored in the container.</param>
 	/// <param name="duration">The duration until the entry expires.</param>
 	/// <param name="slidingExpiration">True to extend the expiration once the entry is requested.</param>
+	/// <returns>The stored instance.</returns>
 	T? Set<T>(string key, object id, T? instance, TimeSpan duration, bool slidingExpiration);
+
+	/// <summary>
+	/// Adds a new entry or updates existing one if exists for the specified id with full configuration options.
+	/// </summary>
+	/// <typeparam name="T">The type of the entry to be stored.</typeparam>
+	/// <param name="key">The container to which entry will be added or updated.</param>
+	/// <param name="id">The id of the entry.</param>
+	/// <param name="instance">The actual instance to be stored in the container.</param>
+	/// <param name="duration">The duration until the entry expires.</param>
+	/// <param name="slidingExpiration">True to extend the expiration once the entry is requested.</param>
+	/// <param name="merge">The merge behavior that determines whether the entry is persisted to the shared cache when the DI scope is disposed.</param>
+	/// <returns>The stored instance.</returns>
+	T? Set<T>(string key, object id, T? instance, TimeSpan duration, bool slidingExpiration, CacheEntryMergeBehavior merge);
 	/// <summary>
 	/// Copies the external entry into the specified container. 
 	/// </summary>

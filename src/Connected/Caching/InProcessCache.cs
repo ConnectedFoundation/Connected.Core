@@ -16,7 +16,7 @@ internal class InProcessCache : Cache, IInProcessCache
 
 			foreach (var entryKey in entryKeys)
 			{
-				if (cache.Get(key, entryKey) is IEntry entry)
+				if (cache.Get(key, entryKey) is IEntry entry && entry.Merge == CacheEntryMergeBehavior.Merge)
 					CopyTo(key, entryKey, entry);
 			}
 		}

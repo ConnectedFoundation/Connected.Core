@@ -1,15 +1,14 @@
-using System;
-
 namespace Connected.Caching;
 
 internal class Entry : IEntry
 {
-	public Entry(string id, object? instance, TimeSpan duration, bool slidingExpiration)
+	public Entry(string id, object? instance, TimeSpan duration, bool slidingExpiration, CacheEntryMergeBehavior merge)
 	{
 		Id = id;
 		Instance = instance;
 		SlidingExpiration = slidingExpiration;
 		Duration = duration;
+		Merge = merge;
 
 		if (Duration > TimeSpan.Zero)
 			ExpirationDate = DateTime.UtcNow.AddTicks(duration.Ticks);
@@ -18,6 +17,7 @@ internal class Entry : IEntry
 	public DateTime ExpirationDate { get; set; }
 	public bool SlidingExpiration { get; }
 	public TimeSpan Duration { get; set; }
+	public CacheEntryMergeBehavior Merge { get; set; }
 	public object? Instance { get; }
 	public string Id { get; }
 	public bool Expired => ExpirationDate != DateTime.MinValue && ExpirationDate < DateTime.UtcNow;

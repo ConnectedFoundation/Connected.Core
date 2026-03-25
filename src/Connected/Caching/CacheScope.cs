@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 
 namespace Connected.Caching;
+
 internal sealed class CacheScope : ICache, IDisposable
 {
 	private bool _disposedValue;
@@ -220,7 +221,7 @@ internal sealed class CacheScope : ICache, IDisposable
 				return;
 		}
 
-		value.Set(ResolveId(id), instance.Instance, instance.Duration, instance.SlidingExpiration);
+		value.Set(ResolveId(id), instance.Instance, instance.Duration, instance.SlidingExpiration, instance.Merge);
 	}
 
 	public T? Set<T>(string key, object id, T? instance)
@@ -235,6 +236,11 @@ internal sealed class CacheScope : ICache, IDisposable
 
 	public T? Set<T>(string key, object id, T? instance, TimeSpan duration, bool slidingExpiration)
 	{
+		return Set(key, id, instance, duration, slidingExpiration, CacheEntryMergeBehavior.Merge);
+	}
+
+	public T? Set<T>(string key, object id, T? instance, TimeSpan duration, bool slidingExpiration, CacheEntryMergeBehavior merge)
+	{
 		if (!Items.TryGetValue(key, out Entries? value))
 		{
 			value = new Entries();
@@ -243,7 +249,7 @@ internal sealed class CacheScope : ICache, IDisposable
 				return default;
 		}
 
-		value.Set(ResolveId(id), instance, duration, slidingExpiration);
+		value.Set(ResolveId(id), instance, duration, slidingExpiration, merge);
 
 		return instance;
 	}
