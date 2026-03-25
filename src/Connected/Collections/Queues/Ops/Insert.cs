@@ -35,15 +35,8 @@ internal sealed class Insert<TClient, TDto>(IQueueCache cache, IStorageProvider 
 
 		var storage = Storage.Open<QueueMessage>(StorageConnectionMode.Isolated);
 
-		message = await storage.Update(message);
-
-		if (message is null)
-			throw new NullReferenceException(Strings.ErrEntityExpected);
-
-		message = await storage.Where(f => f.Id == message.Id).AsEntity();
-
-		if (message is null)
-			throw new NullReferenceException(Strings.ErrEntityExpected);
+		message = await storage.Update(message) ?? throw new NullReferenceException(Strings.ErrEntityExpected);
+		message = await storage.Where(f => f.Id == message.Id).AsEntity() ?? throw new NullReferenceException(Strings.ErrEntityExpected);
 
 		await cache.Update(message);
 	}
@@ -58,8 +51,46 @@ internal sealed class Insert<TClient, TDto>(IQueueCache cache, IStorageProvider 
 		if (string.IsNullOrWhiteSpace(Options.Batch))
 			return true;
 
-		if (await cache.Exists(typeof(TClient), Options.Batch))
+		var existing = await cache.Select(typeof(TClient), Options.Batch);
+
+		if (existing is not QueueMessage m)
+			return true;
+
+		if (Options.NextVisible is not null)
+		{
+			/*
+			 * Update only if next visible values differ for more than 1 second to avoid unnecessary updates and cache refreshes.
+			 */
+			if (Math.Abs(existing.NextVisible.Subtract(Options.NextVisible.Value).Duration().TotalSeconds) > 1)
+			{
+				var modified = m with
+				{
+					NextVisible = Options.NextVisible.GetValueOrDefault()
+				};
+
+				await storage.Open<QueueMessage>(StorageConnectionMode.Isolated).Update(modified, Dto, async () =>
+				{
+					await cache.Refresh(existing.Id);
+
+					return await cache.Select(existing.Id) as QueueMessage ?? throw new NullReferenceException(Strings.ErrEntityExpected);
+				}, Caller, async (entity) =>
+				{
+					modified = entity with
+					{
+						NextVisible = Options.NextVisible.GetValueOrDefault(),
+						State = State.Update
+					};
+
+					await Task.CompletedTask;
+
+					return modified;
+				});
+
+				await cache.Update(modified);
+			}
+
 			return false;
+		}
 
 		return true;
 	}

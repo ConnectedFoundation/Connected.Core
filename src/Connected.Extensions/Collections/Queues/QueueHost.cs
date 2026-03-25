@@ -26,7 +26,11 @@ public abstract class QueueHost : ScheduledWorker
 			WorkerSize = size
 		};
 	}
+	public QueueHost(string queue)
+		: this(queue, 1)
+	{
 
+	}
 	private QueueDispatcher Dispatcher { get; }
 	private string Queue { get; }
 	/// <summary>

@@ -7,18 +7,9 @@ namespace Connected.Collections.Queues;
 internal sealed class QueueCache(ICachingService cache, IStorageProvider storage)
 	: EntityCache<IQueueMessage, QueueMessage, long>(cache, storage, MetaData.QueueMessageKey), IQueueCache
 {
-	public async Task<bool> Exists(Type client, string batch)
+	public async Task<IQueueMessage?> Select(Type client, string batch)
 	{
-		var existing = await Get(f => string.Equals(f.Batch, batch, StringComparison.OrdinalIgnoreCase)
-			&& f.Client == client);
-
-		if (existing is null)
-			return false;
-
-		if (existing.PopReceipt is null)
-			return true;
-
-		return !(existing.NextVisible > DateTimeOffset.UtcNow);
+		return await Get(f => string.Equals(f.Batch, batch, StringComparison.OrdinalIgnoreCase) && f.Client == client);
 	}
 
 	public async Task<IImmutableList<IQueueMessage>> Query(string queue)
