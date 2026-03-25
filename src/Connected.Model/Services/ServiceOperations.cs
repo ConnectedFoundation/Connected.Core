@@ -21,6 +21,11 @@ public static class ServiceOperations
 	public const string LookupByTokens = "lookup-by-tokens";
 
 	/// <summary>
+	/// The operation name for looking up entities by codes.
+	/// </summary>
+	public const string LookupByCodes = "lookup-by-codes";
+
+	/// <summary>
 	/// The operation name for selecting an entity by its code.
 	/// </summary>
 	public const string SelectByCode = "select-by-code";
@@ -59,13 +64,20 @@ public static class ServiceOperations
 	/// The operation name for querying entities by identity.
 	/// </summary>
 	public const string QueryByIdentity = "query-by-identity";
+
 	/// <summary>
 	/// The operation name for selecting an entity by key.
 	/// </summary>
 	public const string SelectByKey = "select-by-key";
+
 	/// <summary>
 	/// The operation name for updating multiple entities at the same time. This
 	/// operation is typically used in extension services.
 	/// </summary>
 	public const string UpdateBatch = "update-batch";
+
+	/// <summary>
+	/// The operation name for searching entities.
+	/// </summary>
+	public const string Search = "search";
 }
