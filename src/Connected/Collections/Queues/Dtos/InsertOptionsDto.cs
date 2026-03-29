@@ -4,6 +4,7 @@ using Connected.Services;
 using System.ComponentModel.DataAnnotations;
 
 namespace Connected.Collections.Queues.Dtos;
+
 internal sealed class InsertOptionsDto : Dto, IInsertOptionsDto
 {
 	[NonDefault, Date(DateKind.DateTime2, 7)]
@@ -20,5 +21,7 @@ internal sealed class InsertOptionsDto : Dto, IInsertOptionsDto
 	[Required, MaxLength(128)]
 	public required string Queue { get; set; }
 
+	[MinValue(0)]
 	public int MaxDequeueCount { get; set; }
+	public TimeSpan? BatchTimeout { get; set; }
 }

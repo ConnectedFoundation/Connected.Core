@@ -33,10 +33,10 @@ internal sealed class Insert<TClient, TDto>(IQueueCache cache, IStorageProvider 
 			MaxDequeueCount = Options.MaxDequeueCount
 		};
 
-		var storage = Storage.Open<QueueMessage>(StorageConnectionMode.Isolated);
+		var st = Storage.Open<QueueMessage>(StorageConnectionMode.Isolated);
 
-		message = await storage.Update(message) ?? throw new NullReferenceException(Strings.ErrEntityExpected);
-		message = await storage.Where(f => f.Id == message.Id).AsEntity() ?? throw new NullReferenceException(Strings.ErrEntityExpected);
+		message = await st.Update(message) ?? throw new NullReferenceException(Strings.ErrEntityExpected);
+		message = await st.Where(f => f.Id == message.Id).AsEntity() ?? throw new NullReferenceException(Strings.ErrEntityExpected);
 
 		await cache.Update(message);
 	}
@@ -53,22 +53,32 @@ internal sealed class Insert<TClient, TDto>(IQueueCache cache, IStorageProvider 
 
 		var existing = await cache.Select(typeof(TClient), Options.Batch);
 
-		if (existing is not QueueMessage m)
+		if (existing is not QueueMessage entity)
 			return true;
 
 		if (Options.NextVisible is not null)
 		{
+			if (Options.BatchTimeout is not null)
+			{
+				/*
+				 * Timeout has been set for the batch, 
+				 * check if the existing message has been created longer than the timeout ago 
+				 * and if so allow inserting a new message with the same batch value to unblock the queue.
+				 */
+				if (entity.Created.Add(Options.BatchTimeout.GetValueOrDefault()) < DateTimeOffset.UtcNow)
+					return true;
+			}
 			/*
 			 * Update only if next visible values differ for more than 1 second to avoid unnecessary updates and cache refreshes.
 			 */
 			if (Math.Abs(existing.NextVisible.Subtract(Options.NextVisible.Value).Duration().TotalSeconds) > 1)
 			{
-				var modified = m with
+				var modified = entity with
 				{
 					NextVisible = Options.NextVisible.GetValueOrDefault()
 				};
 
-				await storage.Open<QueueMessage>(StorageConnectionMode.Isolated).Update(modified, async (entity) =>
+				await Storage.Open<QueueMessage>(StorageConnectionMode.Isolated).Update(modified, async (entity) =>
 				{
 					modified = entity with
 					{

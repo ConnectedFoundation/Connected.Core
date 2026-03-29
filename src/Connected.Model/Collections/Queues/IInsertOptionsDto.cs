@@ -19,6 +19,13 @@ public interface IInsertOptionsDto
 	string? Batch { get; set; }
 
 	/// <summary>
+	/// Gets or sets the batch timeout after which messages with the same batch identifier become visible regardless of
+	/// duplicates. This is useful in debounce scenarios where you want to ensure that at least one message 
+	/// is processed after a certain time even if there would be duplicate entries in the queue.
+	/// </summary>
+	TimeSpan? BatchTimeout { get; set; }
+
+	/// <summary>
 	/// Gets or sets the message priority; higher values are processed first.
 	/// </summary>
 	int Priority { get; set; }
