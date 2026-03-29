@@ -16,11 +16,16 @@ public abstract class EntityCache<TEntity, TEntityImplementation, TPrimaryKey>(I
 	protected override sealed async Task OnInitializing()
 	{
 		var entities = await OnInitializingEntities();
+
 		if (entities is not IImmutableList<TEntity> ds)
 			return;
-
+		/*
+		 * We are writing each entity directly to the shared cache because we don't want
+		 * multiple initialization or inconsistent initialization state
+		 * in case of transaction scope failure.
+		 */
 		foreach (var r in ds)
-			Set(r.Id, r, TimeSpan.Zero);
+			CachingService.Set(Key, r.Id, r, TimeSpan.Zero);
 	}
 
 	protected virtual async Task<IImmutableList<TEntity>?> OnInitializingEntities()
