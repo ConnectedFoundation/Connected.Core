@@ -1,6 +1,5 @@
 using Connected.Entities;
 using Connected.Identities.Dtos;
-using Connected.Identities.Users;
 using Connected.Notifications;
 using Connected.Services;
 using Connected.Storage;
@@ -18,18 +17,18 @@ internal sealed class UpdatePassword(IUserService users, IUserCache cache, IStor
 		await storage.Open<User>().Update(entity.Merge(Dto, State.Update, new
 		{
 			Password = password
-		}), Dto, async () =>
-		{
-			await cache.Refresh(Dto.Id);
-
-			return SetState(await users.Select(Dto) as User).Required();
-		}, Caller, async (f) =>
+		}), async (f) =>
 		{
 			return await Task.FromResult(f.Merge(Dto, State.Update, new
 			{
 				Password = password
 			}));
-		});
+		}, async () =>
+		{
+			await cache.Refresh(Dto.Id);
+
+			return SetState(await users.Select(Dto) as User).Required();
+		}, Caller);
 
 		await cache.Refresh(Dto.Id);
 		await events.Updated(this, users, Dto.Id);

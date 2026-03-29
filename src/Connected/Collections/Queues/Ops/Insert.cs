@@ -68,12 +68,7 @@ internal sealed class Insert<TClient, TDto>(IQueueCache cache, IStorageProvider 
 					NextVisible = Options.NextVisible.GetValueOrDefault()
 				};
 
-				await storage.Open<QueueMessage>(StorageConnectionMode.Isolated).Update(modified, Dto, async () =>
-				{
-					await cache.Refresh(existing.Id);
-
-					return await cache.Select(existing.Id) as QueueMessage ?? throw new NullReferenceException(Strings.ErrEntityExpected);
-				}, Caller, async (entity) =>
+				await storage.Open<QueueMessage>(StorageConnectionMode.Isolated).Update(modified, async (entity) =>
 				{
 					modified = entity with
 					{
@@ -84,7 +79,12 @@ internal sealed class Insert<TClient, TDto>(IQueueCache cache, IStorageProvider 
 					await Task.CompletedTask;
 
 					return modified;
-				});
+				}, async () =>
+				{
+					await cache.Refresh(existing.Id);
+
+					return await cache.Select(existing.Id) as QueueMessage ?? throw new NullReferenceException(Strings.ErrEntityExpected);
+				}, Caller);
 
 				await cache.Update(modified);
 			}

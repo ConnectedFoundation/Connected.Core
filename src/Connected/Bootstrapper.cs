@@ -1,5 +1,6 @@
 using Connected.Net.Events;
 using Connected.Runtime;
+using Connected.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text;
@@ -43,6 +44,11 @@ internal sealed class Bootstrapper
 			RuntimeExtensions.AddService(typeof(Net.Routing.Server.RoutingService));
 		else
 			RuntimeExtensions.AddService(typeof(Net.Routing.Client.RoutingService));
+
+		services.AddTransient(typeof(IInsertContext<,,>), typeof(InsertContext<,,>));
+		services.AddTransient(typeof(IUpdateContext<,,>), typeof(UpdateContext<,,>));
+		services.AddTransient(typeof(IPatchContext<,,>), typeof(PatchContext<,,>));
+		services.AddTransient(typeof(IDeleteContext<,,>), typeof(DeleteContext<,,>));
 	}
 
 	/// <summary>

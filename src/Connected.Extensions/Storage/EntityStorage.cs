@@ -2,7 +2,6 @@ using Connected.Data.Expressions.Evaluation;
 using Connected.Entities;
 using Connected.Entities.Protection;
 using Connected.Services;
-using Connected.Services.Validation;
 using Connected.Storage.Transactions;
 using System.Collections;
 using System.Collections.Immutable;
@@ -18,7 +17,7 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 	  where TEntity : IEntity
 {
 	private IQueryProvider? _provider;
-	private List<IStorageVariable> _variables;
+	private readonly List<IStorageVariable> _variables;
 	/// <summary>
 	/// Creates a new <see cref="EntityStorage{TEntity}"/> instance.
 	/// </summary>
@@ -38,19 +37,6 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 		Mode = mode;
 
 		_variables = [];
-	}
-	/// <summary>
-	/// The middleware used when performing entity operations.
-	/// </summary>
-	private IQueryMiddleware QueryMiddleware
-	{
-		get
-		{
-			if (Provider is not IQueryMiddleware result)
-				throw new InvalidCastException(nameof(IQueryMiddleware));
-
-			return result;
-		}
 	}
 	private StorageConnectionMode Mode { get; }
 	/// <summary>
@@ -151,13 +137,8 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 		else
 			return Expression.ToString();
 	}
-	/// <summary>
-	/// Performs the update on the specified entity.
-	/// </summary>
-	/// <param name="entity">The entity to be updated.</param>
-	/// <returns>Entity with an id if insert has been executed, the same entity otherwise.</returns>
-	/// <exception cref="NullReferenceException">Thrown if the storage statement could no be created.</exception>
-	public async Task<TEntity?> Update(TEntity? entity)
+
+	private async Task<TEntity?> Update(TEntity? entity, IEnumerable<string>? updatingProperties)
 	{
 		if (entity is null)
 			return entity;
@@ -169,8 +150,7 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 
 		await EntityProtection.Invoke(dto);
 
-		var operation = await CreateOperation(entity) ?? throw new NullReferenceException($"Could not create Storage operation for entity '{entity}'.");
-
+		var operation = await CreateOperation(entity, updatingProperties) ?? throw new NullReferenceException($"Could not create Storage operation for entity '{entity}'.");
 		var storageDto = Dto.Factory.Create<IStorageContextDto>();
 
 		storageDto.Operation = operation;
@@ -185,6 +165,16 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 		return clone;
 	}
 	/// <summary>
+	/// Performs the update on the specified entity.
+	/// </summary>
+	/// <param name="entity">The entity to be updated.</param>
+	/// <returns>Entity with an id if insert has been executed, the same entity otherwise.</returns>
+	/// <exception cref="NullReferenceException">Thrown if the storage statement could no be created.</exception>
+	public async Task<TEntity?> Update(TEntity? entity)
+	{
+		return await Update(entity, null);
+	}
+	/// <summary>
 	/// Performs the update on the specified entity with optional concurrency callback support.
 	/// </summary>
 	/// <typeparam name="TArgs">The type of the arguments used to update the entity.</typeparam>
@@ -195,28 +185,36 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 	public async Task<TEntity?> Update<TArgs>(TEntity? entity, TArgs args, Func<Task<TEntity?>>? concurrencyRetrying, ICallerContext caller)
 		 where TArgs : IDto
 	{
-		return await Update(entity, args, concurrencyRetrying, caller, null);
+		return await Update(entity, async (f) =>
+		{
+			await Task.CompletedTask;
+
+			return f.Merge(args, f.State);
+		}, concurrencyRetrying, caller, null);
 	}
 	/// <summary>
 	/// Updates the entity to the underlying storage with concurrency check.
 	/// </summary>
 	/// <typeparam name="TDto">The type of the arguments used to update the entity.</typeparam>
 	/// <param name="entity">The entity to update.</param>
-	/// <param name="dto">The arguments that supplied updated values.</param>
-	/// <param name="concurrencyRetrying">The retry delegate for preparing new update.</param>
 	/// <param name="merging">An optional merge callback if default merge is not sufficient.</param>
+	/// <param name="concurrencyRetrying">The retry delegate for preparing new update.</param>
 	/// <returns>The entity with the newly inserted id if insert was performed, the same entity otherwise.</returns>
-	public async Task<TEntity?> Update<TDto>(TEntity? entity, TDto dto, Func<Task<TEntity?>>? concurrencyRetrying, ICallerContext caller, Func<TEntity, Task<TEntity>>? merging)
-		 where TDto : IDto
+	public async Task<TEntity?> Update(TEntity? entity, Func<TEntity, Task<TEntity>> merging, Func<Task<TEntity?>>? concurrencyRetrying, ICallerContext caller)
+	{
+		return await Update(entity, merging, concurrencyRetrying, caller, null);
+	}
+
+	public async Task<TEntity?> Update(TEntity? entity, Func<TEntity, Task<TEntity>> merging, Func<Task<TEntity?>>? concurrencyRetrying, ICallerContext caller, IEnumerable<string>? updatingProperties)
 	{
 		if (entity is null)
 			return entity;
 
 		DBConcurrencyException? lastException = null;
 		/*
-       * Merge the updating entity with the supplied arguments. If callback is provided it is used instead of the default merge.
+       * Merge the updating entity with the supplied arguments.
        */
-		var currentEntity = merging is null ? entity.Merge(dto, entity.State) : await merging(entity);
+		var currentEntity = await merging(entity);
 		/*
        * There will be 3 retries. If none is succedded an exception will be thrown.
        */
@@ -228,7 +226,7 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
              * Perform the update. Note that provider should check for concurrency only if 
              * the entity is updating. Concurrency is not used for inserting and deleting operations.
              */
-				await Update(currentEntity);
+				await Update(currentEntity, updatingProperties);
 				/*
              * Provider will merge the updating entity with a new id if the operation is Insert. For updating and
              * deleting operations the same entity is returned.
@@ -250,16 +248,7 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
              */
 				await Task.Delay(i * i * 50);
 				/*
-             * We must perform validation again since the state of the entities has possibly changed. Note that
-             * only middleware validation is performed not the argument (attribute based).
-             */
-				if (await Middleware.Query<IValidator<TDto>>() is IImmutableList<IValidator<TDto>> items)
-				{
-					foreach (var item in items)
-						await item.Invoke(caller, dto);
-				}
-				/*
-             * If validation succedded invoke callback which usually refreshes the cache which causes the entity to be
+             * Invoke callback which usually refreshes the cache which causes the entity to be
              * reloaded from the data source.
              */
 				currentEntity = await concurrencyRetrying();
@@ -267,7 +256,7 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
              * Entity must be supplied and the merge is performed again.
              */
 				if (currentEntity is not null)
-					currentEntity = merging is null ? currentEntity.Merge(dto, entity.State) : await merging(currentEntity);
+					currentEntity = await merging(currentEntity);
 				else
 					throw new NullReferenceException(nameof(entity));
 			}
@@ -573,7 +562,7 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 			throw new NullReferenceException($"{nameof(IQueryMiddleware)} -> {ElementType.Name}");
 	}
 
-	private async Task<IStorageOperation?> CreateOperation(TEntity entity)
+	private async Task<IStorageOperation?> CreateOperation(TEntity entity, IEnumerable<string>? updatingProperties)
 	{
 		var key = entity.GetType().FullName;
 
@@ -582,10 +571,10 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 
 		foreach (var middleware in await Middleware.Query<IStorageOperationProvider>())
 		{
-			var operation = await middleware.Invoke(entity);
+			var operation = await middleware.Invoke(this, entity, updatingProperties);
 
 			if (operation is not null)
-				return operation.WithStorageVariables(this);
+				return operation;
 		}
 
 		return null;

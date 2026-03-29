@@ -1,51 +1,49 @@
 using Connected.Entities;
-using System.Collections.Immutable;
 
 namespace Connected.Storage.Sql.Transactions;
 
 internal class AggregatedCommandBuilder<TEntity>
+	where TEntity : IEntity
 {
-	public static async Task<SqlStorageOperation?> Build(TEntity entity, CancellationToken cancel)
+	public static async Task<SqlStorageOperation?> Build(IStorage<TEntity> storage, TEntity entity, IEnumerable<string>? updatingProperties, CancellationToken cancel)
 	{
 		if (entity is not IEntity ie)
 			throw new ArgumentException(null, nameof(entity));
 
-		return ie.State switch
+		var result = ie.State switch
 		{
-			State.Add => await AggregatedCommandBuilder<TEntity>.BuildInsert(ie, cancel),
-			State.Update => await AggregatedCommandBuilder<TEntity>.BuildUpdate(ie, cancel),
-			State.Delete => await AggregatedCommandBuilder<TEntity>.BuildDelete(ie, cancel),
+			State.Add => await AggregatedCommandBuilder<TEntity>.BuildInsert(storage, ie, cancel),
+			State.Update => await AggregatedCommandBuilder<TEntity>.BuildUpdate(storage, ie, updatingProperties, cancel),
+			State.Delete => await AggregatedCommandBuilder<TEntity>.BuildDelete(storage, ie, cancel),
 			_ => throw new NotSupportedException(),
 		};
-	}
 
-	public static async Task<List<SqlStorageOperation>> Build(ImmutableArray<TEntity> entities, CancellationToken cancel)
-	{
-		var result = new List<SqlStorageOperation>();
-
-		foreach (var entity in entities)
+		if (storage.Variables is not null)
 		{
-			var operation = await AggregatedCommandBuilder<TEntity>.Build(entity, cancel);
+			foreach (var variable in storage.Variables)
+			{
+				if (result.Variables.FirstOrDefault(f => string.Equals(f.Name, variable.Name, StringComparison.OrdinalIgnoreCase)) is IStorageVariable existing)
+					continue;
 
-			if (operation is not null)
-				result.Add(operation);
+				result.Variables.Add(variable);
+			}
 		}
 
 		return result;
 	}
 
-	private static Task<SqlStorageOperation?> BuildInsert(IEntity entity, CancellationToken cancel)
+	private static Task<SqlStorageOperation?> BuildInsert(IStorage<TEntity> storage, IEntity entity, CancellationToken cancel)
 	{
-		return new InsertCommandBuilder().Build(entity, cancel);
+		return new InsertCommandBuilder<TEntity>(storage).Build(entity, null, cancel);
 	}
 
-	private static Task<SqlStorageOperation?> BuildUpdate(IEntity entity, CancellationToken cancel)
+	private static Task<SqlStorageOperation?> BuildUpdate(IStorage<TEntity> storage, IEntity entity, IEnumerable<string>? updatingProperties, CancellationToken cancel)
 	{
-		return new UpdateCommandBuilder().Build(entity, cancel);
+		return new UpdateCommandBuilder<TEntity>(storage).Build(entity, updatingProperties, cancel);
 	}
 
-	private static Task<SqlStorageOperation?> BuildDelete(IEntity entity, CancellationToken cancel)
+	private static Task<SqlStorageOperation?> BuildDelete(IStorage<TEntity> storage, IEntity entity, CancellationToken cancel)
 	{
-		return new DeleteCommandBuilder().Build(entity, cancel);
+		return new DeleteCommandBuilder<TEntity>(storage).Build(entity, null, cancel);
 	}
 }

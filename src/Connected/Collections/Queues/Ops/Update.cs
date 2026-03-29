@@ -16,19 +16,19 @@ internal sealed class Update(IQueueCache cache, IStorageProvider storage)
 			State = State.Update
 		};
 
-		await storage.Open<QueueMessage>(StorageConnectionMode.Isolated).Update(modified, Dto, async () =>
-		{
-			await cache.Refresh(existing.Id);
-
-			return await cache.Select(existing.Id) as QueueMessage ?? throw new NullReferenceException(Strings.ErrEntityExpected);
-		}, Caller, (entity) =>
+		await storage.Open<QueueMessage>(StorageConnectionMode.Isolated).Update(modified, (entity) =>
 		{
 			return Task.FromResult(entity with
 			{
 				NextVisible = DateTime.UtcNow.Add(Dto.NextVisible),
 				State = State.Update
 			});
-		});
+		}, async () =>
+		{
+			await cache.Refresh(existing.Id);
+
+			return await cache.Select(existing.Id) as QueueMessage ?? throw new NullReferenceException(Strings.ErrEntityExpected);
+		}, Caller);
 
 		await cache.Update(modified);
 	}

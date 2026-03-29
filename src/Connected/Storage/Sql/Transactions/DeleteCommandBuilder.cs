@@ -1,11 +1,13 @@
 using Connected.Annotations.Entities;
+using Connected.Entities;
 using System.Collections.Concurrent;
 using System.Reflection;
 
 namespace Connected.Storage.Sql.Transactions;
 
-internal class DeleteCommandBuilder
-	: CommandBuilder
+internal class DeleteCommandBuilder<TEntity>(IStorage<TEntity> storage)
+	: CommandBuilder<TEntity>(storage)
+	where TEntity : IEntity
 {
 	private static readonly ConcurrentDictionary<string, SqlStorageOperation> _cache;
 

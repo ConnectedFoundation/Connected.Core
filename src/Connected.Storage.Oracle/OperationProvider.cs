@@ -44,7 +44,7 @@ internal sealed class OperationProvider(ICancellationContext cancel)
 	/// For INSERT operations with identity columns, RETURNING INTO clause retrieves the
 	/// generated identity value.
 	/// </remarks>
-	protected override async Task<IStorageOperation?> OnInvoke<TEntity>(TEntity entity)
+	protected override async Task<IStorageOperation?> OnInvoke<TEntity>(IStorage<TEntity> storage, TEntity entity, IEnumerable<string>? updatingProperties)
 	{
 		return await AggregatedCommandBuilder<TEntity>.Build(entity, Cancel.CancellationToken);
 	}

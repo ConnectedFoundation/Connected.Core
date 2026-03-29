@@ -13,6 +13,7 @@ internal class SqlStorageOperation
 
 	public List<IStorageParameter> Parameters { get; }
 	public List<IStorageVariable> Variables { get; }
+
 	public string? CommandText { get; set; }
 	public CommandType CommandType { get; set; } = CommandType.Text;
 	public DataConcurrencyMode Concurrency { get; set; } = DataConcurrencyMode.Disabled;

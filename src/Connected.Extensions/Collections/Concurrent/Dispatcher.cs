@@ -77,7 +77,7 @@ public abstract class Dispatcher<TDto, TJob> : IDispatcher<TDto, TJob>
 		_ = Task.Run(async () =>
 		{
 			await job.Invoke(item, CancellationToken);
-			await job.Scope.Commit();
+			await job.Scope.Flush();
 			await scope.DisposeAsync();
 			await job.Scope.Value.DisposeAsync();
 

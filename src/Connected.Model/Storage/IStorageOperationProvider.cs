@@ -4,6 +4,6 @@ namespace Connected.Storage;
 
 public interface IStorageOperationProvider : IMiddleware
 {
-	Task<IStorageOperation?> Invoke<TEntity>(TEntity entity)
+	Task<IStorageOperation?> Invoke<TEntity>(IStorage<TEntity> storage, TEntity entity, IEnumerable<string>? updatingProperties)
 		where TEntity : IEntity;
 }

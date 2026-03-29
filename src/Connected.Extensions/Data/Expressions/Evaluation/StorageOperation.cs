@@ -10,12 +10,14 @@ internal sealed class StorageOperation
 	{
 		Parameters = [];
 		Variables = [];
+		BoundProperties = [];
 	}
 
 	public string? CommandText { get; set; }
 	public CommandType CommandType { get; set; } = CommandType.Text;
 	public List<IStorageParameter> Parameters { get; }
 	public List<IStorageVariable> Variables { get; }
+	public Dictionary<string, object?> BoundProperties { get; }
 	public int CommandTimeout { get; set; }
 	public DataConcurrencyMode Concurrency { get; set; }
 }

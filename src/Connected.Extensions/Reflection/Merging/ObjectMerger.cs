@@ -47,7 +47,16 @@ internal sealed class ObjectMerger : Merger
 				if (value is null)
 					property.SetValue(destination, null);
 				else
-					property.SetValue(destination, TypeConversion.Convert(value, property.PropertyType));
+				{
+					try
+					{
+						property.SetValue(destination, TypeConversion.Convert(value, property.PropertyType));
+					}
+					catch (Exception ex)
+					{
+						throw;
+					}
+				}
 			}
 			else
 			{

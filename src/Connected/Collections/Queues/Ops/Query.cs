@@ -37,7 +37,17 @@ internal sealed class Query(IQueueCache cache, IStorageProvider storage)
 			/*
 			 * Queues use isolated storages which means they are not part of the shared transaction context.
 			 */
-			await storage.Open<QueueMessage>(StorageConnectionMode.Isolated).Update(message, Dto, async () =>
+			await storage.Open<QueueMessage>(StorageConnectionMode.Isolated).Update(message, (entity) =>
+			{
+				/*
+				 * Do the manual merge
+				 */
+				return Task.FromResult(entity with
+				{
+					NextVisible = DateTime.UtcNow.Add(Dto.NextVisible),
+					State = State.Update
+				});
+			}, async () =>
 			{
 				/*
 				 * Concurrency failed. refresh the cache to read it from a database.
@@ -54,17 +64,7 @@ internal sealed class Query(IQueueCache cache, IStorageProvider storage)
 					State = State.Update
 				};
 
-			}, Caller, (entity) =>
-			{
-				/*
-				 * Do the manual merge
-				 */
-				return Task.FromResult(entity with
-				{
-					NextVisible = DateTime.UtcNow.Add(Dto.NextVisible),
-					State = State.Update
-				});
-			});
+			}, Caller);
 			/*
 			 * Only if database call succeeds we'll continue.
 			 */

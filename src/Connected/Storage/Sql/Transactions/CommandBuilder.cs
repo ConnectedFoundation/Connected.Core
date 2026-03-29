@@ -7,31 +7,27 @@ using System.Text;
 
 namespace Connected.Storage.Sql.Transactions;
 
-internal abstract class CommandBuilder
+internal abstract class CommandBuilder<TEntity>(IStorage<TEntity> storage)
+	where TEntity : IEntity
 {
-	protected CommandBuilder()
-	{
-		Parameters = [];
-		WhereProperties = [];
-		Properties = [];
-
-		Text = new StringBuilder();
-	}
-
-	private StringBuilder Text { get; set; }
-	protected List<PropertyInfo> Properties { get; }
-	protected List<PropertyInfo> WhereProperties { get; }
+	private StringBuilder Text { get; set; } = new();
+	protected List<PropertyInfo> Properties { get; } = [];
+	protected List<PropertyInfo> WhereProperties { get; } = [];
 	protected string CommandText => Text.ToString();
 	protected IEntity? Entity { get; private set; }
 	protected SchemaAttribute? Schema { get; private set; }
-	protected List<IStorageParameter> Parameters { get; }
+	protected List<IStorageParameter> Parameters { get; } = [];
+	protected IStorage<TEntity> Storage { get; } = storage;
+	protected IEnumerable<string>? UpdatedProperties { get; private set; }
 
-	public async Task<SqlStorageOperation?> Build(IEntity entity, CancellationToken cancel)
+	public async Task<SqlStorageOperation?> Build(IEntity entity, IEnumerable<string>? updatedProperties, CancellationToken cancel)
 	{
 		Entity = entity;
+		UpdatedProperties = updatedProperties;
+
 		DiscoverProperties();
 
-		if (TryGetExisting(out SqlStorageOperation? existing))
+		if ((UpdatedProperties is null || !UpdatedProperties.Any()) && TryGetExisting(out SqlStorageOperation? existing))
 		{
 			if (existing is null)
 				return null;

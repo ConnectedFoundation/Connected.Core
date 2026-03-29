@@ -1,19 +1,16 @@
 using Connected.Annotations.Entities;
+using Connected.Entities;
 using System.Collections.Concurrent;
 using System.Data;
 using System.Reflection;
 
 namespace Connected.Storage.Sql.Transactions;
 
-internal class InsertCommandBuilder
-	: CommandBuilder
+internal class InsertCommandBuilder<TEntity>(IStorage<TEntity> storage)
+	: CommandBuilder<TEntity>(storage)
+	where TEntity : IEntity
 {
-	private static readonly ConcurrentDictionary<string, SqlStorageOperation> _cache;
-
-	static InsertCommandBuilder()
-	{
-		_cache = [];
-	}
+	private static readonly ConcurrentDictionary<string, SqlStorageOperation> _cache = [];
 
 	private static ConcurrentDictionary<string, SqlStorageOperation> Cache => _cache;
 	private SqlStorageParameter? PrimaryKeyParameter { get; set; }

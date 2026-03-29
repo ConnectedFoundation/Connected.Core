@@ -173,7 +173,18 @@ internal sealed class OracleStorage(IStorageProvider storage)
 		 */
 		var dto = Dto.Factory.Create<IStorageContextDto>();
 
-		dto.Operation = operation.WithStorageVariables(VariableProvider);
+		if (VariableProvider is not null)
+		{
+			foreach (var variable in VariableProvider.Variables)
+			{
+				if (operation.Variables.FirstOrDefault(f => string.Equals(f.Name, variable.Name, StringComparison.OrdinalIgnoreCase)) is IStorageVariable existing)
+					continue;
+
+				operation.Variables.Add(variable);
+			}
+		}
+
+		dto.Operation = operation;
 		dto.ConnectionMode = ConnectionMode;
 
 		/*

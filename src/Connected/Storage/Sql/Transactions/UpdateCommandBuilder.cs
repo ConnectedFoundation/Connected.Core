@@ -1,11 +1,13 @@
 using Connected.Annotations.Entities;
+using Connected.Entities;
 using System.Collections.Concurrent;
 using System.Reflection;
 
 namespace Connected.Storage.Sql.Transactions;
 
-internal sealed class UpdateCommandBuilder
-	: CommandBuilder
+internal sealed class UpdateCommandBuilder<TEntity>(IStorage<TEntity> storage)
+	: CommandBuilder<TEntity>(storage)
+	where TEntity : IEntity
 {
 	static UpdateCommandBuilder()
 	{
@@ -42,7 +44,8 @@ internal sealed class UpdateCommandBuilder
 		foreach (var parameter in Parameters)
 			result.Parameters.Add(parameter);
 
-		Cache.TryAdd(ResolveEntityTypeName(), result);
+		if (UpdatedProperties is not null && UpdatedProperties.Any())
+			Cache.TryAdd(ResolveEntityTypeName(), result);
 
 		return result;
 	}
@@ -61,9 +64,30 @@ internal sealed class UpdateCommandBuilder
 				continue;
 			}
 
-			var parameter = await CreateParameter(property, cancel);
+			if (UpdatedProperties is null)
+			{
+				var parameter = await CreateParameter(property, cancel);
 
-			WriteLine($"[{ColumnName(property)}] = {parameter.Name},");
+				WriteLine($"[{ColumnName(property)}] = {parameter.Name},");
+			}
+		}
+
+		if (UpdatedProperties is not null)
+		{
+			foreach (var item in UpdatedProperties)
+			{
+				var property = Properties.FirstOrDefault(f => string.Equals(f.Name, item, StringComparison.OrdinalIgnoreCase));
+
+				if (property is null)
+					continue;
+
+				if (IsVersion(property))
+					continue;
+
+				var parameter = await CreateParameter(property, cancel);
+
+				WriteLine($"[{ColumnName(property)}] = {parameter.Name},");
+			}
 		}
 
 		Trim();

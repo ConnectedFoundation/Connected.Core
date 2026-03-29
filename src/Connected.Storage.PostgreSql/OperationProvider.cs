@@ -40,7 +40,7 @@ internal sealed class OperationProvider(ICancellationContext cancel)
 	/// the entity's State property. The generated operation includes PostgreSQL-specific SQL
 	/// commands with proper parameter binding.
 	/// </remarks>
-	protected override async Task<IStorageOperation?> OnInvoke<TEntity>(TEntity entity)
+	protected override async Task<IStorageOperation?> OnInvoke<TEntity>(IStorage<TEntity> storage, TEntity entity, IEnumerable<string>? updatingProperties)
 	{
 		return await AggregatedCommandBuilder<TEntity>.Build(entity, Cancel.CancellationToken);
 	}
