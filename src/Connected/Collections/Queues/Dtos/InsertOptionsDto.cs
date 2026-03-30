@@ -18,9 +18,6 @@ internal sealed class InsertOptionsDto : Dto, IInsertOptionsDto
 	[Date(DateKind.DateTime2, 7)]
 	public DateTimeOffset? NextVisible { get; set; }
 
-	[Required, MaxLength(128)]
-	public required string Queue { get; set; }
-
 	[MinValue(0)]
 	public int MaxDequeueCount { get; set; }
 	public TimeSpan? BatchTimeout { get; set; }

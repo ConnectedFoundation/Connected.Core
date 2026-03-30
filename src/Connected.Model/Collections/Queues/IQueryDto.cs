@@ -19,9 +19,5 @@ public interface IQueryDto
 	/// Gets or sets an optional priority filter; only messages with this priority are returned.
 	/// </summary>
 	int? Priority { get; set; }
-	/// <summary>
-	/// Gets or sets the queue name to query.
-	/// </summary>
-	string Queue { get; set; }
 }
 

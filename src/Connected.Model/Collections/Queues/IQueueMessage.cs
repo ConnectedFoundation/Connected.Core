@@ -56,11 +56,9 @@ public interface IQueueMessage
 	/// </summary>
 	int Priority { get; init; }
 	/// <summary>
-	/// The name of the queue. One host should process only one queue, but there can be messages with different clients.
-	/// </summary>
-	string Queue { get; init; }
-	/// <summary>
 	/// The maximum number of dequeue tries before the message will be automatically deleted.
 	/// </summary>
 	int MaxDequeueCount { get; init; }
+
+	string DtoTypeName { get; init; }
 }

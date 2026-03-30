@@ -9,16 +9,17 @@ namespace Connected.Collections.Queues;
 /// <summary>
 /// The base class for implementing a queue host.
 /// </summary>
-public abstract class QueueHost : ScheduledWorker
+public abstract class QueueHost<TEntity, TCache>
+	: ScheduledWorker
+	where TEntity : IQueueMessage
+	where TCache : IQueueMessageCache<TEntity>
 {
 	/// <summary>
 	/// Create a new instance of the QueueHost class.
 	/// </summary>
-	/// <param name="queue">The name of the queue this host will process.</param>
 	/// <param name="size">The maximum number of threads that will be reserved for this host.</param>
-	public QueueHost(string queue, int size)
+	public QueueHost(int size)
 	{
-		Queue = queue;
 		Timer = TimeSpan.FromMilliseconds(500);
 
 		Dispatcher = new()
@@ -26,13 +27,12 @@ public abstract class QueueHost : ScheduledWorker
 			WorkerSize = size
 		};
 	}
-	public QueueHost(string queue)
-		: this(queue, 1)
+	public QueueHost()
+		: this(1)
 	{
 
 	}
-	private QueueDispatcher Dispatcher { get; }
-	private string Queue { get; }
+	private QueueDispatcher<TEntity, TCache> Dispatcher { get; }
 	/// <summary>
 	/// The interval which will be set from now when dequeued messages
 	/// will become visible again.
@@ -49,11 +49,10 @@ public abstract class QueueHost : ScheduledWorker
 
 		try
 		{
-			var items = await service.Query(new QueryDto
+			var items = await service.Query<TEntity, TCache>(new QueryDto
 			{
 				MaxCount = Dispatcher.Available,
 				NextVisible = NextVisibleInterval,
-				Queue = Queue,
 				Priority = Dispatcher.MinPriority
 			});
 
@@ -75,7 +74,7 @@ public abstract class QueueHost : ScheduledWorker
 				 */
 				if (!await Accept(Dispatcher.Queue, item))
 				{
-					await service.Update(new UpdateDto { NextVisible = TimeSpan.Zero, Value = item.PopReceipt.GetValueOrDefault() });
+					await service.Update<TEntity, TCache>(new UpdateDto { NextVisible = TimeSpan.Zero, Value = item.PopReceipt.GetValueOrDefault() });
 					continue;
 				}
 				/*
@@ -92,12 +91,12 @@ public abstract class QueueHost : ScheduledWorker
 		}
 	}
 
-	protected virtual async Task<bool> Accept(ConcurrentQueue<IQueueMessage> queue, IQueueMessage message)
+	protected virtual async Task<bool> Accept(ConcurrentQueue<TEntity> queue, IQueueMessage message)
 	{
 		return await Task.FromResult(true);
 	}
 
-	protected virtual async Task<IImmutableList<IQueueMessage>> OnDequeued(IImmutableList<IQueueMessage> messages)
+	protected virtual async Task<IImmutableList<TEntity>> OnDequeued(IImmutableList<TEntity> messages)
 	{
 		return await Task.FromResult(messages);
 	}

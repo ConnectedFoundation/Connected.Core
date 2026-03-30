@@ -36,11 +36,6 @@ public interface IInsertOptionsDto
 	DateTimeOffset? NextVisible { get; set; }
 
 	/// <summary>
-	/// Gets or sets the target queue name.
-	/// </summary>
-	string Queue { get; set; }
-
-	/// <summary>
 	/// Gets or sets the maximum number of dequeue attempts before the message is deleted.
 	/// </summary>
 	int MaxDequeueCount { get; set; }

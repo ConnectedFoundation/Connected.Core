@@ -3,10 +3,11 @@ using System.Collections.Immutable;
 
 namespace Connected.Collections.Queues;
 
-internal interface IQueueCache : IEntityCache<IQueueMessage, long>
+public interface IQueueMessageCache<TEntity>
+	: IEntityCache<IQueueMessage, long>
 {
 	Task<IQueueMessage?> Select(Type client, string batch);
-	Task<IImmutableList<IQueueMessage>> Query(string queue);
+	Task<IImmutableList<IQueueMessage>> Query();
 	Task<IQueueMessage?> Select(Guid popReceipt);
 	Task Delete(Guid popReceipt);
 	Task Delete(long id);

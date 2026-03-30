@@ -6,8 +6,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Connected.Collections.Queues;
 
-internal sealed class QueueWorker(IQueueService queue, ILogger<QueueWorker> logger)
-	: DispatcherJob<IQueueMessage>
+internal sealed class QueueJob<TEntity, TCache>(IQueueService queue, ILogger<QueueJob<TEntity, TCache>> logger)
+	: DispatcherJob<TEntity>
+	where TEntity : IQueueMessage
+	where TCache : IQueueMessageCache<TEntity>
 {
 	private TaskTimeout? Timeout { get; set; }
 
@@ -27,7 +29,7 @@ internal sealed class QueueWorker(IQueueService queue, ILogger<QueueWorker> logg
 		 * we'll perform a ping operation on a message to extend
 		 * next visible time.
 		 */
-		await queue.Update(new UpdateDto
+		await queue.Update<TEntity, TCache>(new UpdateDto
 		{
 			Value = Dto.PopReceipt.GetValueOrDefault(),
 			NextVisible = TimeSpan.FromSeconds(60)
@@ -42,7 +44,7 @@ internal sealed class QueueWorker(IQueueService queue, ILogger<QueueWorker> logg
 			 * It will move next visible for another 60 seconds.
 			 * We are going to do it every 20 seconds.
 			 */
-			await queue.Update(new UpdateDto
+			await queue.Update<TEntity, TCache>(new UpdateDto
 			{
 				Value = Dto.PopReceipt.GetValueOrDefault(),
 				NextVisible = TimeSpan.FromSeconds(60)
@@ -108,7 +110,7 @@ internal sealed class QueueWorker(IQueueService queue, ILogger<QueueWorker> logg
 
 	private async Task Complete()
 	{
-		await queue.Delete(Services.Dto.Factory.CreateValue(Dto.PopReceipt.GetValueOrDefault()));
+		await queue.Delete<TEntity, TCache>(Services.Dto.Factory.CreateValue(Dto.PopReceipt.GetValueOrDefault()));
 	}
 
 	private object? CreateClient()

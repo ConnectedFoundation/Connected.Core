@@ -1,14 +1,17 @@
 using Connected.Entities;
+using Connected.Reflection;
 using Connected.Services;
 using Connected.Storage;
 using System.Collections.Immutable;
 
 namespace Connected.Collections.Queues.Ops;
 
-internal sealed class Query(IQueueCache cache, IStorageProvider storage)
-	: ServiceFunction<IQueryDto, IImmutableList<IQueueMessage>>
+internal sealed class Query<TEntity, TCache>(TCache cache, IStorageProvider storage)
+	: ServiceFunction<IQueryDto, IImmutableList<TEntity>>
+	where TEntity : IQueueMessage
+	where TCache : IQueueMessageCache<TEntity>
 {
-	protected override async Task<IImmutableList<IQueueMessage>> OnInvoke()
+	protected override async Task<IImmutableList<TEntity>> OnInvoke()
 	{
 		/*
 		 * First, retrieve candidates.
@@ -18,59 +21,70 @@ internal sealed class Query(IQueueCache cache, IStorageProvider storage)
 		if (targets.Count == 0)
 			return [];
 
-		var result = new List<IQueueMessage>();
+		var result = new List<TEntity>();
 		/*
 		 * We must update each candidate so next requests won't get the same results.
 		 */
 		foreach (var target in targets)
 		{
-			var entity = target as QueueMessage ?? throw new NullReferenceException(Strings.ErrEntityExpected);
+			var entity = target.Clone();
 
-			var message = entity with
-			{
-				NextVisible = DateTimeOffset.UtcNow.Add(Dto.NextVisible),
-				DequeueTimestamp = DateTimeOffset.UtcNow,
-				DequeueCount = target.DequeueCount + 1,
-				PopReceipt = Guid.NewGuid(),
-				State = State.Update
-			};
+			if (entity is not TEntity typed)
+				continue;
+
+			entity.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(entity, DateTimeOffset.UtcNow.Add(Dto.NextVisible));
+			entity.GetType().GetProperty(nameof(IQueueMessage.DequeueTimestamp))?.SetValue(entity, DateTimeOffset.UtcNow);
+			entity.GetType().GetProperty(nameof(IQueueMessage.DequeueCount))?.SetValue(entity, target.DequeueCount + 1);
+			entity.GetType().GetProperty(nameof(IQueueMessage.PopReceipt))?.SetValue(entity, Guid.NewGuid());
+			entity.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(entity, State.Update);
 			/*
 			 * Queues use isolated storages which means they are not part of the shared transaction context.
 			 */
-			await storage.Open<QueueMessage>(StorageConnectionMode.Isolated).Update(message, (entity) =>
+			entity = await storage.Open<TEntity>().Update(typed, async (f) =>
 			{
+				var cloned = f.Clone();
+
+				cloned.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(cloned, DateTime.UtcNow.Add(Dto.NextVisible));
+				cloned.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(cloned, State.Update);
+
+				await Task.CompletedTask;
 				/*
 				 * Do the manual merge
 				 */
-				return Task.FromResult(entity with
-				{
-					NextVisible = DateTime.UtcNow.Add(Dto.NextVisible),
-					State = State.Update
-				});
+				return cloned;
 			}, async () =>
 			{
 				/*
 				 * Concurrency failed. refresh the cache to read it from a database.
 				 */
-				await cache.Refresh(message.Id);
-				var cached = (await cache.Select(message.Id)).Required<QueueMessage>();
+				await cache.Refresh(entity.Id);
 
-				return cached with
-				{
-					NextVisible = DateTimeOffset.UtcNow.Add(Dto.NextVisible),
-					DequeueTimestamp = DateTimeOffset.UtcNow,
-					DequeueCount = cached.DequeueCount + 1,
-					PopReceipt = Guid.NewGuid(),
-					State = State.Update
-				};
+				var cached = (await cache.Select(entity.Id)).Required();
+				var cloned = cached.Clone();
 
+				cloned.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(cloned, DateTimeOffset.UtcNow.Add(Dto.NextVisible));
+				cloned.GetType().GetProperty(nameof(IQueueMessage.DequeueTimestamp))?.SetValue(cloned, DateTimeOffset.UtcNow);
+				cloned.GetType().GetProperty(nameof(IQueueMessage.DequeueCount))?.SetValue(cloned, cached.DequeueCount + 1);
+				cloned.GetType().GetProperty(nameof(IQueueMessage.PopReceipt))?.SetValue(cloned, Guid.NewGuid());
+				cloned.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(cloned, State.Update);
+
+				await Task.CompletedTask;
+
+				if (cloned is TEntity ce)
+					return ce;
+
+				return default;
 			}, Caller);
+
+			if (entity is null)
+				continue;
 			/*
 			 * Only if database call succeeds we'll continue.
 			 */
-			await cache.Update(message);
+			await cache.Update(entity);
 
-			result.Add(message);
+			if (entity is TEntity ce)
+				result.Add(ce);
 		}
 
 		return [.. result];
@@ -81,7 +95,7 @@ internal sealed class Query(IQueueCache cache, IStorageProvider storage)
 		/*
 		 * First, let's make a call that will return all messages for the requested queue.
 		 */
-		var items = (await cache.Query(Dto.Queue)).OrderByDescending(f => f.Priority).ThenBy(f => f.NextVisible).ThenBy(f => f.Id);
+		var items = (await cache.Query()).OrderByDescending(f => f.Priority).ThenBy(f => f.NextVisible).ThenBy(f => f.Id);
 		var result = new List<IQueueMessage>();
 
 		if (!items.Any())
@@ -98,10 +112,18 @@ internal sealed class Query(IQueueCache cache, IStorageProvider storage)
 			 */
 			if (i.Expire <= DateTimeOffset.UtcNow || i.DequeueCount >= i.MaxDequeueCount)
 			{
+				var instance = typeof(TEntity).CreateInstance();
+
+				if (instance is not TEntity te)
+					continue;
+
+				instance.GetType().GetProperty(nameof(IQueueMessage.Id))?.SetValue(instance, i.Id);
+				instance.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(instance, State.Delete);
+
 				/*
 				 * It's invalid. Delete it.
 				 */
-				await storage.Open<QueueMessage>().Update(new QueueMessage { Id = i.Id, State = State.Delete });
+				await storage.Open<TEntity>().Update(te);
 				await cache.Delete(i.Id);
 
 				continue;

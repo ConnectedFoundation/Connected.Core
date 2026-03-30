@@ -22,23 +22,31 @@ public interface IQueueService
 	/// <typeparam name="TDto">The type of the DTO used in the queue message.</typeparam>
 	/// <param name="dto">The DTO containing information about a queue message.</param>
 	/// <param name="options">The options for the queue message.</param>
-	Task Insert<TClient, TDto>(TDto dto, IInsertOptionsDto options)
+	Task Insert<TEntity, TCache, TClient, TDto>(TDto dto, IInsertOptionsDto options)
 		where TClient : IQueueClient<TDto>
-		where TDto : IDto;
+		where TDto : IDto
+		where TEntity : IQueueMessage
+		where TCache : IQueueMessageCache<TEntity>;
 	/// <summary>
 	/// Dequeues the queue messages based on the provided criteria.
 	/// </summary>
 	/// <param name="dto">The DTO containing information about dequeue criteria.</param>
 	/// <returns>A list of valid queue messages that can be immediately processed.</returns>
-	Task<IImmutableList<IQueueMessage>> Query(IQueryDto dto);
+	Task<IImmutableList<TEntity>> Query<TEntity, TCache>(IQueryDto dto)
+		where TEntity : IQueueMessage
+		where TCache : IQueueMessageCache<TEntity>;
 	/// <summary>
 	/// Updates the existing queue message with the specified pop receipt.
 	/// </summary>
 	/// <param name="dto">The DTO containing information about the queue message.</param>
-	Task Update(IUpdateDto dto);
+	Task Update<TEntity, TCache>(IUpdateDto dto)
+		where TEntity : IQueueMessage
+		where TCache : IQueueMessageCache<TEntity>;
 	/// <summary>
 	/// Deletes the existing queue message with the specified pop receipt.
 	/// </summary>
 	/// <param name="dto">The DTO containing information about the queue message.</param>
-	Task Delete(IValueDto<Guid> dto);
+	Task Delete<TEntity, TCache>(IValueDto<Guid> dto)
+		where TEntity : IQueueMessage
+		where TCache : IQueueMessageCache<TEntity>;
 }

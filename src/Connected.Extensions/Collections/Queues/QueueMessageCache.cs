@@ -4,17 +4,18 @@ using System.Collections.Immutable;
 
 namespace Connected.Collections.Queues;
 
-internal sealed class QueueCache(ICachingService cache, IStorageProvider storage)
-	: EntityCache<IQueueMessage, QueueMessage, long>(cache, storage, MetaData.QueueMessageKey), IQueueCache
+public abstract class QueueMessageCache<TEntity>(ICachingService cache, IStorageProvider storage, string key)
+	: EntityCache<IQueueMessage, TEntity, long>(cache, storage, key), IQueueMessageCache<TEntity>
+	where TEntity : class, IQueueMessage
 {
 	public async Task<IQueueMessage?> Select(Type client, string batch)
 	{
 		return await Get(f => string.Equals(f.Batch, batch, StringComparison.OrdinalIgnoreCase) && f.Client == client);
 	}
 
-	public async Task<IImmutableList<IQueueMessage>> Query(string queue)
+	public async Task<IImmutableList<IQueueMessage>> Query()
 	{
-		return await Task.FromResult(this.Where(f => string.Equals(f.Queue, queue, StringComparison.OrdinalIgnoreCase)).ToImmutableList());
+		return await All();
 	}
 
 	public async Task<IQueueMessage?> Select(Guid popReceipt)

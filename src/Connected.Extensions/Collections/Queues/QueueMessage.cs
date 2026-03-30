@@ -7,8 +7,8 @@ using System.Data;
 
 namespace Connected.Collections.Queues;
 
-[Table(Schema = SchemaAttribute.CoreSchema)]
-internal sealed record QueueMessage : ConcurrentEntity<long>, IQueueMessage
+public abstract record QueueMessage
+	: ConcurrentEntity<long>, IQueueMessage
 {
 	[Ordinal(0), Date(DateKind.DateTime)]
 	public DateTimeOffset Created { get; init; }
@@ -44,9 +44,6 @@ internal sealed record QueueMessage : ConcurrentEntity<long>, IQueueMessage
 
 	[Ordinal(10)]
 	public int Priority { get; init; } = default!;
-
-	[Ordinal(11), Length(128)]
-	public string Queue { get; init; } = default!;
 
 	[Ordinal(12)]
 	public int MaxDequeueCount { get; init; }

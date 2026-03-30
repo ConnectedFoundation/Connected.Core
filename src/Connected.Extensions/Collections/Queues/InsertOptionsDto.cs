@@ -39,12 +39,6 @@ internal sealed class InsertOptionsDto : Dto
 	/// </remarks>
 	public DateTimeOffset? NextVisible { get; set; } = DateTime.UtcNow;
 	/// <summary>
-	/// Queue identifier to which this message belongs. Each QueueHost should process only
-	/// one queue.
-	/// </summary>
-	[Required, MaxLength(128)]
-	public string Queue { get; set; } = default!;
-	/// <summary>
 	/// Maximum number of dequeue tries that will be allowed before the message will be automatically
 	/// deleted
 	/// </summary>

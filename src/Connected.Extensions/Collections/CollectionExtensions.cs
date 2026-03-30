@@ -79,18 +79,17 @@ public static class CollectionExtensions
 		});
 	}
 
-	public static IInsertOptionsDto CreateInsertOptions(this IDto dto, string queue, string? batch = null)
+	public static IInsertOptionsDto CreateInsertOptions(this IDto dto, string? batch = null)
 	{
-		return CreateInsertOptions(dto, queue, 0, DateTimeOffset.UtcNow.AddHours(8), DateTimeOffset.UtcNow, batch, 10);
+		return CreateInsertOptions(dto, 0, DateTimeOffset.UtcNow.AddHours(8), DateTimeOffset.UtcNow, batch, 10);
 	}
 
-	public static IInsertOptionsDto CreateInsertOptions(this IDto dto, string queue, int priority, DateTimeOffset expire, DateTimeOffset nextVisible, string? batch = null, int maxDequeueCount = 10)
+	public static IInsertOptionsDto CreateInsertOptions(this IDto dto, int priority, DateTimeOffset expire, DateTimeOffset nextVisible, string? batch = null, int maxDequeueCount = 10)
 	{
 		var result = dto.Create<IInsertOptionsDto>();
 
 		result.Batch = batch;
 		result.Expire = expire;
-		result.Queue = queue;
 		result.MaxDequeueCount = maxDequeueCount;
 		result.NextVisible = nextVisible;
 		result.Priority = priority;

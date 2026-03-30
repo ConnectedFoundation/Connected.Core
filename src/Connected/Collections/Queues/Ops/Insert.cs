@@ -1,12 +1,16 @@
 using Connected.Entities;
+using Connected.Reflection;
 using Connected.Services;
 using Connected.Storage;
 
 namespace Connected.Collections.Queues.Ops;
 
-internal sealed class Insert<TClient, TDto>(IQueueCache cache, IStorageProvider storage) : ServiceAction<TDto>
-		where TClient : IQueueClient<TDto>
-		where TDto : IDto
+internal sealed class Insert<TEntity, TCache, TClient, TDto>(TCache cache, IStorageProvider storage)
+	: ServiceAction<TDto>
+	where TClient : IQueueClient<TDto>
+	where TDto : IDto
+	where TEntity : IQueueMessage
+	where TCache : IQueueMessageCache<TEntity>
 {
 	private IStorageProvider Storage { get; } = storage;
 	public IInsertOptionsDto Options { get; set; } = default!;
@@ -18,27 +22,25 @@ internal sealed class Insert<TClient, TDto>(IQueueCache cache, IStorageProvider 
 
 		var dtoTypeName = Dto.GetType().FullName ?? throw new NullReferenceException($"{Strings.ErrCannotResolveTypeName} '{Dto.GetType()}'");
 
-		var message = new QueueMessage
-		{
-			Dto = Dto,
-			DtoTypeName = $"{dtoTypeName}, {Dto.GetType().Assembly.GetName().Name}",
-			Created = DateTime.UtcNow,
-			Client = typeof(TClient),
-			Batch = Options.Batch,
-			NextVisible = Options.NextVisible ?? DateTimeOffset.UtcNow,
-			Priority = Options.Priority,
-			Expire = Options.Expire,
-			Queue = Options.Queue,
-			State = State.Add,
-			MaxDequeueCount = Options.MaxDequeueCount
-		};
+		var instance = typeof(TEntity).CreateInstance<TEntity>().Required();
 
-		var st = Storage.Open<QueueMessage>(StorageConnectionMode.Isolated);
+		instance.GetType().GetProperty(nameof(IQueueMessage.Dto))?.SetValue(instance, Dto);
+		instance.GetType().GetProperty(nameof(IQueueMessage.DtoTypeName))?.SetValue(instance, $"{dtoTypeName}, {Dto.GetType().Assembly.GetName().Name}");
+		instance.GetType().GetProperty(nameof(IQueueMessage.Created))?.SetValue(instance, DateTimeOffset.UtcNow);
+		instance.GetType().GetProperty(nameof(IQueueMessage.Client))?.SetValue(instance, typeof(TClient));
+		instance.GetType().GetProperty(nameof(IQueueMessage.Batch))?.SetValue(instance, Options.Batch);
+		instance.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(instance, Options.NextVisible ?? DateTimeOffset.UtcNow);
+		instance.GetType().GetProperty(nameof(IQueueMessage.Priority))?.SetValue(instance, Options.Priority);
+		instance.GetType().GetProperty(nameof(IQueueMessage.Expire))?.SetValue(instance, Options.Expire);
+		instance.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(instance, State.Add);
+		instance.GetType().GetProperty(nameof(IQueueMessage.MaxDequeueCount))?.SetValue(instance, Options.MaxDequeueCount);
 
-		message = await st.Update(message) ?? throw new NullReferenceException(Strings.ErrEntityExpected);
-		message = await st.Where(f => f.Id == message.Id).AsEntity() ?? throw new NullReferenceException(Strings.ErrEntityExpected);
+		var st = Storage.Open<TEntity>();
 
-		await cache.Update(message);
+		instance = (await st.Update(instance)).Required();
+		instance = (await st.AsEntity(f => f.Id == instance.Id)).Required();
+
+		await cache.Update(instance);
 	}
 
 	private async Task<bool> Validate()
@@ -53,7 +55,7 @@ internal sealed class Insert<TClient, TDto>(IQueueCache cache, IStorageProvider 
 
 		var existing = await cache.Select(typeof(TClient), Options.Batch);
 
-		if (existing is not QueueMessage entity)
+		if (existing is not TEntity entity)
 			return true;
 
 		if (Options.NextVisible is not null)
@@ -70,21 +72,20 @@ internal sealed class Insert<TClient, TDto>(IQueueCache cache, IStorageProvider 
 			}
 			/*
 			 * Update only if next visible values differ for more than 1 second to avoid unnecessary updates and cache refreshes.
+			 * Also, passed next visible should be greater than the existing one to avoid duplicate processing.
 			 */
-			if (Math.Abs(existing.NextVisible.Subtract(Options.NextVisible.Value).Duration().TotalSeconds) > 1)
+			if (existing.NextVisible <= Options.NextVisible.Value && existing.NextVisible.Subtract(Options.NextVisible.Value).Duration().TotalSeconds > 1)
 			{
-				var modified = entity with
-				{
-					NextVisible = Options.NextVisible.GetValueOrDefault()
-				};
+				var modified = entity.Clone();
 
-				await Storage.Open<QueueMessage>(StorageConnectionMode.Isolated).Update(modified, async (entity) =>
+				modified.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(modified, Options.NextVisible.GetValueOrDefault());
+
+				await Storage.Open<TEntity>().Update(modified, async (entity) =>
 				{
-					modified = entity with
-					{
-						NextVisible = Options.NextVisible.GetValueOrDefault(),
-						State = State.Update
-					};
+					modified = entity.Clone();
+
+					modified.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(modified, Options.NextVisible.GetValueOrDefault());
+					modified.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(modified, State.Update);
 
 					await Task.CompletedTask;
 
@@ -93,7 +94,14 @@ internal sealed class Insert<TClient, TDto>(IQueueCache cache, IStorageProvider 
 				{
 					await cache.Refresh(existing.Id);
 
-					return await cache.Select(existing.Id) as QueueMessage ?? throw new NullReferenceException(Strings.ErrEntityExpected);
+					var result = await cache.Select(existing.Id);
+
+					result.Required();
+
+					if (result is TEntity refreshed)
+						return refreshed;
+
+					throw new NullReferenceException();
 				}, Caller);
 
 				await cache.Update(modified);

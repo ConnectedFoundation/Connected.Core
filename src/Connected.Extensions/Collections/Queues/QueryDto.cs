@@ -30,9 +30,4 @@ public sealed class QueryDto : Dto, IQueryDto
 	/// different than the one already in a result set.
 	/// </remarks>
 	public int? Priority { get; set; }
-	/// <summary>
-	/// The queue from which messages to return.
-	/// </summary>
-	[Required, MaxLength(128)]
-	public string Queue { get; set; } = default!;
 }
