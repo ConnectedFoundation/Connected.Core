@@ -30,7 +30,7 @@ internal class SchemaService(IServiceProvider services)
 	/// </remarks>
 	public async Task Update(IUpdateSchemaDto dto)
 	{
-		await Invoke(GetOperation<Update>(), dto);
+		await Invoke(GetOperation<Ops.Update>(), dto);
 	}
 
 	/// <summary>
