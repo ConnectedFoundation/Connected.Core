@@ -10,7 +10,7 @@ public abstract class QueueMessageCache<TEntity>(ICachingService cache, IStorage
 {
 	public async Task<IQueueMessage?> Select(Type client, string batch)
 	{
-		return await Get(f => string.Equals(f.Batch, batch, StringComparison.OrdinalIgnoreCase) && f.Client == client);
+		return await Get(f => string.Equals(f.Group, batch, StringComparison.OrdinalIgnoreCase) && f.Action == client);
 	}
 
 	public async Task<IImmutableList<IQueueMessage>> Query()

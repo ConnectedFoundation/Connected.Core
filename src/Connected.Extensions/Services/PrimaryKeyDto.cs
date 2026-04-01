@@ -22,4 +22,9 @@ internal class PrimaryKeyDto<T> : Dto, IPrimaryKeyDto<T>
 	{
 		return new PrimaryKeyDto<T> { Id = value };
 	}
+
+	public override string? ToString()
+	{
+		return Id?.ToString() ?? base.ToString();
+	}
 }

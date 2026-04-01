@@ -28,7 +28,7 @@ public abstract record QueueMessage
 
 	[Ordinal(5), Length(1024), DataType(DbType.String)]
 	[Serializer(typeof(TypeSerializer))]
-	public Type Client { get; init; } = default!;
+	public Type Action { get; init; } = default!;
 
 	[Ordinal(6), Date(DateKind.DateTime2, 7)]
 	public DateTimeOffset NextVisible { get; init; }
@@ -37,7 +37,7 @@ public abstract record QueueMessage
 	public Guid? PopReceipt { get; init; }
 
 	[Ordinal(8), Length(256)]
-	public string? Batch { get; init; }
+	public string? Group { get; init; }
 
 	[Ordinal(9), Date(DateKind.DateTime)]
 	public DateTimeOffset Expire { get; init; } = default!;

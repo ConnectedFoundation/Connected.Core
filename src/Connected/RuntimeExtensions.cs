@@ -1,6 +1,7 @@
 using Connected.Annotations;
 using Connected.Caching;
 using Connected.Collections.Concurrent;
+using Connected.Collections.Queues;
 using Connected.Reflection;
 using Connected.Services;
 using Connected.Workers;
@@ -91,6 +92,8 @@ public static class RuntimeExtensions
 			AddCache(type, services, false);
 			AddDispatcher(type, services, false);
 			AddDispatcherJob(type, services, false);
+			AddQueueContext(type, services, false);
+			AddQueueAction(type, services, false);
 			AddAmbientValue(type, services, false, typeRef);
 			AddMiddleware(type, services, false, typeRef);
 			AddDto(type, services, false);
@@ -427,13 +430,74 @@ public static class RuntimeExtensions
 		services.AddTransient(type);
 	}
 	/// <summary>
-	/// Registers ambient value provider types implementing <see cref="IAmbientProvider{T}"/>.
+	/// Registers a queue context type into the service collection.
 	/// </summary>
-	/// <param name="type">The ambient provider type.</param>
+	/// <param name="type">The queue context type.</param>
+	/// <param name="services">The service collection.</param>
+	public static void AddQueueContext(Type type, IServiceCollection services)
+	{
+		AddQueueContext(type, services, true);
+	}
+	/// <summary>
+	/// Registers a queue context type if it implements <see cref="IQueueContext{TAction, TDto}"/>.
+	/// </summary>
+	/// <param name="type">The queue context type.</param>
 	/// <param name="services">The service collection.</param>
 	/// <param name="manual">True if this is a manual registration; false for automatic discovery.</param>
-	/// <param name="typeRef">Optional list tracking already-registered types to avoid duplicates.</param>
-	private static void AddAmbientValue(Type type, IServiceCollection services, bool manual, List<Type>? typeRef)
+	private static void AddQueueContext(Type type, IServiceCollection services, bool manual)
+	{
+		/*
+		 * Check registration eligibility and IQueueContext interface presence. Register all queue context interfaces
+		 * implemented by the type with transient lifetime.
+		 */
+		if (!CanRegister(type, manual) || typeof(IQueueContext<,>).FullName is not string fullName)
+			return;
+
+		if (type.GetInterface(fullName) is null)
+			return;
+
+		foreach (var itf in type.GetInterfaces())
+		{
+			if (itf.IsGenericType && itf.GetGenericTypeDefinition() == typeof(IQueueContext<,>))
+						services.AddTransient(type);
+					}
+				}
+				/// <summary>
+				/// Registers a queue action type into the service collection.
+				/// </summary>
+				/// <param name="type">The queue action type.</param>
+				/// <param name="services">The service collection.</param>
+				public static void AddQueueAction(Type type, IServiceCollection services)
+				{
+					AddQueueAction(type, services, true);
+				}
+				/// <summary>
+				/// Registers a queue action type if it implements <see cref="IQueueAction{TDto}"/>.
+				/// </summary>
+				/// <param name="type">The queue action type.</param>
+				/// <param name="services">The service collection.</param>
+				/// <param name="manual">True if this is a manual registration; false for automatic discovery.</param>
+				private static void AddQueueAction(Type type, IServiceCollection services, bool manual)
+				{
+					/*
+					 * Check registration eligibility and IQueueAction interface presence. Register with transient lifetime.
+					 */
+					if (!CanRegister(type, manual) || typeof(IQueueAction<>).FullName is not string fullName)
+						return;
+
+					if (type.GetInterface(fullName) is null)
+						return;
+
+					services.AddTransient(type);
+				}
+				/// <summary>
+				/// Registers ambient value provider types implementing <see cref="IAmbientProvider{T}"/>.
+				/// </summary>
+				/// <param name="type">The ambient provider type.</param>
+				/// <param name="services">The service collection.</param>
+				/// <param name="manual">True if this is a manual registration; false for automatic discovery.</param>
+				/// <param name="typeRef">Optional list tracking already-registered types to avoid duplicates.</param>
+				private static void AddAmbientValue(Type type, IServiceCollection services, bool manual, List<Type>? typeRef)
 	{
 		/*
 		 * Check registration eligibility and IAmbientProvider interface presence. For each implemented ambient interface,

@@ -5,6 +5,7 @@ using Connected.Services;
 using Connected.Storage;
 using Connected.Threading;
 using Microsoft.Extensions.Logging;
+using System.Reflection;
 
 namespace Connected.Collections.Queues;
 
@@ -19,7 +20,7 @@ internal sealed class QueueJob<TEntity, TCache>(IStorageProvider storage, TCache
 		/*
 		 * Can be old messages with no runtime type available anymore.
 		 */
-		if (Dto.Client is null)
+		if (Dto.Action is null)
 		{
 			await Complete();
 
@@ -81,7 +82,7 @@ internal sealed class QueueJob<TEntity, TCache>(IStorageProvider storage, TCache
 			return;
 		}
 
-		var method = client.GetType().ResolveMethod(nameof(IQueueClient<IDto>.Invoke), null, [typeof(IQueueMessage), typeof(CancellationToken)]);
+		var method = client.GetType().ResolveMethod(nameof(IQueueAction<IDto>.Invoke), null, [typeof(IQueueMessage), typeof(CancellationToken)]);
 
 		if (method is null)
 			return;
@@ -101,23 +102,51 @@ internal sealed class QueueJob<TEntity, TCache>(IStorageProvider storage, TCache
 
 	private object? CreateClient()
 	{
-		var service = GetService(Dto.Client);
+		var service = GetService(Dto.Action);
 
 		if (service is null)
 		{
-			logger.LogError("Queue client service not registered ({Type})", Dto.Client.GetType().ShortName());
+			logger.LogError("Queue action not registered ({Type})", Dto.Action.GetType().ShortName());
 
 			return null;
 		}
 
-		if (!service.GetType().ImplementsInterface(typeof(IQueueClient<>)))
+		if (!service.GetType().ImplementsInterface(typeof(IQueueAction<>)))
 		{
-			logger.LogError("Queue client does not implement IQueueClient interface ({Type})", service.GetType().ShortName());
+			logger.LogError("Queue does not implement IQueue interface ({Type})", service.GetType().ShortName());
 
 			return null;
+		}
+		/*
+		 * Check if the service inherits from QueueAction<> base class.
+		 * If it does, set the PingCallback to allow the action to extend message visibility.
+		 */
+		if (IsQueueAction(service.GetType()))
+		{
+			var pingCallbackProperty = service.GetType().GetProperty(nameof(QueueAction<IDto>.PingCallback), BindingFlags.Instance | BindingFlags.NonPublic);
+
+			pingCallbackProperty?.SetValue(service, new Func<TimeSpan, Task>(Ping));
 		}
 
 		return service;
+	}
+
+	private static bool IsQueueAction(Type type)
+	{
+		/*
+		 * Walk up the inheritance hierarchy to find the QueueAction<> base class.
+		 */
+		var currentType = type;
+
+		while (currentType is not null)
+		{
+			if (currentType.IsGenericType && currentType.GetGenericTypeDefinition() == typeof(QueueAction<>))
+				return true;
+
+			currentType = currentType.BaseType;
+		}
+
+		return false;
 	}
 
 	private async Task Delete()
@@ -167,6 +196,34 @@ internal sealed class QueueJob<TEntity, TCache>(IStorageProvider storage, TCache
 
 		if (modified is not null)
 			await cache.Update(modified);
+	}
 
+	public async Task Ping(TimeSpan nextVisible)
+	{
+		var existing = (await cache.Select(Dto.PopReceipt.GetValueOrDefault())).Required<TEntity>();
+		var modified = existing.Clone();
+
+		modified.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(modified, DateTimeOffset.UtcNow.Add(nextVisible));
+		modified.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(modified, State.Update);
+
+		modified = await storage.Open<TEntity>().Update(modified, async (entity) =>
+		{
+			var cloned = entity.Clone();
+
+			cloned.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(cloned, DateTimeOffset.UtcNow.Add(nextVisible));
+			cloned.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(cloned, State.Update);
+
+			await Task.CompletedTask;
+
+			return cloned;
+		}, async () =>
+		{
+			await cache.Refresh(existing.Id);
+
+			return (await cache.Select(existing.Id)).Required<TEntity>();
+		}, new CallerContext());
+
+		if (modified is not null)
+			await cache.Update(modified);
 	}
 }

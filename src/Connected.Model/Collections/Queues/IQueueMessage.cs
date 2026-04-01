@@ -41,7 +41,7 @@ public interface IQueueMessage
 	/// <summary>
 	/// The type of the client which will dequeue and process this message.
 	/// </summary>
-	Type Client { get; init; }
+	Type Action { get; init; }
 	/// <summary>
 	/// The expiration date after which, if not processed, the message will be automatically deleted.
 	/// </summary>
@@ -50,7 +50,7 @@ public interface IQueueMessage
 	/// The optional batch which uniquely identifies the message. There should be only one message in the queue for the combination
 	/// of batch, client and queue. If batch is not specified this criteria is ignored.
 	/// </summary>
-	string? Batch { get; init; }
+	string? Group { get; init; }
 	/// <summary>
 	/// The priority of the message. Message with higher priority will always be dequeued before messages with lower priority.
 	/// </summary>
