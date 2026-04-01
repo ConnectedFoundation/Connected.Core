@@ -129,6 +129,9 @@
   <data name="ErrCannotResolveElementType" xml:space="preserve">
     <value>Cannot resolve element type</value>
   </data>
+  <data name="ErrCannotResolveEntity" xml:space="preserve">
+    <value>Cannot resolve entity</value>
+  </data>
   <data name="ErrCannotResolveMemberType" xml:space="preserve">
     <value>Cannot resolve member type</value>
   </data>
@@ -146,5 +149,8 @@
   </data>
   <data name="ErrInterfaceNoImplementation" xml:space="preserve">
     <value>Interface has no implementation</value>
+  </data>
+  <data name="ErrQueueMessageNull" xml:space="preserve">
+    <value>Queue message not found</value>
   </data>
 </root>

@@ -28,11 +28,6 @@
 	    <AutoGen>True</AutoGen>
 	    <DependentUpon>Exceptions.resx</DependentUpon>
 	  </Compile>
-	  <Compile Update="Collections\Queues\QueueStrings.Designer.cs">
-	    <DependentUpon>QueueStrings.resx</DependentUpon>
-	    <DesignTime>True</DesignTime>
-	    <AutoGen>True</AutoGen>
-	  </Compile>
 	  <Compile Update="Membership\Roles\SR.Designer.cs">
 	    <DependentUpon>SR.resx</DependentUpon>
 	    <DesignTime>True</DesignTime>
@@ -68,10 +63,6 @@
 	  <EmbeddedResource Update="Caching\Exceptions.resx">
 	    <Generator>ResXFileCodeGenerator</Generator>
 	    <LastGenOutput>Exceptions.Designer.cs</LastGenOutput>
-	  </EmbeddedResource>
-	  <EmbeddedResource Update="Collections\Queues\QueueStrings.resx">
-	    <LastGenOutput>QueueStrings.Designer.cs</LastGenOutput>
-	    <Generator>ResXFileCodeGenerator</Generator>
 	  </EmbeddedResource>
 	  <EmbeddedResource Update="Membership\Roles\SR.resx">
 	    <LastGenOutput>SR.Designer.cs</LastGenOutput>

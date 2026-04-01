@@ -74,6 +74,8 @@ public abstract class Dispatcher<TDto, TJob> : IDispatcher<TDto, TJob>
 
 		job.Scope = scope;
 
+		await OnInitializeJob(scope, job);
+
 		_ = Task.Run(async () =>
 		{
 			await job.Invoke(item, CancellationToken);
@@ -88,6 +90,11 @@ public abstract class Dispatcher<TDto, TJob> : IDispatcher<TDto, TJob>
 				await RunJob();
 
 		}, CancellationToken);
+	}
+
+	protected virtual async Task OnInitializeJob(AsyncServiceScope scope, IDispatcherJob<TDto> job)
+	{
+		await Task.CompletedTask;
 	}
 
 	private void Dispose(bool disposing)

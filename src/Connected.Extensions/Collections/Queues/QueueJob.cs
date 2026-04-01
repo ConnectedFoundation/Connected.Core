@@ -1,18 +1,19 @@
 using Connected.Collections.Concurrent;
+using Connected.Entities;
 using Connected.Reflection;
 using Connected.Services;
+using Connected.Storage;
 using Connected.Threading;
 using Microsoft.Extensions.Logging;
 
 namespace Connected.Collections.Queues;
 
-internal sealed class QueueJob<TEntity, TCache>(IQueueService queue, ILogger<QueueJob<TEntity, TCache>> logger)
+internal sealed class QueueJob<TEntity, TCache>(IStorageProvider storage, TCache cache, ILogger<QueueJob<TEntity, TCache>> logger)
 	: DispatcherJob<TEntity>
+	where TCache : IQueueMessageCache
 	where TEntity : IQueueMessage
-	where TCache : IQueueMessageCache<TEntity>
 {
 	private TaskTimeout? Timeout { get; set; }
-
 	protected override async Task OnInvoke()
 	{
 		/*
@@ -29,27 +30,12 @@ internal sealed class QueueJob<TEntity, TCache>(IQueueService queue, ILogger<Que
 		 * we'll perform a ping operation on a message to extend
 		 * next visible time.
 		 */
-		await queue.Update<TEntity, TCache>(new UpdateDto
-		{
-			Value = Dto.PopReceipt.GetValueOrDefault(),
-			NextVisible = TimeSpan.FromSeconds(60)
-		});
+		await Update();
 		/*
 		 * Now, this is a guard task which ensures that even if the queue
 		 * runs longer than 60 seconds it won't get dequeued again.
 		 */
-		Timeout = new TaskTimeout(async () =>
-		{
-			/*
-			 * It will move next visible for another 60 seconds.
-			 * We are going to do it every 20 seconds.
-			 */
-			await queue.Update<TEntity, TCache>(new UpdateDto
-			{
-				Value = Dto.PopReceipt.GetValueOrDefault(),
-				NextVisible = TimeSpan.FromSeconds(60)
-			});
-		}, TimeSpan.FromSeconds(20), Cancel);
+		Timeout = new TaskTimeout(Update, TimeSpan.FromSeconds(20), Cancel);
 		/*
 		 * Start the guard.
 		 */
@@ -110,7 +96,7 @@ internal sealed class QueueJob<TEntity, TCache>(IQueueService queue, ILogger<Que
 
 	private async Task Complete()
 	{
-		await queue.Delete<TEntity, TCache>(Services.Dto.Factory.CreateValue(Dto.PopReceipt.GetValueOrDefault()));
+		await Delete();
 	}
 
 	private object? CreateClient()
@@ -132,5 +118,55 @@ internal sealed class QueueJob<TEntity, TCache>(IQueueService queue, ILogger<Que
 		}
 
 		return service;
+	}
+
+	private async Task Delete()
+	{
+		var item = await cache.Select(Dto.PopReceipt.GetValueOrDefault());
+
+		if (item is null)
+		{
+			logger.LogWarning("{message} ({popReceipt})", SR.ErrQueueMessageNull, Dto.PopReceipt);
+
+			return;
+		}
+
+		var instance = typeof(TEntity).CreateInstance<TEntity>().Required();
+
+		instance.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(instance, State.Delete);
+		instance.GetType().GetProperty(nameof(IQueueMessage.Id))?.SetValue(instance, item.Id);
+
+		await storage.Open<TEntity>().Update(instance);
+		await cache.Delete(Dto.PopReceipt.GetValueOrDefault());
+	}
+
+	private async Task Update()
+	{
+		var existing = (await cache.Select(Dto.PopReceipt.GetValueOrDefault())).Required<TEntity>();
+		var modified = existing.Clone();
+
+		modified.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(modified, DateTimeOffset.UtcNow.Add(TimeSpan.FromSeconds(60)));
+		modified.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(modified, State.Update);
+
+		modified = await storage.Open<TEntity>().Update(modified, async (entity) =>
+		{
+			var cloned = entity.Clone();
+
+			cloned.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(cloned, DateTimeOffset.UtcNow.Add(TimeSpan.FromSeconds(60)));
+			cloned.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(cloned, State.Update);
+
+			await Task.CompletedTask;
+
+			return cloned;
+		}, async () =>
+		{
+			await cache.Refresh(existing.Id);
+
+			return (await cache.Select(existing.Id)).Required<TEntity>();
+		}, new CallerContext());
+
+		if (modified is not null)
+			await cache.Update(modified);
+
 	}
 }

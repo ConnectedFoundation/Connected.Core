@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 
 namespace Connected.Collections.Queues;
 
-public interface IQueueMessageCache<TEntity>
+public interface IQueueMessageCache
 	: IEntityCache<IQueueMessage, long>
 {
 	Task<IQueueMessage?> Select(Type client, string batch);

@@ -5,8 +5,8 @@ namespace Connected.Collections.Queues;
 
 internal sealed class QueueDispatcher<TEntity, TCache>
 	: Dispatcher<TEntity, QueueJob<TEntity, TCache>>
+	where TCache : IQueueMessageCache
 	where TEntity : IQueueMessage
-	where TCache : IQueueMessageCache<TEntity>
 {
 	public int? MinPriority => Queue.IsEmpty ? null : Queue.Min(f => f.Priority);
 

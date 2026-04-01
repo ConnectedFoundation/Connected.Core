@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 namespace Connected.Collections.Queues;
 
 public abstract class QueueMessageCache<TEntity>(ICachingService cache, IStorageProvider storage, string key)
-	: EntityCache<IQueueMessage, TEntity, long>(cache, storage, key), IQueueMessageCache<TEntity>
+	: EntityCache<IQueueMessage, TEntity, long>(cache, storage, key), IQueueMessageCache
 	where TEntity : class, IQueueMessage
 {
 	public async Task<IQueueMessage?> Select(Type client, string batch)

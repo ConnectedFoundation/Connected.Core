@@ -19,4 +19,6 @@ public interface IQueueClient<TDto>
 	/// <param name="message">The queue message containing the DTO and related information.</param>
 	/// <param name="cancel">A cancellation token used to abort processing.</param>
 	Task Invoke(IQueueMessage message, CancellationToken cancel = default);
+
+	Task Invoke(TDto dto);
 }
