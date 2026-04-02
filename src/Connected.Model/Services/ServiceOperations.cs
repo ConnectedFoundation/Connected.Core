@@ -26,6 +26,11 @@ public static class ServiceOperations
 	public const string LookupByCodes = "lookup-by-codes";
 
 	/// <summary>
+	/// The operation name for looking up entities by heads.
+	/// </summary>
+	public const string LookupByHeads = "lookup-by-heads";
+
+	/// <summary>
 	/// The operation name for selecting an entity by its code.
 	/// </summary>
 	public const string SelectByCode = "select-by-code";
