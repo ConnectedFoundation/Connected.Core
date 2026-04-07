@@ -256,8 +256,9 @@ internal class CacheContext : ICacheContext
 		foreach (var item in items)
 		{
 			var id = ResolveId(item);
+			var valueId = ResolveId(value);
 
-			if (TypeComparer.Compare(id, value))
+			if (TypeComparer.Compare(id, valueId))
 				return item;
 		}
 
