@@ -47,37 +47,15 @@ public static class PrioritySorter
 			var leftPriority = left is Type lt ? lt.GetCustomAttribute<PriorityAttribute>() : left?.GetType().GetCustomAttribute<PriorityAttribute>();
 			var rightPriority = right is Type rt ? rt.GetCustomAttribute<PriorityAttribute>() : right?.GetType().GetCustomAttribute<PriorityAttribute>();
 
-			/*
-			 * Handle the case where neither element has a priority attribute.
-			 * These elements are considered equal in terms of priority.
-			 */
-			if (leftPriority is null && rightPriority is null)
-				return 0;
+			var leftValue = leftPriority is null ? 0 : leftPriority.Priority;
+			var rightValue = rightPriority is null ? 0 : rightPriority.Priority;
 
-			/*
-			 * Handle the case where only the left element has a priority attribute.
-			 * Elements with priorities come before those without, so left comes first.
-			 */
-			if (leftPriority is not null && rightPriority is null)
-				return -1;
-
-			/*
-			 * Handle the case where only the right element has a priority attribute.
-			 * Elements with priorities come before those without, so right comes first.
-			 */
-			if (leftPriority is null && rightPriority is not null)
+			if (leftValue < rightValue)
 				return 1;
-
-			/*
-			 * Compare the actual priority values when both elements have attributes.
-			 * Higher priority values should come first (descending order).
-			 */
-			if (leftPriority?.Priority == rightPriority?.Priority)
+			else if (leftValue == rightValue)
 				return 0;
-			else if (leftPriority?.Priority > rightPriority?.Priority)
-				return -1;
 			else
-				return 1;
+				return -1;
 		});
 	}
 }
