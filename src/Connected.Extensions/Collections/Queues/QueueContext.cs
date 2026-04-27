@@ -236,7 +236,7 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 		 * Query the cache for an existing message with the same action type and group identifier.
 		 * This performs the duplicate detection that enables debouncing.
 		 */
-		var existing = await cache.Select(GetType(), Group);
+		var existing = await cache.Select(typeof(TAction), Group);
 
 		/*
 		 * If no existing message is found, allow enqueueing.

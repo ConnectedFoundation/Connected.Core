@@ -166,7 +166,6 @@ internal abstract class Cache : ICache
 
 	protected virtual void OnDisposing(bool disposing)
 	{
-		_scope.Dispose();
 	}
 
 	public void Dispose()
