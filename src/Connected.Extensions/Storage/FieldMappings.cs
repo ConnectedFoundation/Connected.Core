@@ -169,7 +169,7 @@ internal class FieldMappings<TEntity>
 			else
 				value = Convert.ToBase64String(bv);
 		}
-		else if (type == typeof(DateTimeOffset) || type == typeof(Nullable<DateTimeOffset>))
+		else if (type == typeof(DateTimeOffset) || type == typeof(DateTimeOffset?))
 		{
 			/*
 			 * We don't perform any conversions on dates. All dates should be stored in a UTC
@@ -179,7 +179,7 @@ internal class FieldMappings<TEntity>
 			if (value is DateTime time)
 				value = new DateTimeOffset(DateTime.SpecifyKind(time, DateTimeKind.Utc));
 		}
-		else if (type == typeof(DateTime) || type == typeof(Nullable<DateTime>))
+		else if (type == typeof(DateTime) || type == typeof(DateTime?))
 		{
 			/*
 			 * Like DateTimeOffset, the same is true for DateTime values
@@ -188,6 +188,20 @@ internal class FieldMappings<TEntity>
 				value = DateTime.SpecifyKind(offset.DateTime, DateTimeKind.Utc);
 			else if (value is DateTime dateTime)
 				value = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+		}
+		else if (type == typeof(DateOnly) || type == typeof(DateOnly?))
+		{
+			if (value is DateTimeOffset offset)
+				value = DateOnly.FromDateTime(DateTime.SpecifyKind(offset.DateTime, DateTimeKind.Utc));
+			else if (value is DateTime dateTime)
+				value = DateOnly.FromDateTime(DateTime.SpecifyKind(dateTime, DateTimeKind.Utc));
+		}
+		else if (type == typeof(TimeOnly) || type == typeof(TimeOnly?))
+		{
+			if (value is DateTimeOffset offset)
+				value = TimeOnly.FromDateTime(DateTime.SpecifyKind(offset.DateTime, DateTimeKind.Utc));
+			else if (value is DateTime dateTime)
+				value = TimeOnly.FromDateTime(DateTime.SpecifyKind(dateTime, DateTimeKind.Utc));
 		}
 		else
 		{
