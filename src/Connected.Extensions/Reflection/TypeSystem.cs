@@ -53,6 +53,10 @@ public static class TypeSystem
 			return TypeCode.DateTime;
 		else if (type == typeof(DateTimeOffset))
 			return TypeCode.DateTime;
+		else if (type == typeof(DateOnly))
+			return TypeCode.DateTime;
+		else if (type == typeof(TimeOnly))
+			return TypeCode.DateTime;
 		else if (type == typeof(Guid))
 			return TypeCode.String;
 		else
@@ -78,7 +82,9 @@ public static class TypeSystem
 			DbType.Double => typeof(double),
 			DbType.Single => typeof(float),
 			DbType.VarNumeric => typeof(decimal),
-			DbType.Date or DbType.DateTime or DbType.DateTime2 or DbType.Time => typeof(DateTime),
+			DbType.Date => typeof(DateOnly),
+			DbType.DateTime or DbType.DateTime2 => typeof(DateTime),
+			DbType.Time => typeof(TimeOnly),
 			DbType.DateTimeOffset => typeof(DateTimeOffset),
 			DbType.Guid => typeof(Guid),
 			_ => throw new NotSupportedException(),
@@ -107,6 +113,10 @@ public static class TypeSystem
 			return DbType.DateTime2;
 		else if (underlyingType == typeof(DateTimeOffset))
 			return DbType.DateTimeOffset;
+		else if (underlyingType == typeof(DateOnly))
+			return DbType.Date;
+		else if (underlyingType == typeof(TimeOnly))
+			return DbType.Time;
 		else if (underlyingType == typeof(decimal))
 			return DbType.Decimal;
 		else if (underlyingType == typeof(double))

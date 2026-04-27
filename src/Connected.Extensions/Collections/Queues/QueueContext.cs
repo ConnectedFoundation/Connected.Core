@@ -5,12 +5,6 @@ using Connected.Storage;
 
 namespace Connected.Collections.Queues;
 
-public enum TimestampAccuracy
-{
-	Minute,
-	Hour,
-	Day
-}
 /// <summary>
 /// Provides an abstract base class for implementing queue context objects that enqueue messages with debouncing and validation logic.
 /// </summary>
@@ -319,16 +313,5 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 	protected async Task<bool> IsEmpty(string? proposedGroup)
 	{
 		return await cache.Select(typeof(TAction), proposedGroup) is null;
-	}
-
-	protected string GenerateTimestampGroup(TimestampAccuracy accuracy = TimestampAccuracy.Day)
-	{
-		return accuracy switch
-		{
-			TimestampAccuracy.Minute => $"{DateTimeOffset.UtcNow:yyyyMMddHHmm}",
-			TimestampAccuracy.Hour => $"{DateTimeOffset.UtcNow:yyyyMMddHH}",
-			TimestampAccuracy.Day => $"{DateTimeOffset.UtcNow:yyyyMMdd}",
-			_ => throw new NotSupportedException(),
-		};
 	}
 }

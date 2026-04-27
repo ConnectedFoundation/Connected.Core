@@ -141,11 +141,25 @@ internal sealed class Select
 			 * Configure date and time columns with appropriate data types and precision settings.
 			 * The DateAttribute allows explicit control over which date/time type is used.
 			 */
-			else if (column.DataType == DbType.Date
-				 || column.DataType == DbType.DateTime
+			else if (column.DataType == DbType.Time)
+			{
+				column.DateKind = DateKind.Time;
+
+				var timeAtt = property.FindAttribute<DateAttribute>();
+
+				if (timeAtt is not null)
+					column.DatePrecision = timeAtt.Precision;
+				else
+					column.DatePrecision = 7;
+			}
+			else if (column.DataType == DbType.Date)
+			{
+				column.DateKind = DateKind.Date;
+				column.Precision = 0;
+			}
+			else if (column.DataType == DbType.DateTime
 				 || column.DataType == DbType.DateTime2
-				 || column.DataType == DbType.DateTimeOffset
-				 || column.DataType == DbType.Time)
+				 || column.DataType == DbType.DateTimeOffset)
 			{
 				var dateAtt = property.FindAttribute<DateAttribute>();
 
