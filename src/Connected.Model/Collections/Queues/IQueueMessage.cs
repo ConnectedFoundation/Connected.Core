@@ -61,4 +61,6 @@ public interface IQueueMessage
 	int MaxDequeueCount { get; init; }
 
 	string DtoTypeName { get; init; }
+
+	int PopInterval { get; init; }
 }

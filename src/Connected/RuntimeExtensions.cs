@@ -2,6 +2,7 @@ using Connected.Annotations;
 using Connected.Caching;
 using Connected.Collections.Concurrent;
 using Connected.Collections.Queues;
+using Connected.Entities;
 using Connected.Reflection;
 using Connected.Services;
 using Connected.Workers;
@@ -23,6 +24,15 @@ namespace Connected;
 /// </remarks>
 public static class RuntimeExtensions
 {
+	private static readonly string _entityTopicType;
+	private static readonly string _cacheContainerName;
+	private static readonly string _entityCacheName;
+	static RuntimeExtensions()
+	{
+		_entityTopicType = ParseIdentifier(typeof(IEntityTopic<,>));
+		_cacheContainerName = ParseIdentifier(typeof(ICacheContainer<,>));
+		_entityCacheName = ParseIdentifier(typeof(IEntityCache<,>));
+	}
 	/// <summary>
 	/// Gets the list of discovered gRPC service types to be mapped at startup.
 	/// </summary>
@@ -98,6 +108,7 @@ public static class RuntimeExtensions
 			AddMiddleware(type, services, false, typeRef);
 			AddDto(type, services, false);
 			AddHostedService(type, services, false);
+			AddEntityTopic(type, services, false);
 
 			if (CanRegister(type, false))
 				Application.TriggerDiscoverType(services, type);
@@ -371,6 +382,12 @@ public static class RuntimeExtensions
 		{
 			if (itf.GetInterface(fullName) is not null)
 				services.Add(ServiceDescriptor.Scoped(itf, type));
+
+			if (string.Equals(ParseIdentifier(itf), _entityCacheName, StringComparison.Ordinal))
+				services.Add(ServiceDescriptor.Scoped(itf, type));
+
+			if (string.Equals(ParseIdentifier(itf), _cacheContainerName, StringComparison.Ordinal))
+				services.Add(ServiceDescriptor.Scoped(itf, type));
 		}
 	}
 	/// <summary>
@@ -459,45 +476,77 @@ public static class RuntimeExtensions
 		foreach (var itf in type.GetInterfaces())
 		{
 			if (itf.IsGenericType && itf.GetGenericTypeDefinition() == typeof(IQueueContext<,>))
-						services.AddTransient(type);
-					}
-				}
-				/// <summary>
-				/// Registers a queue action type into the service collection.
-				/// </summary>
-				/// <param name="type">The queue action type.</param>
-				/// <param name="services">The service collection.</param>
-				public static void AddQueueAction(Type type, IServiceCollection services)
-				{
-					AddQueueAction(type, services, true);
-				}
-				/// <summary>
-				/// Registers a queue action type if it implements <see cref="IQueueAction{TDto}"/>.
-				/// </summary>
-				/// <param name="type">The queue action type.</param>
-				/// <param name="services">The service collection.</param>
-				/// <param name="manual">True if this is a manual registration; false for automatic discovery.</param>
-				private static void AddQueueAction(Type type, IServiceCollection services, bool manual)
-				{
-					/*
-					 * Check registration eligibility and IQueueAction interface presence. Register with transient lifetime.
-					 */
-					if (!CanRegister(type, manual) || typeof(IQueueAction<>).FullName is not string fullName)
-						return;
+				services.AddTransient(type);
+		}
+	}
+	/// <summary>
+	/// Registers a queue action type into the service collection.
+	/// </summary>
+	/// <param name="type">The queue action type.</param>
+	/// <param name="services">The service collection.</param>
+	public static void AddQueueAction(Type type, IServiceCollection services)
+	{
+		AddQueueAction(type, services, true);
+	}
+	/// <summary>
+	/// Registers a queue action type if it implements <see cref="IQueueAction{TDto}"/>.
+	/// </summary>
+	/// <param name="type">The queue action type.</param>
+	/// <param name="services">The service collection.</param>
+	/// <param name="manual">True if this is a manual registration; false for automatic discovery.</param>
+	private static void AddQueueAction(Type type, IServiceCollection services, bool manual)
+	{
+		/*
+		 * Check registration eligibility and IQueueAction interface presence. Register with transient lifetime.
+		 */
+		if (!CanRegister(type, manual) || typeof(IQueueAction<>).FullName is not string fullName)
+			return;
 
-					if (type.GetInterface(fullName) is null)
-						return;
+		if (type.GetInterface(fullName) is null)
+			return;
 
-					services.AddTransient(type);
-				}
-				/// <summary>
-				/// Registers ambient value provider types implementing <see cref="IAmbientProvider{T}"/>.
-				/// </summary>
-				/// <param name="type">The ambient provider type.</param>
-				/// <param name="services">The service collection.</param>
-				/// <param name="manual">True if this is a manual registration; false for automatic discovery.</param>
-				/// <param name="typeRef">Optional list tracking already-registered types to avoid duplicates.</param>
-				private static void AddAmbientValue(Type type, IServiceCollection services, bool manual, List<Type>? typeRef)
+		services.AddTransient(type);
+	}
+
+	/// <summary>
+	/// Registers an entity topic type into the service collection.
+	/// </summary>
+	/// <param name="type">The entity topic type.</param>
+	/// <param name="services">The service collection.</param>
+	public static void AddEntityTopic(Type type, IServiceCollection services)
+	{
+		AddEntityTopic(type, services, true);
+	}
+
+	/// <summary>
+	/// Registers an entity topic type if it implements <see cref="IEntityTopic{TArgs, TEntity}"/>.
+	/// </summary>
+	/// <param name="type">The entity topic type.</param>
+	/// <param name="services">The service collection.</param>
+	/// <param name="manual">True if this is a manual registration; false for automatic discovery.</param>
+	private static void AddEntityTopic(Type type, IServiceCollection services, bool manual)
+	{
+		/*
+		 * Check registration eligibility and IEntityTopic interface presence. Register with transient lifetime.
+		 */
+		if (!CanRegister(type, manual))
+			return;
+
+		foreach (var itf in type.GetInterfaces())
+		{
+			if (string.Equals(ParseIdentifier(itf), _entityTopicType, StringComparison.Ordinal))
+				services.Add(ServiceDescriptor.Transient(itf, type));
+		}
+	}
+
+	/// <summary>
+	/// Registers ambient value provider types implementing <see cref="IAmbientProvider{T}"/>.
+	/// </summary>
+	/// <param name="type">The ambient provider type.</param>
+	/// <param name="services">The service collection.</param>
+	/// <param name="manual">True if this is a manual registration; false for automatic discovery.</param>
+	/// <param name="typeRef">Optional list tracking already-registered types to avoid duplicates.</param>
+	private static void AddAmbientValue(Type type, IServiceCollection services, bool manual, List<Type>? typeRef)
 	{
 		/*
 		 * Check registration eligibility and IAmbientProvider interface presence. For each implemented ambient interface,
@@ -597,5 +646,10 @@ public static class RuntimeExtensions
 			return true;
 
 		return type.GetCustomAttribute<ServiceRegistrationAttribute>() is not ServiceRegistrationAttribute att || att.Mode == ServiceRegistrationMode.Auto;
+	}
+
+	private static string ParseIdentifier(Type type)
+	{
+		return $"{type.Namespace}.{type.Name}, {type.Assembly.FullName}";
 	}
 }

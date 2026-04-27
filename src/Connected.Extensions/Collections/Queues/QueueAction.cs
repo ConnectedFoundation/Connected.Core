@@ -63,7 +63,7 @@ public abstract class QueueAction<TDto>
 	/// the message from becoming visible again and being dequeued by another worker.
 	/// This is an internal implementation detail not intended for direct use by derived classes.
 	/// </remarks>
-	internal Func<TimeSpan, Task>? PingCallback { get; set; }
+	internal Func<Task>? PingCallback { get; set; }
 
 	/// <summary>
 	/// Implements the IQueueAction interface by extracting message context and invoking the derived processing logic.
@@ -117,13 +117,13 @@ public abstract class QueueAction<TDto>
 	/// that may exceed this duration.
 	/// If the ping callback is not set (which should not occur in normal operation), this method completes without error.
 	/// </remarks>
-	protected async Task Ping(TimeSpan nextVisible)
+	protected async Task Ping()
 	{
 		/*
 		 * If the ping callback is available, invoke it to extend the message visibility.
 		 * This updates the message's NextVisible timestamp in storage and cache.
 		 */
 		if (PingCallback is not null)
-			await PingCallback(nextVisible);
+			await PingCallback();
 	}
 }

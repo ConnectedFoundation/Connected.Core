@@ -128,4 +128,7 @@ public abstract record QueueMessage
 	/// </summary>
 	[Ordinal(12)]
 	public int MaxDequeueCount { get; init; }
+
+	[Ordinal(13)]
+	public int PopInterval { get; init; }
 }

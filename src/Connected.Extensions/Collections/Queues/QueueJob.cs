@@ -232,7 +232,7 @@ internal sealed class QueueJob<TEntity, TCache>(IStorageProvider storage, TCache
 			 * Set the PingCallback property to this job's Ping method.
 			 * The action can now call Ping to extend the visibility window.
 			 */
-			pingCallbackProperty?.SetValue(service, new Func<TimeSpan, Task>(Ping));
+			pingCallbackProperty?.SetValue(service, new Func<Task>(Ping));
 		}
 
 		return service;
@@ -376,7 +376,7 @@ internal sealed class QueueJob<TEntity, TCache>(IStorageProvider storage, TCache
 	/// Actions call this method during long-running operations to prevent the message from reappearing in the queue.
 	/// The update is persisted to storage and cache with concurrency handling.
 	/// </remarks>
-	public async Task Ping(TimeSpan nextVisible)
+	public async Task Ping()
 	{
 		/*
 		 * Retrieve the current message state from cache using the pop receipt.
@@ -387,7 +387,7 @@ internal sealed class QueueJob<TEntity, TCache>(IStorageProvider storage, TCache
 		/*
 		 * Extend the NextVisible timestamp by the requested duration from now.
 		 */
-		modified.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(modified, DateTimeOffset.UtcNow.Add(nextVisible));
+		modified.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(modified, DateTimeOffset.UtcNow.Add(TimeSpan.FromSeconds(modified.PopInterval)));
 		modified.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(modified, State.Update);
 
 		/*
@@ -397,7 +397,7 @@ internal sealed class QueueJob<TEntity, TCache>(IStorageProvider storage, TCache
 		{
 			var cloned = entity.Clone();
 
-			cloned.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(cloned, DateTimeOffset.UtcNow.Add(nextVisible));
+			cloned.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(cloned, DateTimeOffset.UtcNow.Add(TimeSpan.FromSeconds(modified.PopInterval)));
 			cloned.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(cloned, State.Update);
 
 			await Task.CompletedTask;

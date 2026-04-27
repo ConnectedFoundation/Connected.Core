@@ -68,14 +68,5 @@ namespace Connected {
                 return ResourceManager.GetString("ErrCreateStartupInstance", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Dto property not defined.
-        /// </summary>
-        internal static string ErrInvalidProperty {
-            get {
-                return ResourceManager.GetString("ErrInvalidProperty", resourceCulture);
-            }
-        }
     }
 }

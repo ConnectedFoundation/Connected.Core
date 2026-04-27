@@ -1,5 +1,6 @@
 using Connected.Entities;
 using Connected.Storage.Transactions;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 
@@ -49,7 +50,7 @@ public abstract class ServiceOperation<TDto> : IServiceOperation<TDto>, ITransac
 		 */
 		if (typeof(TEntity).IsInterface && typeof(TEntity).IsAssignableTo(typeof(IEntity)))
 		{
-			var fullName = typeof(TEntity).FullName;
+			var fullName = typeof(TEntity).AssemblyQualifiedName;
 
 			if (fullName is null)
 				return entity;
@@ -62,7 +63,7 @@ public abstract class ServiceOperation<TDto> : IServiceOperation<TDto>, ITransac
 		else
 		{
 			var implementedEntity = typeof(TEntity).ResolveImplementedEntity();
-			var key = implementedEntity is not null ? implementedEntity.FullName : typeof(TEntity).FullName;
+			var key = implementedEntity is not null ? implementedEntity.AssemblyQualifiedName : typeof(TEntity).AssemblyQualifiedName;
 
 			if (string.IsNullOrEmpty(key))
 				return entity;
@@ -80,7 +81,7 @@ public abstract class ServiceOperation<TDto> : IServiceOperation<TDto>, ITransac
 	{
 		if (typeof(TEntity).IsInterface && typeof(TEntity).IsAssignableTo(typeof(IEntity)))
 		{
-			var fullName = typeof(TEntity).FullName;
+			var fullName = typeof(TEntity).AssemblyQualifiedName;
 
 			if (fullName is null)
 				return entity;
@@ -93,7 +94,7 @@ public abstract class ServiceOperation<TDto> : IServiceOperation<TDto>, ITransac
 		else
 		{
 			var implementedEntity = typeof(TEntity).ResolveImplementedEntity();
-			var key = implementedEntity is not null ? implementedEntity.FullName : typeof(TEntity).FullName;
+			var key = implementedEntity is not null ? implementedEntity.AssemblyQualifiedName : typeof(TEntity).AssemblyQualifiedName;
 
 			if (string.IsNullOrEmpty(key))
 				return entity;
@@ -109,7 +110,7 @@ public abstract class ServiceOperation<TDto> : IServiceOperation<TDto>, ITransac
 
 	public TEntity? GetState<TEntity>()
 	{
-		var key = typeof(TEntity).FullName;
+		var key = typeof(TEntity).AssemblyQualifiedName;
 
 		if (string.IsNullOrEmpty(key))
 			return default;
@@ -120,8 +121,16 @@ public abstract class ServiceOperation<TDto> : IServiceOperation<TDto>, ITransac
 		{
 			foreach (var stateKey in State.Keys)
 			{
-				if (stateKey.StartsWith(key) && State[stateKey] is TEntity entity)
+				var instance = State[stateKey];
+
+				if (instance is null)
+					continue;
+
+				if (stateKey.StartsWith(key) && instance is TEntity entity)
 					return entity;
+
+				if (typeof(TEntity).IsInterface && ResolveStateByInterface<TEntity>(stateKey, instance))
+					return (TEntity)instance;
 			}
 		}
 
@@ -130,20 +139,41 @@ public abstract class ServiceOperation<TDto> : IServiceOperation<TDto>, ITransac
 
 	public TEntity? GetState<TEntity, TPrimaryKey>(TPrimaryKey id)
 	{
-		var key = typeof(TEntity).FullName;
+		var key = typeof(TEntity).AssemblyQualifiedName;
 
 		if (string.IsNullOrEmpty(key))
 			return default;
 
 		if (!State.TryGetValue($"{key}:{id}", out object? result) || result is null)
 			return default;
+		else if (typeof(TEntity).IsInterface)
+		{
+			foreach (var stateKey in State.Keys)
+			{
+				var tokens = stateKey.Split(':');
+
+				if (tokens.Length != 2)
+					continue;
+
+				if (Comparer.DefaultInvariant.Compare(id?.ToString(), tokens[1]) != 0)
+					continue;
+
+				var instance = State[stateKey];
+
+				if (instance is null)
+					continue;
+
+				if (ResolveStateByInterface<TEntity>(stateKey, instance))
+					return (TEntity)instance;
+			}
+		}
 
 		return (TEntity)result;
 	}
 
 	public IImmutableList<TEntity> GetStates<TEntity>()
 	{
-		var key = typeof(TEntity).FullName;
+		var key = typeof(TEntity).AssemblyQualifiedName;
 
 		if (string.IsNullOrEmpty(key))
 			return ImmutableList<TEntity>.Empty;
@@ -153,12 +183,37 @@ public abstract class ServiceOperation<TDto> : IServiceOperation<TDto>, ITransac
 
 			foreach (var stateKey in State.Keys)
 			{
-				if (stateKey.StartsWith(key) && State[key] is TEntity entity)
+				var instance = State[stateKey];
+
+				if (instance is null)
+					continue;
+
+				if (stateKey.StartsWith(key) && instance is TEntity entity)
 					result.Add(entity);
+				else if (typeof(TEntity).IsInterface && ResolveStateByInterface<TEntity>(stateKey, instance))
+					result.Add((TEntity)instance);
 			}
 
 			return result.ToImmutableList();
 		}
+	}
+
+	private static bool ResolveStateByInterface<TEntity>(string stateKey, object instance)
+	{
+		var entityType = typeof(TEntity).AssemblyQualifiedName;
+
+		if (entityType is null)
+			return false;
+
+		var type = Type.GetType(stateKey.Split(':')[0]);
+
+		if (type is null)
+			return false;
+
+		if (instance.GetType().IsAssignableTo(typeof(TEntity)))
+			return true;
+
+		return false;
 	}
 
 	async Task ITransactionClient.Commit()

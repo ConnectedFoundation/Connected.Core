@@ -4,6 +4,13 @@ using Connected.Services;
 using Connected.Storage;
 
 namespace Connected.Collections.Queues;
+
+public enum TimestampAccuracy
+{
+	Minute,
+	Hour,
+	Day
+}
 /// <summary>
 /// Provides an abstract base class for implementing queue context objects that enqueue messages with debouncing and validation logic.
 /// </summary>
@@ -30,6 +37,7 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 	where TEntity : IQueueMessage, new()
 	where TAction : IQueueAction<TDto>
 {
+	private string? _group;
 	/// <summary>
 	/// Gets the group identifier used for message debouncing and duplicate prevention.
 	/// </summary>
@@ -40,26 +48,33 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 	/// Derived classes can override this property to provide custom group logic based on DTO content.
 	/// If null or empty, group-based validation is bypassed and messages are always enqueued.
 	/// </remarks>
-	protected virtual string? Group
+	protected string? Group
 	{
 		get
 		{
-			/*
-			 * Check if the DTO implements IPrimaryKeyDto<> and extract the Id property value.
-			 * Since IPrimaryKeyDto is generic, we need to use reflection to access the Id property.
-			 */
-			var dtoType = Dto.GetType();
-			var primaryKeyInterface = dtoType.GetInterfaces()
-				.FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IPrimaryKeyDto<>));
-
-			if (primaryKeyInterface is not null)
+			if (_group is not null)
 			{
-				var idProperty = primaryKeyInterface.GetProperty(nameof(IPrimaryKeyDto<object>.Id));
+				/*
+				 * Check if the DTO implements IPrimaryKeyDto<> and extract the Id property value.
+				 * Since IPrimaryKeyDto is generic, we need to use reflection to access the Id property.
+				 */
+				var dtoType = Dto.GetType();
+				var primaryKeyInterface = dtoType.GetInterfaces()
+					.FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IPrimaryKeyDto<>));
 
-				return idProperty?.GetValue(Dto)?.ToString();
+				if (primaryKeyInterface is not null)
+				{
+					var idProperty = primaryKeyInterface.GetProperty(nameof(IPrimaryKeyDto<object>.Id));
+
+					_group = idProperty?.GetValue(Dto)?.ToString();
+				}
 			}
 
-			return null;
+			return _group;
+		}
+		set
+		{
+			_group = value;
 		}
 	}
 
@@ -72,7 +87,7 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 	/// This prevents queue flooding when multiple events trigger enqueueing for the same entity in rapid succession.
 	/// Default value is 1 minute. Setting to null disables debounce timeout checking.
 	/// </remarks>
-	protected virtual TimeSpan? DebounceTimeout { get; } = TimeSpan.FromMinutes(1);
+	protected TimeSpan? DebounceTimeout { get; set; }
 
 	/// <summary>
 	/// Gets the timestamp when the message should become visible for dequeuing.
@@ -82,7 +97,7 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 	/// This is useful for implementing scheduled tasks or rate limiting message processing.
 	/// Default value is 5 seconds from now. Setting to null uses the current timestamp (immediate visibility).
 	/// </remarks>
-	protected virtual DateTimeOffset? NextVisible { get; } = DateTimeOffset.UtcNow.AddSeconds(5);
+	protected DateTimeOffset NextVisible { get; set; } = DateTimeOffset.UtcNow.AddSeconds(5);
 
 	/// <summary>
 	/// Gets the message priority used for ordering during dequeue operations.
@@ -92,7 +107,7 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 	/// Within the same priority level, messages are ordered by NextVisible timestamp and then by insertion order (Id).
 	/// Default value is 0. Negative values are permitted for below-normal priority.
 	/// </remarks>
-	protected virtual int Priority { get; }
+	protected int Priority { get; set; }
 
 	/// <summary>
 	/// Gets the expiration timestamp after which the message will be automatically deleted if not processed.
@@ -103,7 +118,7 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 	/// that are no longer relevant.
 	/// Default value is 10 minutes from now. Setting to null uses a default of 1 hour.
 	/// </remarks>
-	protected virtual DateTimeOffset? Expire { get; } = DateTimeOffset.UtcNow.AddMinutes(10);
+	protected DateTimeOffset Expire { get; set; } = DateTimeOffset.UtcNow.AddMinutes(10);
 
 	/// <summary>
 	/// Gets the maximum number of dequeue attempts before the message is automatically deleted.
@@ -113,7 +128,7 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 	/// Once this limit is reached, the message is considered poison and is deleted during the dequeue scan.
 	/// Default value is 10 attempts.
 	/// </remarks>
-	protected virtual int MaxDequeueCount { get; } = 10;
+	protected int MaxDequeueCount { get; set; } = 10;
 
 	/// <summary>
 	/// Gets the current DTO being processed during message creation.
@@ -124,7 +139,7 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 	/// group logic in derived classes.
 	/// </remarks>
 	protected TDto Dto { get; private set; } = default!;
-
+	protected TimeSpan PopInterval { get; set; } = TimeSpan.FromSeconds(30);
 	/// <summary>
 	/// Implements the IQueueContext interface by creating and enqueueing a message for asynchronous processing.
 	/// </summary>
@@ -138,6 +153,7 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 		 */
 		Dto = dto;
 
+		await OnInitialize();
 		/*
 		 * Perform validation including group-based debouncing and duplicate detection.
 		 * If validation fails, the message is not enqueued.
@@ -166,11 +182,12 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 		instance.GetType().GetProperty(nameof(IQueueMessage.Created))?.SetValue(instance, DateTimeOffset.UtcNow);
 		instance.GetType().GetProperty(nameof(IQueueMessage.Action))?.SetValue(instance, typeof(TAction));
 		instance.GetType().GetProperty(nameof(IQueueMessage.Group))?.SetValue(instance, Group);
-		instance.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(instance, NextVisible ?? DateTimeOffset.UtcNow);
+		instance.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(instance, NextVisible);
 		instance.GetType().GetProperty(nameof(IQueueMessage.Priority))?.SetValue(instance, Priority);
-		instance.GetType().GetProperty(nameof(IQueueMessage.Expire))?.SetValue(instance, Expire ?? DateTime.UtcNow.AddHours(1));
+		instance.GetType().GetProperty(nameof(IQueueMessage.Expire))?.SetValue(instance, Expire);
 		instance.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(instance, State.Add);
 		instance.GetType().GetProperty(nameof(IQueueMessage.MaxDequeueCount))?.SetValue(instance, MaxDequeueCount);
+		instance.GetType().GetProperty(nameof(IQueueMessage.PopInterval))?.SetValue(instance, Convert.ToInt32(PopInterval.TotalSeconds));
 
 		/*
 		 * Open a storage context for the queue message entity.
@@ -188,6 +205,11 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 		 * Synchronize the cache with the newly created message to enable efficient dequeue operations.
 		 */
 		await cache.Update(instance);
+	}
+
+	protected virtual async Task OnInitialize()
+	{
+		await Task.CompletedTask;
 	}
 
 	/// <summary>
@@ -225,77 +247,88 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 		/*
 		 * Existing message found. Apply debouncing rules based on visibility and timeout settings.
 		 */
-		if (NextVisible is not null)
+		if (DebounceTimeout is not null)
 		{
-			if (DebounceTimeout is not null)
-			{
-				/*
-				 * Check if the debounce timeout has elapsed since the existing message was created.
-				 * If the timeout has passed, the queue may be stuck, so allow inserting a new message
-				 * to unblock processing.
-				 */
-				if (entity.Created.Add(DebounceTimeout.GetValueOrDefault()) < DateTimeOffset.UtcNow)
-					return true;
-			}
-
 			/*
-			 * Debounce timeout has not elapsed. Instead of enqueueing a new message, update the
-			 * existing message's visibility window if the new value is significantly different (>1 second).
-			 * This brings forward the processing time without creating a duplicate.
+			 * Check if the debounce timeout has elapsed since the existing message was created.
+			 * If the timeout has passed, the queue may be stuck, so allow inserting a new message
+			 * to unblock processing.
 			 */
-			if (existing.NextVisible <= NextVisible.Value && existing.NextVisible.Subtract(NextVisible.Value).Duration().TotalSeconds > 1)
-			{
-				var modified = entity.Clone();
-
-				/*
-				 * Update the NextVisible timestamp to the new value.
-				 */
-				modified.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(modified, NextVisible.GetValueOrDefault());
-
-				/*
-				 * Persist the update to storage with concurrency handling.
-				 * If a concurrency conflict occurs, refresh from cache and retry.
-				 */
-				await storage.Open<TEntity>().Update(modified, async (entity) =>
-				{
-					modified = entity.Clone();
-
-					modified.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(modified, NextVisible.GetValueOrDefault());
-					modified.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(modified, State.Update);
-
-					await Task.CompletedTask;
-
-					return modified;
-				}, async () =>
-				{
-					/*
-					 * Concurrency conflict occurred. Refresh the cache entry from storage
-					 * and return the latest version for retry.
-					 */
-					await cache.Refresh(existing.Id);
-
-					var result = await cache.Select(existing.Id);
-
-					result.Required();
-
-					if (result is TEntity refreshed)
-						return refreshed;
-
-					throw new NullReferenceException();
-				}, new CallerContext());
-
-				/*
-				 * Synchronize the cache with the updated message.
-				 */
-				await cache.Update(modified);
-			}
-
-			/*
-			 * Reject enqueueing since an existing message with the same group is active.
-			 */
-			return false;
+			if (entity.Created.Add(DebounceTimeout.GetValueOrDefault()) < DateTimeOffset.UtcNow)
+				return true;
 		}
 
-		return true;
+		/*
+		 * Debounce timeout has not elapsed. Instead of enqueueing a new message, update the
+		 * existing message's visibility window if the new value is significantly different (>1 second).
+		 * This brings forward the processing time without creating a duplicate.
+		 */
+		if (existing.NextVisible <= NextVisible && existing.NextVisible.Subtract(NextVisible).Duration().TotalSeconds > 1)
+		{
+			var modified = entity.Clone();
+
+			/*
+			 * Update the NextVisible timestamp to the new value.
+			 */
+			modified.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(modified, NextVisible);
+
+			/*
+			 * Persist the update to storage with concurrency handling.
+			 * If a concurrency conflict occurs, refresh from cache and retry.
+			 */
+			await storage.Open<TEntity>().Update(modified, async (entity) =>
+			{
+				modified = entity.Clone();
+
+				modified.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(modified, NextVisible);
+				modified.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(modified, State.Update);
+
+				await Task.CompletedTask;
+
+				return modified;
+			}, async () =>
+			{
+				/*
+				 * Concurrency conflict occurred. Refresh the cache entry from storage
+				 * and return the latest version for retry.
+				 */
+				await cache.Refresh(existing.Id);
+
+				var result = await cache.Select(existing.Id);
+
+				result.Required();
+
+				if (result is TEntity refreshed)
+					return refreshed;
+
+				throw new NullReferenceException();
+			}, new CallerContext());
+
+			/*
+			 * Synchronize the cache with the updated message.
+			 */
+			await cache.Update(modified);
+		}
+
+		/*
+		 * Reject enqueueing since an existing message with the same group is active.
+		 */
+		return false;
+	}
+
+	protected async Task<bool> IsEmpty(string? proposedGroup)
+	{
+		return await cache.Select(typeof(TAction), proposedGroup) is null;
+	}
+
+	protected string GenerateTimestampGroup(TimestampAccuracy accuracy = TimestampAccuracy.Day)
+	{
+		return accuracy switch
+		{
+			TimestampAccuracy.Minute => $"{DateTimeOffset.UtcNow:yyyyMMddHHmm}",
+			TimestampAccuracy.Hour => $"{DateTimeOffset.UtcNow:yyyyMMddHH}",
+			TimestampAccuracy.Day => $"{DateTimeOffset.UtcNow:yyyyMMdd}",
+			_ => throw new NotSupportedException(),
+		};
 	}
 }

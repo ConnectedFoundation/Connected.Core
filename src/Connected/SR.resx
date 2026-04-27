@@ -120,7 +120,4 @@
   <data name="ErrCreateStartupInstance" xml:space="preserve">
     <value>Cannot create startup instance</value>
   </data>
-  <data name="ErrInvalidProperty" xml:space="preserve">
-    <value>Dto property not defined</value>
-  </data>
 </root>

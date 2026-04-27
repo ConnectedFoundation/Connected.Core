@@ -176,7 +176,7 @@ internal class MiddlewareService : IMiddlewareService
 		{
 			if (id is not null)
 			{
-				var attr = type.GetCustomAttribute<MiddlewareIdAttribute>();
+				var attr = t.GetCustomAttribute<MiddlewareIdAttribute>();
 
 				if (attr is null || !string.Equals(attr.Id, id, StringComparison.Ordinal))
 					continue;

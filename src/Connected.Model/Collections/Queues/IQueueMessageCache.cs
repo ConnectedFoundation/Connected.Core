@@ -32,7 +32,7 @@ public interface IQueueMessageCache
 	/// in the queue simultaneously. The combination of action type and group identifier uniquely identifies
 	/// a processing context.
 	/// </remarks>
-	Task<IQueueMessage?> Select(Type client, string batch);
+	Task<IQueueMessage?> Select(Type client, string? group);
 
 	/// <summary>
 	/// Retrieves all queue messages currently in the cache.

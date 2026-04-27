@@ -3,7 +3,7 @@ namespace Connected.Annotations;
 /// Associates a stable identifier with a middleware type to support discovery and referencing.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-public sealed class MiddlewareIdAttribute(string id)
+public sealed class MiddlewareIdAttribute(string id, string? description = null)
 	: Attribute
 {
 	/*
@@ -13,4 +13,6 @@ public sealed class MiddlewareIdAttribute(string id)
 	/// Gets the middleware identifier.
 	/// </summary>
 	public string Id { get; } = id;
+
+	public string? Description { get; set; } = description;
 }

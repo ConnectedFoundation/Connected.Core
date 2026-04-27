@@ -1,3 +1,4 @@
+using Connected.Annotations;
 using Connected.Authentication;
 using Connected.Reflection;
 using Connected.Runtime;
@@ -7,6 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Connected.Entities;
+
+[Priority(1)]
 public sealed class EntitiesStartup : Startup
 {
 	protected override async Task OnStart()

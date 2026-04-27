@@ -34,7 +34,6 @@ public abstract class QueueHost<TEntity, TCache>
 	/// The interval which will be set from now when dequeued messages
 	/// will become visible again.
 	/// </summary>
-	protected virtual TimeSpan NextVisibleInterval { get; set; } = TimeSpan.FromSeconds(30);
 	protected virtual int QueueSize { get => Dispatcher.WorkerSize; set => Dispatcher.WorkerSize = value; }
 	protected override sealed async Task OnInvoke(CancellationToken cancel)
 	{
@@ -115,7 +114,7 @@ public abstract class QueueHost<TEntity, TCache>
 			if (entity is not TEntity typed)
 				continue;
 
-			entity.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(entity, DateTimeOffset.UtcNow.Add(NextVisibleInterval));
+			entity.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(entity, DateTimeOffset.UtcNow.Add(TimeSpan.FromSeconds(entity.PopInterval)));
 			entity.GetType().GetProperty(nameof(IQueueMessage.DequeueTimestamp))?.SetValue(entity, DateTimeOffset.UtcNow);
 			entity.GetType().GetProperty(nameof(IQueueMessage.DequeueCount))?.SetValue(entity, target.DequeueCount + 1);
 			entity.GetType().GetProperty(nameof(IQueueMessage.PopReceipt))?.SetValue(entity, Guid.NewGuid());
@@ -127,7 +126,7 @@ public abstract class QueueHost<TEntity, TCache>
 			{
 				var cloned = f.Clone();
 
-				cloned.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(cloned, DateTimeOffset.UtcNow.Add(NextVisibleInterval));
+				cloned.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(cloned, DateTimeOffset.UtcNow.Add(TimeSpan.FromSeconds(entity.PopInterval)));
 				cloned.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(cloned, State.Update);
 
 				await Task.CompletedTask;
@@ -145,7 +144,7 @@ public abstract class QueueHost<TEntity, TCache>
 				var cached = (await cache.Select(entity.Id)).Required();
 				var cloned = cached.Clone();
 
-				cloned.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(cloned, DateTimeOffset.UtcNow.Add(NextVisibleInterval));
+				cloned.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(cloned, DateTimeOffset.UtcNow.Add(TimeSpan.FromSeconds(cloned.PopInterval)));
 				cloned.GetType().GetProperty(nameof(IQueueMessage.DequeueTimestamp))?.SetValue(cloned, DateTimeOffset.UtcNow);
 				cloned.GetType().GetProperty(nameof(IQueueMessage.DequeueCount))?.SetValue(cloned, cached.DequeueCount + 1);
 				cloned.GetType().GetProperty(nameof(IQueueMessage.PopReceipt))?.SetValue(cloned, Guid.NewGuid());

@@ -120,4 +120,7 @@
   <data name="ErrEntityKeyExpected" xml:space="preserve">
     <value>EntityKeyAttribute is missing</value>
   </data>
+  <data name="ErrInvalidProperty" xml:space="preserve">
+    <value>Dto property not defined</value>
+  </data>
 </root>

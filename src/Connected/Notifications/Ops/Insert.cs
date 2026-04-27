@@ -4,11 +4,13 @@ using Connected.Net.Messaging;
 using Connected.Net.Messaging.Dtos;
 using Connected.Reflection;
 using Connected.Services;
+using Microsoft.Extensions.Logging;
 using System.Reflection;
 
 namespace Connected.Notifications.Ops;
 
-internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEventServer server, EventSubscriptions subscriptions)
+internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEventServer server, EventSubscriptions subscriptions,
+	ILogger<Insert<TService, TDto>> logger)
 	: ServiceAction<IInsertEventDto<TService, TDto>>
 	where TDto : IDto
 {
@@ -24,7 +26,16 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEv
 			if (m.GetType().GetMethod(nameof(IEventListener<IDto>.Invoke), BindingFlags.Public | BindingFlags.Instance, [typeof(IOperationState), Dto.Dto.GetType()]) is not MethodInfo method)
 				continue;
 
-			await method.InvokeAsync(m, Dto.Sender, Dto.Dto);
+			try
+			{
+				await method.InvokeAsync(m, Dto.Sender, Dto.Dto);
+			}
+			catch (Exception ex)
+			{
+				logger.LogError(ex, "Error invoking event listener '{listener}'", m.GetType().FullName);
+
+				throw;
+			}
 		}
 	}
 
