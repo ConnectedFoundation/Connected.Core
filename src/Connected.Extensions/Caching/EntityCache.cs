@@ -30,15 +30,8 @@ public abstract class EntityCache<TEntity, TEntityImplementation, TPrimaryKey>(I
 
 	protected virtual async Task<IImmutableList<TEntity>?> OnInitializingEntities()
 	{
-		try
-		{
-			return await (from dc in Storage.Open<TEntityImplementation>()
-							  select dc).AsEntities<TEntity>();
-		}
-		catch (Exception ex)
-		{
-			throw;
-		}
+		return await (from dc in Storage.Open<TEntityImplementation>()
+						  select dc).AsEntities<TEntity>();
 	}
 
 	protected override async Task OnInvalidate(TPrimaryKey id)

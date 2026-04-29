@@ -46,7 +46,7 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 	{
 		get
 		{
-			if (_group is not null)
+			if (_group is null)
 			{
 				/*
 				 * Check if the DTO implements IPrimaryKeyDto<> and extract the Id property value.
@@ -142,6 +142,7 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 	/// <inheritdoc/>
 	public async Task Invoke(TDto dto)
 	{
+		_group = null;
 		/*
 		 * Initialize the DTO property to make it available during validation and group resolution.
 		 */
