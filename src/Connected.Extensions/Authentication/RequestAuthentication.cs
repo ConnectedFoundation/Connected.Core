@@ -22,7 +22,8 @@ internal class RequestAuthentication(RequestDelegate next)
 		 * Run the authentication step first to establish identity for the request
 		 * and then continue down the middleware pipeline by invoking the next delegate.
 		 */
-		await OnInvoke(context);
+		if (!string.Equals(context.Request.Method, HttpMethods.Options, StringComparison.OrdinalIgnoreCase))
+			await OnInvoke(context);
 
 		await next(context);
 	}
