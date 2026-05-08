@@ -1,5 +1,6 @@
 using Connected.Services;
 using System.Collections;
+using System.Data;
 using System.Reflection;
 
 namespace Connected.Reflection.Merging;
@@ -82,7 +83,16 @@ internal sealed class ObjectMerger : Merger
 		else if (IsArray(property))
 			MergeEnumerable(destination, sourceProperties, property);
 		else
-			MergeObject(destination, sourceProperties, property);
+		{
+			var value = property.GetValue(destination);
+
+			if (value is null)
+				value = CreateInstance(property.PropertyType) ?? throw new DataException();
+
+			property.SetValue(destination, value);
+
+			MergeObject(value, sourceProperties, property);
+		}
 	}
 
 	private void MergeEnumerable(object destination, Dictionary<string, object?> sourceProperties, PropertyInfo property)
@@ -177,7 +187,7 @@ internal sealed class ObjectMerger : Merger
 		property.SetValue(destination, instance);
 	}
 
-	private static void MergeObject(object destination, Dictionary<string, object?> source, PropertyInfo property)
+	private void MergeObject(object destination, Dictionary<string, object?> source, PropertyInfo property)
 	{
 		if (!property.CanWrite)
 			return;
@@ -185,13 +195,17 @@ internal sealed class ObjectMerger : Merger
 		if (!source.TryGetValue(property.Name, out object? value) || value is null)
 			return;
 
-		var propertyValue = value;
-		var sourceProperty = value.GetType().GetProperty(property.Name);
+		var propertyValue = new Dictionary<string, object?>((Dictionary<string, object?>)value, StringComparer.OrdinalIgnoreCase);
 
-		if (sourceProperty is not null)
-			propertyValue = sourceProperty.GetValue(value);
+		foreach (var innerProperty in Properties.GetImplementedProperties(destination))
+			MergeProperty(destination, propertyValue, innerProperty);
 
-		property.SetValue(destination, propertyValue);
+		//var sourceProperty = value.GetType().GetProperty(property.Name);
+
+		//if (sourceProperty is not null)
+		//	propertyValue = sourceProperty.GetValue(value);
+
+		//property.SetValue(destination, propertyValue);
 	}
 
 	private static object CreateInstance(Type propertyType)
