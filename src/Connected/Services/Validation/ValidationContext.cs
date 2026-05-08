@@ -217,6 +217,9 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 			if (value is null)
 				return null;
 
+			if (property.GetIndexParameters().Length > 0)
+				return null;
+
 			return property.GetValue(value);
 		}
 		catch (TargetInvocationException ex)

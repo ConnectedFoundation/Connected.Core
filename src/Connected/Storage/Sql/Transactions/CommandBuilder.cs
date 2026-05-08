@@ -221,9 +221,19 @@ internal abstract class CommandBuilder<TEntity>(IStorage<TEntity> storage)
 		var propertyName = parameterName[1..];
 		var flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic;
 
+		// First: reverse-lookup via MemberAttribute — the authoritative column→property mapping.
+		foreach (var prop in Entity.GetType().GetProperties(flags))
+		{
+			var member = prop.GetCustomAttribute<MemberAttribute>();
+			if (member is not null && string.Equals(member.Member, propertyName, StringComparison.OrdinalIgnoreCase))
+				return prop;
+		}
+
+		// Fallback: try direct PascalCase conversion (single-word names, no underscore).
 		if (Entity.GetType().GetProperty(propertyName.ToPascalCase(), flags) is PropertyInfo property)
 			return property;
 
+		// Last resort: raw name as-is.
 		if (Entity.GetType().GetProperty(propertyName, flags) is PropertyInfo raw)
 			return raw;
 
