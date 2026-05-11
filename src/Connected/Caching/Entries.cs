@@ -79,7 +79,10 @@ internal class Entries
 
 	public void Set(string key, object? instance, TimeSpan duration, bool slidingExpiration, CacheEntryMergeBehavior merge)
 	{
-		Items[key] = new Entry(key, instance, duration, slidingExpiration, merge);
+		if (Items.TryGetValue(key, out IEntry? existing) && existing is Entry e)
+			e.Set(instance, duration, slidingExpiration, merge);
+		else
+			Items[key] = new Entry(key, instance, duration, slidingExpiration, merge);
 	}
 
 	public IEnumerator<T> GetEnumerator<T>()
