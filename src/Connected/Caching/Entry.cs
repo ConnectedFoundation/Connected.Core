@@ -41,7 +41,7 @@ internal class Entry : IEntry
 			var incomingVersion = EntityVersion.Parse(GetETag(instance));
 
 			if (currentVersion is not null && incomingVersion is not null
-				&& incomingVersion <= currentVersion)
+				&& incomingVersion < currentVersion)
 				return;
 		}
 
