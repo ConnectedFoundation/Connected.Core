@@ -40,8 +40,15 @@ public static class ServicesExtensions
 		if (interfaces.Count == 0)
 			return null;
 
+		// TODO : This is a temporary solution to exclude internal interfaces from the resolution. We need to find a better way to handle this in the future.
+		var exclusions = new List<string?> { typeof(IConsistentEntity<>).FullName, typeof(IConcurrentEntity<>).FullName };
+
 		foreach (var itf in interfaces)
 		{
+			// TODO: This is a temporary solution to exclude internal interfaces from the resolution. We need to find a better way to handle this in the future.
+			if (exclusions.Contains($"{itf.Namespace}.{itf.Name}"))
+				continue;
+
 			if (!interfaces.Any(f => f != itf && itf.IsAssignableTo(f)))
 				return itf;
 		}

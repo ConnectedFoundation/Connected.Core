@@ -1,3 +1,5 @@
+using Connected.Annotations.Entities;
+using Connected.Entities;
 using Connected.Services;
 using System.Collections;
 using System.Data;
@@ -85,11 +87,10 @@ internal sealed class ObjectMerger : Merger
 		else
 		{
 			var value = property.GetValue(destination);
+			var sourceInstance = sourceProperties.FirstOrDefault(f => string.Equals(f.Key, property.Name, StringComparison.Ordinal)).Value;
 
 			if (value is null)
 			{
-				var sourceInstance = sourceProperties.FirstOrDefault(f => string.Equals(f.Key, property.Name, StringComparison.Ordinal)).Value;
-
 				if (sourceInstance is not null)
 				{
 					var sourceTargetProperty = sourceInstance.GetType().GetProperty(property.Name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.GetProperty);
@@ -107,12 +108,22 @@ internal sealed class ObjectMerger : Merger
 					}
 				}
 
+				if (destination is IEntity entity)
+				{
+					var serializer = property.GetCustomAttribute<SerializerAttribute>();
+					/*
+					 * That's because entity property has custom serializer but the current value is null which means there is nothing to deserialize.
+					 */
+					if (serializer is not null)
+						return;
+				}
+
 				value = CreateInstance(property.PropertyType) ?? throw new DataException();
 			}
 
 			property.SetValue(destination, value);
 
-			MergeObject(value, sourceProperties, property);
+			Merge(value, sourceInstance);
 		}
 	}
 
@@ -216,17 +227,13 @@ internal sealed class ObjectMerger : Merger
 		if (!source.TryGetValue(property.Name, out object? value) || value is null)
 			return;
 
-		var propertyValue = new Dictionary<string, object?>((Dictionary<string, object?>)value, StringComparer.OrdinalIgnoreCase);
+		var propertyValue = value;
+		var sourceProperty = value.GetType().GetProperty(property.Name);
 
-		foreach (var innerProperty in Properties.GetImplementedProperties(destination))
-			MergeProperty(destination, propertyValue, innerProperty);
+		if (sourceProperty is not null)
+			propertyValue = sourceProperty.GetValue(value);
 
-		//var sourceProperty = value.GetType().GetProperty(property.Name);
-
-		//if (sourceProperty is not null)
-		//	propertyValue = sourceProperty.GetValue(value);
-
-		//property.SetValue(destination, propertyValue);
+		property.SetValue(destination, propertyValue);
 	}
 
 	private static object CreateInstance(Type propertyType)
