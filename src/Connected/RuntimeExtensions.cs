@@ -372,23 +372,35 @@ public static class RuntimeExtensions
 		 * Check registration eligibility and ICacheContainer interface presence. Register all cache-related interfaces
 		 * implemented by the type with scoped lifetime.
 		 */
-		if (!CanRegister(type, manual) || typeof(ICacheContainer<,>).FullName is not string fullName)
+		if (!CanRegister(type, manual) || typeof(ICacheContainer<,>).FullName is not string fullName || typeof(ISynchronizedCache<,>).FullName is not string synchronizedFullName)
 			return;
 
 		if (type.GetInterface(fullName) is null)
 			return;
 
+		Type? nativeInterface = null;
+		Type? entityInterface = null;
+		Type? containerInterface = null;
+
 		foreach (var itf in type.GetInterfaces())
 		{
-			if (itf.GetInterface(fullName) is not null)
-				services.Add(ServiceDescriptor.Scoped(itf, type));
-
-			if (string.Equals(ParseIdentifier(itf), _entityCacheName, StringComparison.Ordinal))
-				services.Add(ServiceDescriptor.Scoped(itf, type));
+			if (string.Equals($"{itf.Namespace}.{itf.Name}", synchronizedFullName, StringComparison.Ordinal))
+				continue;
 
 			if (string.Equals(ParseIdentifier(itf), _cacheContainerName, StringComparison.Ordinal))
-				services.Add(ServiceDescriptor.Scoped(itf, type));
+				containerInterface = itf;
+			else if (string.Equals(ParseIdentifier(itf), _entityCacheName, StringComparison.Ordinal))
+				entityInterface = itf;
+			else if (itf.GetInterface(fullName) is not null)
+				nativeInterface = itf;
 		}
+
+		if (nativeInterface is not null)
+			services.Add(ServiceDescriptor.Scoped(nativeInterface, type));
+		else if (entityInterface is not null)
+			services.Add(ServiceDescriptor.Scoped(entityInterface, type));
+		else if (containerInterface is not null)
+			services.Add(ServiceDescriptor.Scoped(containerInterface, type));
 	}
 	/// <summary>
 	/// Registers a dispatcher type into the service collection.

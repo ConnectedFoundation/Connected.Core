@@ -1,4 +1,3 @@
-using Connected.Reflection;
 using Connected.Storage.Transactions;
 using System.Collections.Immutable;
 using System.Reflection;
@@ -236,33 +235,36 @@ internal class CacheContext : ICacheContext
 		if (shared is null)
 			return scope;
 
-		foreach (var sharedItem in shared)
-		{
-			if (sharedItem is null)
-				continue;
+		var result = new List<T>(scope);
+		var scopeIndex = new Dictionary<object, T>();
+		var sharedIndex = new Dictionary<object, T>();
 
-			if (FindExisting(sharedItem, scope) is not T existing)
-				scope = scope.Add(sharedItem);
-		}
-
-		return [.. scope];
-	}
-
-	private static T? FindExisting<T>(object? value, IImmutableList<T> items)
-	{
-		if (items.Count == 0)
-			return default;
-
-		foreach (var item in items)
+		foreach (var item in scope)
 		{
 			var id = ResolveId(item);
-			var valueId = ResolveId(value);
 
-			if (TypeComparer.Compare(id, valueId))
-				return item;
+			if (id is null)
+				continue;
+
+			scopeIndex[id] = item;
 		}
 
-		return default;
+		foreach (var item in shared)
+		{
+			var id = ResolveId(item);
+
+			if (id is null)
+				continue;
+
+			sharedIndex[id] = item;
+		}
+
+		foreach (var sharedItem in sharedIndex)
+
+			if (!scopeIndex.ContainsKey(sharedItem.Key))
+				result.Add(sharedItem.Value);
+
+		return [.. result];
 	}
 
 	private static object? ResolveId(object? value)

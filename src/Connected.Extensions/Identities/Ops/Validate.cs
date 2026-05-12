@@ -21,10 +21,6 @@ internal sealed class Validate(IUserService users, IIdentityAuthenticationTokenS
 		if (token is not null)
 			return token;
 
-		token = Guid.NewGuid().ToString();
-
-		await tokens.Ensure(user.Token, token, Dto.Permanent);
-
-		return token;
+		return await tokens.Ensure(user.Token, Guid.NewGuid().ToString(), Dto.Permanent);
 	}
 }

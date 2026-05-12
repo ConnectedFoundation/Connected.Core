@@ -1,6 +1,7 @@
 using Connected.Identities;
 using Connected.Identities.Dtos;
 using Connected.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Connected.Authentication;
@@ -10,7 +11,7 @@ namespace Connected.Authentication;
 /// a user via the parsed basic credentials (user name and password) and, upon success,
 /// elevates execution to that user's identity within an isolated service scope.
 /// </summary>
-internal sealed class BasicAuthentication
+internal sealed class BasicAuthentication(IHttpContextAccessor http)
 	: BasicAuthenticationProvider
 {
 	/// <summary>
@@ -23,7 +24,7 @@ internal sealed class BasicAuthentication
 	/// to avoid unnecessary service calls. All service resolution occurs from a temporary scope
 	/// created with a system identity to guarantee sufficient privileges for lookups.
 	/// </remarks>
-	protected override async Task OnInvoke()
+	protected override async Task OnAuthenticate()
 	{
 		/*
 		 * Ensure that both user name and password were extracted by the base provider.
@@ -60,15 +61,13 @@ internal sealed class BasicAuthentication
 		if (user is null)
 			return;
 
-		/*
-		 * Resolve an identity update DTO, assign the authenticated user and propagate
-		 * the new identity through the authentication service.
-		 */
-		var identityDto = scope.ServiceProvider.GetRequiredService<IUpdateIdentityDto>();
+		var httpIdentity = new HttpIdentity(user)
+		{
+			IsAuthenticated = true
+		};
 
-		identityDto.Identity = user;
-
-		await authentication.UpdateIdentity(identityDto);
+		if (http.HttpContext is not null)
+			http.HttpContext.User = new DefaultPrincipal(httpIdentity);
 
 		/*
 		 * Flush the scope to ensure any buffered identity or side-effect operations are committed.

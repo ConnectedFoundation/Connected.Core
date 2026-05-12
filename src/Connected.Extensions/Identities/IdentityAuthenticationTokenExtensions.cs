@@ -52,7 +52,7 @@ public static class IdentityAuthenticationTokenExtensions
 		}
 	}
 
-	public static async Task Ensure(this IIdentityAuthenticationTokenService service, string identity, string token, bool permanent)
+	public static async Task<string> Ensure(this IIdentityAuthenticationTokenService service, string identity, string proposedToken, bool permanent)
 	{
 		var dto = new Dto<IQueryIdentityAuthenticationTokensDto>().Value;
 
@@ -61,16 +61,17 @@ public static class IdentityAuthenticationTokenExtensions
 
 		var existingKey = (await service.Query(dto)).FirstOrDefault(f => string.Equals(f.Key, IdentityAuthenticationTokens.AuthenticationToken, StringComparison.Ordinal));
 
-		if (existingKey is not null)
+		if (existingKey is not null && existingKey.Status == AuthenticationTokenStatus.Enabled && existingKey.Token is not null)
 		{
 			var tokensDto = existingKey.AsDto<IUpdateIdentityAuthenticationTokenDto>();
 			DateTimeOffset? expire = permanent ? null : DateTimeOffset.UtcNow.AddMinutes(30);
 
-			tokensDto.Token = token;
 			tokensDto.Expire = expire;
 			tokensDto.Status = AuthenticationTokenStatus.Enabled;
 
 			await service.Update(tokensDto);
+
+			return existingKey.Token;
 		}
 		else
 		{
@@ -78,7 +79,7 @@ public static class IdentityAuthenticationTokenExtensions
 
 			tokensDto.Identity = identity;
 			tokensDto.Key = IdentityAuthenticationTokens.AuthenticationToken;
-			tokensDto.Token = token;
+			tokensDto.Token = proposedToken;
 			tokensDto.Status = AuthenticationTokenStatus.Enabled;
 
 			if (permanent)
@@ -87,6 +88,8 @@ public static class IdentityAuthenticationTokenExtensions
 				tokensDto.Expire = DateTimeOffset.UtcNow.AddMinutes(30);
 
 			await service.Insert(tokensDto);
+
+			return proposedToken;
 		}
 	}
 }

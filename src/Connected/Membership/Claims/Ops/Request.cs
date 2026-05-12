@@ -16,7 +16,8 @@ internal class Request(IClaimCache cache, IMembershipService membership, IRoleSe
 					values.Any(g => string.Equals(g, f.Value, StringComparison.OrdinalIgnoreCase))
 				&& (Dto.Identity is null || identities.Any(g => string.Equals(g, f.Identity, StringComparison.Ordinal)))
 				&& (Dto.Entity is null || string.Equals(f.Entity, Dto.Entity, StringComparison.OrdinalIgnoreCase))
-				&& (Dto.EntityId is null || string.Equals(f.EntityId, Dto.EntityId, StringComparison.OrdinalIgnoreCase)));
+				&& (Dto.EntityId is null || string.Equals(f.EntityId, Dto.EntityId, StringComparison.OrdinalIgnoreCase))
+				&& f.Status == ClaimStatus.Approved);
 
 		return targets.Any();
 	}

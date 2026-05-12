@@ -202,6 +202,8 @@ internal class FieldMappings<TEntity>
 				value = TimeOnly.FromDateTime(DateTime.SpecifyKind(offset.DateTime, DateTimeKind.Utc));
 			else if (value is DateTime dateTime)
 				value = TimeOnly.FromDateTime(DateTime.SpecifyKind(dateTime, DateTimeKind.Utc));
+			else if (value is TimeSpan ts)
+				value = TimeOnly.FromTimeSpan(ts);
 		}
 		else
 		{
