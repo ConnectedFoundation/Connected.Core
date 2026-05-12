@@ -40,6 +40,12 @@ public static class ServicesExtensions
 		if (interfaces.Count == 0)
 			return null;
 
+		foreach (var itf in interfaces)
+		{
+			if (!interfaces.Any(f => f != itf && itf.IsAssignableTo(f)))
+				return itf;
+		}
+
 		return interfaces[0];
 	}
 
