@@ -40,8 +40,17 @@ public static class ServicesExtensions
 		if (interfaces.Count == 0)
 			return null;
 
+		var exclusions = new List<string?>
+		{
+			typeof(IConsistentEntity<>).FullName,
+			typeof(IConcurrentEntity<>).FullName
+		};
+
 		foreach (var itf in interfaces)
 		{
+			if (exclusions.Contains($"{itf.Namespace}.{itf.Name}"))
+				continue;
+
 			if (!interfaces.Any(f => f != itf && itf.IsAssignableTo(f)))
 				return itf;
 		}
