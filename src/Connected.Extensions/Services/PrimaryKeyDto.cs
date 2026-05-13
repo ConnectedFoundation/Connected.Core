@@ -3,7 +3,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Connected.Services;
 
-internal class PrimaryKeyDto<T> : Dto, IPrimaryKeyDto<T>
+public class PrimaryKeyDto<T>
+	: Dto, IPrimaryKeyDto<T>
 {
 	public PrimaryKeyDto()
 	{

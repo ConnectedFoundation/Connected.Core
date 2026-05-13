@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 
 namespace Connected.Services;
 
+[Obsolete("use strongly typed dto instead")]
 internal class PrimaryKeyListDto<TPrimaryKey> : Dto, IPrimaryKeyListDto<TPrimaryKey>
 	where TPrimaryKey : notnull
 {

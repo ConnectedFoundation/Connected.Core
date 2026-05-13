@@ -3,8 +3,10 @@ using Connected.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Connected.Services;
+
 public static class DtoExtensions
 {
+	[Obsolete("instantiate dto directly or use generic instance and its value property")]
 	public static IDto? Create(this IDto dto, Type type)
 	{
 		ArgumentNullException.ThrowIfNull(dto);
@@ -19,6 +21,7 @@ public static class DtoExtensions
 		return ServiceExtensionsStartup.Services.GetRequiredService(type) as IDto;
 	}
 
+	[Obsolete("instantiate dto directly or use generic instance and its value property")]
 	public static TDto Create<TDto>(this IDto dto)
 		where TDto : IDto
 	{
@@ -34,6 +37,7 @@ public static class DtoExtensions
 		return ServiceExtensionsStartup.Services.GetRequiredService<TDto>();
 	}
 
+	[Obsolete("instantiate dto directly or use generic instance and its value property")]
 	public static IPrimaryKeyDto<T> CreatePrimaryKey<T>(this IDto dto, T id)
 	{
 		var result = dto.Create<IPrimaryKeyDto<T>>();
@@ -43,6 +47,7 @@ public static class DtoExtensions
 		return result;
 	}
 
+	[Obsolete("instantiate dto directly or use generic instance and its value property")]
 	public static IPrimaryKeyListDto<TPrimaryKey> CreatePrimaryKeyList<TPrimaryKey>(this IDto dto, List<TPrimaryKey> items)
 		where TPrimaryKey : notnull
 	{
@@ -53,6 +58,7 @@ public static class DtoExtensions
 		return result;
 	}
 
+	[Obsolete("instantiate dto directly or use generic instance and its value property")]
 	public static IHeadListDto<TPrimaryKey> CreateHeadList<TPrimaryKey>(this IDto dto, IEnumerable<IPrimaryKeyEntity<TPrimaryKey>> items)
 		where TPrimaryKey : notnull
 	{
@@ -66,6 +72,7 @@ public static class DtoExtensions
 		return result;
 	}
 
+	[Obsolete("instantiate dto directly or use generic instance and its value property")]
 	public static IDistributedPrimaryKeyListDto<THead, TPrimaryKey> CreateDistributedPrimaryKeyList<THead, TPrimaryKey>(this IDto dto, List<Tuple<THead, TPrimaryKey>> items)
 		where THead : notnull
 		where TPrimaryKey : notnull
@@ -77,6 +84,7 @@ public static class DtoExtensions
 		return result;
 	}
 
+	[Obsolete("instantiate dto directly or use generic instance and its value property")]
 	public static INameDto CreateName(this IDto dto, string name)
 	{
 		var result = dto.Create<INameDto>();
@@ -86,6 +94,7 @@ public static class DtoExtensions
 		return result;
 	}
 
+	[Obsolete("instantiate dto directly or use generic instance and its value property")]
 	public static IEntityDto CreateEntity(this IDto dto, string entity, string entityId)
 	{
 		var result = dto.Create<IEntityDto>();
@@ -96,6 +105,7 @@ public static class DtoExtensions
 		return result;
 	}
 
+	[Obsolete("instantiate dto directly or use generic instance and its value property")]
 	public static IValueDto<T> CreateValue<T>(this IDto dto, T value)
 	{
 		var result = dto.Create<IValueDto<T>>();
@@ -105,6 +115,7 @@ public static class DtoExtensions
 		return result;
 	}
 
+	[Obsolete("instantiate dto directly or use generic instance and its value property")]
 	public static IHeadDto<T> CreateHead<T>(this IDto dto, T value)
 	{
 		var result = dto.Create<IHeadDto<T>>();
@@ -114,6 +125,7 @@ public static class DtoExtensions
 		return result;
 	}
 
+	[Obsolete("instantiate dto directly or use generic instance and its value property")]
 	public static IParentDto<T> CreateParent<T>(this IDto dto, T value)
 	{
 		var result = dto.Create<IParentDto<T>>();
@@ -123,6 +135,7 @@ public static class DtoExtensions
 		return result;
 	}
 
+	[Obsolete("instantiate dto directly or use generic instance and its value property")]
 	public static ITagListDto CreateTagList(this IDto dto, List<string> items)
 	{
 		var result = dto.Create<ITagListDto>();
@@ -132,6 +145,7 @@ public static class DtoExtensions
 		return result;
 	}
 
+	[Obsolete("instantiate dto directly or use generic instance and its value property")]
 	public static IPatchDto<TPrimaryKey> CreatePatch<TPrimaryKey>(this IDto dto, TPrimaryKey id, Dictionary<string, object?> properties)
 		where TPrimaryKey : notnull
 	{
@@ -143,6 +157,7 @@ public static class DtoExtensions
 		return result;
 	}
 
+	[Obsolete("instantiate dto directly or use generic instance and its value property")]
 	public static IDistributedPatchDto<THead, TPrimaryKey> CreateDistributedPatch<THead, TPrimaryKey>(this IDto dto, THead head, TPrimaryKey id, Dictionary<string, object?> properties)
 		where THead : notnull
 		where TPrimaryKey : notnull
@@ -156,6 +171,7 @@ public static class DtoExtensions
 		return result;
 	}
 
+	[Obsolete("instantiate dto directly or use generic instance and its value property")]
 	public static IDistributedPrimaryKeyDto<THead, TPrimaryKey> CreateDistributedPrimaryKey<THead, TPrimaryKey>(this IDto dto, THead head, TPrimaryKey id)
 		where THead : notnull
 		where TPrimaryKey : notnull
@@ -168,6 +184,7 @@ public static class DtoExtensions
 		return result;
 	}
 
+	[Obsolete("instantiate dto directly or use generic instance and its value property")]
 	public static IDistributedPrimaryKeyDto<THead, TPrimaryKey> CreateDistributedPrimaryKey<THead, TPrimaryKey>(this IDto dto, string value)
 		where THead : notnull
 		where TPrimaryKey : notnull

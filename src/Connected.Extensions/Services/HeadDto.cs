@@ -1,5 +1,6 @@
 namespace Connected.Services;
 
+[Obsolete("use strongly typed dto instead")]
 internal class HeadDto<T> : Dto, IHeadDto<T>
 {
 	public T? Head { get; set; }

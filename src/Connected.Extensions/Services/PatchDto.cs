@@ -1,6 +1,6 @@
 namespace Connected.Services;
 
-internal class PatchDto<TPrimaryKey> : PrimaryKeyDto<TPrimaryKey>, IPatchDto<TPrimaryKey>
+public class PatchDto<TPrimaryKey> : PrimaryKeyDto<TPrimaryKey>, IPatchDto<TPrimaryKey>
 	where TPrimaryKey : notnull
 {
 	public PatchDto()

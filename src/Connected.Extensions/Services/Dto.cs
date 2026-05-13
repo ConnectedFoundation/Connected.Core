@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+
 namespace Connected.Services;
 
 public class Dto : IDto
@@ -20,7 +22,15 @@ public class Dto<TDto> : Dto
 {
 	public Dto()
 	{
-		Value = Factory.Create<TDto>();
+		if (ServiceExtensionsStartup.Services is null)
+		{
+			var provider = ServiceExtensionsStartup.ServicesCollection.BuildServiceProvider(false);
+
+			Value = provider.GetRequiredService<TDto>();
+		}
+		else
+			Value = ServiceExtensionsStartup.Services.GetRequiredService<TDto>();
+
 	}
 	public TDto Value { get; }
 }
