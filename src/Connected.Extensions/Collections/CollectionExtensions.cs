@@ -167,7 +167,7 @@ public static class CollectionExtensions
 	/// <typeparam name="T">The element type.</typeparam>
 	/// <param name="entities">The immutable list to inspect.</param>
 	/// <returns>The first element when available; otherwise <see langword="default"/>.</returns>
-	public static T? AsEntity<T>(this IImmutableList<T> entities)
+	public static T? FirstEntity<T>(this IImmutableList<T> entities)
 	{
 		/*
 		 * Return default when no items are available.

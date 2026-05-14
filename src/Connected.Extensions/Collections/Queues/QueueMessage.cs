@@ -126,9 +126,20 @@ public abstract record QueueMessage
 	/// <summary>
 	/// Gets the maximum number of dequeue attempts before the message is deleted as poison.
 	/// </summary>
+	/// <remarks>
+	/// Once this threshold is reached, the message is removed during target selection to prevent
+	/// indefinite retry of failing work.
+	/// </remarks>
 	[Ordinal(12)]
 	public int MaxDequeueCount { get; init; }
 
+	/// <summary>
+	/// Gets the visibility extension interval, in seconds, used while processing is active.
+	/// </summary>
+	/// <remarks>
+	/// Queue host and queue job components use this value to extend <see cref="NextVisible"/> during
+	/// dequeue reservation and ping updates.
+	/// </remarks>
 	[Ordinal(13)]
 	public int PopInterval { get; init; }
 }

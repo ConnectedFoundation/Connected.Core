@@ -9,19 +9,30 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 
 namespace Connected.Collections.Queues;
+
 /// <summary>
-/// The base class for implementing a queue host.
+/// Provides the scheduled host responsible for dequeuing and dispatching queue messages.
 /// </summary>
+/// <typeparam name="TEntity">The concrete queue message entity type.</typeparam>
+/// <typeparam name="TCache">The queue message cache type.</typeparam>
+/// <remarks>
+/// The host polls queue storage on a fixed interval, selects eligible messages, updates visibility,
+/// and dispatches accepted messages to dispatcher workers for processing.
+/// </remarks>
 public abstract class QueueHost<TEntity, TCache>
 	: ScheduledWorker
 	where TCache : IQueueMessageCache
 	where TEntity : IQueueMessage
 {
 	/// <summary>
-	/// Create a new instance of the QueueHost class.
+	/// Initializes a new instance of the <see cref="QueueHost{TEntity, TCache}"/> class.
 	/// </summary>
 	public QueueHost()
 	{
+		/*
+		 * Configure high-frequency scheduling and create the dispatcher with a default
+		 * single-worker capacity.
+		 */
 		Timer = TimeSpan.FromMilliseconds(500);
 
 		Dispatcher = new()
@@ -29,14 +40,28 @@ public abstract class QueueHost<TEntity, TCache>
 			WorkerSize = 1
 		};
 	}
+
 	private QueueDispatcher<TEntity, TCache> Dispatcher { get; }
+
 	/// <summary>
-	/// The interval which will be set from now when dequeued messages
-	/// will become visible again.
+	/// Gets or sets the maximum number of messages processed concurrently by the host dispatcher.
+	/// <remarks>
+	/// Higher values increase throughput by allowing more concurrent queue jobs.
+	/// </remarks>
 	/// </summary>
 	protected virtual int QueueSize { get => Dispatcher.WorkerSize; set => Dispatcher.WorkerSize = value; }
+
+	/// <summary>
+	/// Executes one host polling cycle that dequeues, filters, and dispatches messages.
+	/// </summary>
+	/// <param name="cancel">The cancellation token controlling host execution.</param>
+	/// <returns>A task representing the asynchronous polling operation.</returns>
+	/// <inheritdoc/>
 	protected override sealed async Task OnInvoke(CancellationToken cancel)
 	{
+		/*
+		 * Exit early when dispatcher workers are fully occupied.
+		 */
 		if (Dispatcher.Available <= 0)
 			return;
 
@@ -46,16 +71,25 @@ public abstract class QueueHost<TEntity, TCache>
 
 		try
 		{
+			/*
+			 * Retrieve dequeue candidates and allow derived classes to post-process them
+			 * before dispatching.
+			 */
 			var items = await Query(cache, scope.ServiceProvider.GetRequiredService<IStorageProvider>());
 
 			items = await OnDequeued(items);
+
 			/*
 			 * Make sure changes to the queue service get commited.
 			 */
 			await scope.Commit();
 
+			/*
+				* Nothing to process for this cycle.
+				*/
 			if (!items.Any())
 				return;
+
 			/*
 			 * Messages have been receive but it's not necessary we'll process them
 			 */
@@ -83,16 +117,37 @@ public abstract class QueueHost<TEntity, TCache>
 		}
 	}
 
+	/// <summary>
+	/// Determines whether a dequeued message should be accepted for processing.
+	/// </summary>
+	/// <param name="queue">The current dispatcher queue.</param>
+	/// <param name="message">The dequeued message candidate.</param>
+	/// <returns>A task whose result is <see langword="true"/> when the message is accepted; otherwise <see langword="false"/>.</returns>
+	/// <remarks>
+	/// Derived hosts can override this method to implement admission rules such as throttling,
+	/// deduplication, or domain-specific filtering.
+	/// </remarks>
 	protected virtual async Task<bool> Accept(ConcurrentQueue<TEntity> queue, TEntity message)
 	{
 		return await Task.FromResult(true);
 	}
 
+	/// <summary>
+	/// Allows derived hosts to transform or filter dequeued messages before dispatching.
+	/// </summary>
+	/// <param name="messages">The dequeued message set.</param>
+	/// <returns>A task whose result contains the message set to dispatch.</returns>
 	protected virtual async Task<IImmutableList<TEntity>> OnDequeued(IImmutableList<TEntity> messages)
 	{
 		return await Task.FromResult(messages);
 	}
 
+	/// <summary>
+	/// Retrieves and reserves queue messages for processing.
+	/// </summary>
+	/// <param name="cache">The queue cache used for candidate discovery and synchronization.</param>
+	/// <param name="storage">The storage provider used for visibility updates.</param>
+	/// <returns>An immutable list of reserved messages ready for dispatch.</returns>
 	private async Task<IImmutableList<TEntity>> Query(IQueueMessageCache cache, IStorageProvider storage)
 	{
 		/*
@@ -172,6 +227,12 @@ public abstract class QueueHost<TEntity, TCache>
 		return [.. result];
 	}
 
+	/// <summary>
+	/// Selects eligible dequeue candidates based on visibility, priority, and dispatcher capacity.
+	/// </summary>
+	/// <param name="cache">The queue cache containing candidate messages.</param>
+	/// <param name="storage">The storage provider used for cleanup of invalid messages.</param>
+	/// <returns>A list of selected message candidates.</returns>
 	private async Task<List<TEntity>> SelectTargets(IQueueMessageCache cache, IStorageProvider storage)
 	{
 		/*
@@ -264,6 +325,13 @@ public abstract class QueueHost<TEntity, TCache>
 		return [.. ordered.Take(Dispatcher.Available)];
 	}
 
+	/// <summary>
+	/// Returns a rejected message to immediate visibility by resetting its next visible timestamp.
+	/// </summary>
+	/// <param name="cache">The queue cache used to read and synchronize message state.</param>
+	/// <param name="storage">The storage provider used to persist the visibility reset.</param>
+	/// <param name="popReceipt">The pop receipt of the message to update.</param>
+	/// <returns>A task representing the asynchronous update operation.</returns>
 	private static async Task Update(TCache cache, IStorageProvider storage, Guid popReceipt)
 	{
 		var existing = (await cache.Select(popReceipt)).Required<TEntity>();

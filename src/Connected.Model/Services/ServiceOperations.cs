@@ -83,7 +83,7 @@ public static class ServiceOperations
 	/// The operation name for selecting an entity by key.
 	/// </summary>
 	public const string SelectByKey = "select-by-key";
-	[Obsolete("use query instead")]
+
 	/// <summary>
 	/// The operation name for updating multiple entities at the same time. This
 	/// operation is typically used in extension services.

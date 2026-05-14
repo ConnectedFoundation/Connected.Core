@@ -133,7 +133,16 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 	/// group logic in derived classes.
 	/// </remarks>
 	protected TDto Dto { get; private set; } = default!;
+
+	/// <summary>
+	/// Gets or sets the visibility interval, in seconds, assigned to dequeued messages.
+	/// </summary>
+	/// <remarks>
+	/// The interval controls how long a dequeued message remains hidden from other workers
+	/// while processing is in progress.
+	/// </remarks>
 	protected TimeSpan PopInterval { get; set; } = TimeSpan.FromSeconds(30);
+
 	/// <summary>
 	/// Implements the IQueueContext interface by creating and enqueueing a message for asynchronous processing.
 	/// </summary>
@@ -202,6 +211,14 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 		await cache.Update(instance);
 	}
 
+	/// <summary>
+	/// Initializes context-specific settings before validation and enqueue operations.
+	/// </summary>
+	/// <returns>A task representing the asynchronous initialization operation.</returns>
+	/// <remarks>
+	/// Derived classes can override this method to adjust group, priority, visibility, debounce,
+	/// or expiration values based on the current DTO.
+	/// </remarks>
 	protected virtual async Task OnInitialize()
 	{
 		await Task.CompletedTask;
@@ -311,6 +328,13 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 		return false;
 	}
 
+	/// <summary>
+	/// Determines whether the queue currently contains no message for the specified group.
+	/// </summary>
+	/// <param name="proposedGroup">The group identifier to query.</param>
+	/// <returns>
+	/// A task whose result is <see langword="true"/> when no matching message exists; otherwise <see langword="false"/>.
+	/// </returns>
 	protected async Task<bool> IsEmpty(string? proposedGroup)
 	{
 		return await cache.Select(typeof(TAction), proposedGroup) is null;
