@@ -11,6 +11,9 @@ public enum ClaimStatus
 
 public interface IClaim : IEntity<long>
 {
+	const string UndefinedEntity = "*";
+	const string UndefinedId = "*";
+
 	string Value { get; init; }
 	string? Schema { get; init; }
 	string? Identity { get; init; }

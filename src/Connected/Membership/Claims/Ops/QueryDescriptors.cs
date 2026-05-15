@@ -19,7 +19,8 @@ internal sealed class QueryDescriptors(IMiddlewareService middlewares)
 			foreach (var descriptor in descriptors)
 			{
 				if (result.FirstOrDefault(f => string.Equals(f.Entity, descriptor.Entity, StringComparison.OrdinalIgnoreCase)
-					&& string.Equals(f.EntityId, descriptor.EntityId, StringComparison.OrdinalIgnoreCase)) is null)
+					&& string.Equals(f.EntityId, descriptor.EntityId, StringComparison.OrdinalIgnoreCase)
+					&& string.Equals(f.Value, descriptor.Value, StringComparison.OrdinalIgnoreCase)) is null)
 					result.Add(descriptor);
 			}
 		}

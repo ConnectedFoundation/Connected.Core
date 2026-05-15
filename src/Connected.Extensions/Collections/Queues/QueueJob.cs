@@ -339,7 +339,7 @@ internal sealed class QueueJob<TEntity, TCache>(IStorageProvider storage, TCache
 		/*
 		 * Persist the update to storage with concurrency handling.
 		 */
-		modified = await storage.Open<TEntity>().Update(modified, async (entity) =>
+		modified = await storage.Open<TEntity>(StorageConnectionMode.Isolated).Update(modified, async (entity) =>
 		{
 			var cloned = entity.Clone();
 
@@ -392,8 +392,9 @@ internal sealed class QueueJob<TEntity, TCache>(IStorageProvider storage, TCache
 
 		/*
 		 * Persist the update to storage with concurrency handling.
+		 * Use Isolated mode so the write commits immediately and releases the SQLite write lock.
 		 */
-		modified = await storage.Open<TEntity>().Update(modified, async (entity) =>
+		modified = await storage.Open<TEntity>(StorageConnectionMode.Isolated).Update(modified, async (entity) =>
 		{
 			var cloned = entity.Clone();
 

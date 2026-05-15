@@ -226,12 +226,13 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
              * Perform the update. Note that provider should check for concurrency only if 
              * the entity is updating. Concurrency is not used for inserting and deleting operations.
              */
-				await Update(currentEntity, updatingProperties);
+				var updated = await Update(currentEntity, updatingProperties);
 				/*
-             * Provider will merge the updating entity with a new id if the operation is Insert. For updating and
-             * deleting operations the same entity is returned.
+             * Return the entity produced by the inner Update, which has had ReturnValueBinder
+             * applied (e.g. the new eTag written back). Returning currentEntity here would
+             * discard the updated eTag and cause stale-eTag concurrency failures on the next write.
              */
-				return currentEntity;
+				return updated;
 			}
 			catch (DBConcurrencyException ex)
 			{

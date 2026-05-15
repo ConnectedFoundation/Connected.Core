@@ -174,31 +174,41 @@ internal class FieldMappings<TEntity>
 			/*
 			 * We don't perform any conversions on dates. All dates should be stored in a UTC
 			 * format so we simply set the correct kind of date so it can be later correctly
-			 * converted
+			 * converted.
+			 * SQLite returns date/time columns as strings — parse them explicitly.
 			 */
-			if (value is DateTime time)
+			if (value is string s)
+				value = ParseDateTimeOffset(s);
+			else if (value is DateTime time)
 				value = new DateTimeOffset(DateTime.SpecifyKind(time, DateTimeKind.Utc));
 		}
 		else if (type == typeof(DateTime) || type == typeof(DateTime?))
 		{
 			/*
-			 * Like DateTimeOffset, the same is true for DateTime values
+			 * Like DateTimeOffset, the same is true for DateTime values.
+			 * SQLite returns date/time columns as strings — parse them explicitly.
 			 */
-			if (value is DateTimeOffset offset)
+			if (value is string s)
+				value = ParseDateTimeOffset(s).UtcDateTime;
+			else if (value is DateTimeOffset offset)
 				value = DateTime.SpecifyKind(offset.DateTime, DateTimeKind.Utc);
 			else if (value is DateTime dateTime)
 				value = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
 		}
 		else if (type == typeof(DateOnly) || type == typeof(DateOnly?))
 		{
-			if (value is DateTimeOffset offset)
+			if (value is string s && DateOnly.TryParse(s, out var parsedDate))
+				value = parsedDate;
+			else if (value is DateTimeOffset offset)
 				value = DateOnly.FromDateTime(DateTime.SpecifyKind(offset.DateTime, DateTimeKind.Utc));
 			else if (value is DateTime dateTime)
 				value = DateOnly.FromDateTime(DateTime.SpecifyKind(dateTime, DateTimeKind.Utc));
 		}
 		else if (type == typeof(TimeOnly) || type == typeof(TimeOnly?))
 		{
-			if (value is DateTimeOffset offset)
+			if (value is string s && TimeOnly.TryParse(s, out var parsedTime))
+				value = parsedTime;
+			else if (value is DateTimeOffset offset)
 				value = TimeOnly.FromDateTime(DateTime.SpecifyKind(offset.DateTime, DateTimeKind.Utc));
 			else if (value is DateTime dateTime)
 				value = TimeOnly.FromDateTime(DateTime.SpecifyKind(dateTime, DateTimeKind.Utc));
@@ -216,5 +226,40 @@ internal class FieldMappings<TEntity>
 		 * Now bind the property from the converted value.
 		 */
 		prop.SetValue(instance, value);
+	}
+
+	/// <summary>
+	/// Parses a date/time string stored by SQLite (TEXT affinity) into a UTC DateTimeOffset.
+	/// Tries common formats: ISO 8601 with offset, 'yyyy-MM-dd HH:mm:ss' (our write format),
+	/// and any format the runtime recognises with AssumeUniversal.
+	/// </summary>
+	private static DateTimeOffset ParseDateTimeOffset(string s)
+	{
+		// SQLite may store the value with surrounding double-quotes — strip them.
+		s = s.Trim('"');
+		// Try standard ISO 8601 / RFC 3339 first (includes offset designators)
+		if (DateTimeOffset.TryParse(s, null,
+			System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
+			out var result))
+			return result;
+
+		// Explicit formats written by SqliteFormatter.WriteValue: 'yyyy-MM-dd HH:mm:ss'
+		var formats = new[]
+		{
+			"yyyy-MM-dd HH:mm:ss",
+			"yyyy-MM-dd HH:mm:ss.fff",
+			"yyyy-MM-ddTHH:mm:ss",
+			"yyyy-MM-ddTHH:mm:ss.fff",
+			"yyyy-MM-dd"
+		};
+
+		if (DateTimeOffset.TryParseExact(s, formats, System.Globalization.CultureInfo.InvariantCulture,
+			System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
+			out result))
+			return result;
+
+		// Last resort — let the runtime throw a meaningful error
+		return DateTimeOffset.Parse(s, System.Globalization.CultureInfo.InvariantCulture,
+			System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal);
 	}
 }

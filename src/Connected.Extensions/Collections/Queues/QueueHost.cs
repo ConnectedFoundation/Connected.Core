@@ -5,6 +5,7 @@ using Connected.Services;
 using Connected.Storage;
 using Connected.Workers;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 
@@ -43,6 +44,7 @@ public abstract class QueueHost<TEntity, TCache>
 
 	private QueueDispatcher<TEntity, TCache> Dispatcher { get; }
 
+	private ILogger? Logger { get; set; }
 	/// <summary>
 	/// Gets or sets the maximum number of messages processed concurrently by the host dispatcher.
 	/// <remarks>
@@ -66,6 +68,7 @@ public abstract class QueueHost<TEntity, TCache>
 			return;
 
 		using var scope = await Scope.Create().WithSystemIdentity();
+		Logger = scope.ServiceProvider.GetRequiredService<ILogger<QueueHost<TEntity, TCache>>>();
 		var cache = scope.ServiceProvider.GetRequiredService<TCache>();
 		var storage = scope.ServiceProvider.GetRequiredService<IStorageProvider>();
 
