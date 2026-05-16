@@ -19,16 +19,19 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEv
 		var targetMiddleware = typeof(IEventListener<>);
 		var dto = Dto.Dto.GetType().GetImplementedDtos();
 		var gt = targetMiddleware.MakeGenericType(dto.Count == 0 ? Dto.Dto.GetType() : dto[0]);
-		var middleware = await middlewares.Query(gt, new CallerContext { Sender = Dto.Service, Method = Dto.Event });
+		var caller = new CallerContext { Sender = Dto.Service, Method = Dto.Event };
+		var middleware = await middlewares.Query(gt, caller);
 
 		foreach (var m in middleware)
 		{
-			if (m.GetType().GetMethod(nameof(IEventListener<IDto>.Invoke), BindingFlags.Public | BindingFlags.Instance, [typeof(IOperationState), Dto.Dto.GetType()]) is not MethodInfo method)
+			if (m.GetType().GetMethod(nameof(IEventListener<IDto>.Invoke), BindingFlags.Public | BindingFlags.Instance, [typeof(IOperationState), Dto.Dto.GetType(), typeof(ICallerContext), typeof(string)]) is not MethodInfo method)
 				continue;
 
 			try
 			{
-				await method.InvokeAsync(m, Dto.Sender, Dto.Dto);
+				var callerContext = Dto.Sender?.GetType().GetProperty(nameof(IServiceOperation<IDto>.Caller))?.GetValue(Dto.Sender) is ICallerContext senderCaller ? senderCaller : caller;
+
+				await method.InvokeAsync(m, Dto.Sender, Dto.Dto, callerContext, Dto.Event);
 			}
 			catch (Exception ex)
 			{

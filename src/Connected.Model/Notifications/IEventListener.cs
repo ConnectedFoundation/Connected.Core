@@ -35,5 +35,5 @@ public interface IEventListener<TDto>
 	/// accessing additional state information. Implementations should handle exceptions
 	/// gracefully to avoid disrupting other event listeners.
 	/// </remarks>
-	Task Invoke(IOperationState sender, TDto dto);
+	Task Invoke(IOperationState sender, TDto dto, ICallerContext caller, string eventName);
 }
