@@ -7,6 +7,20 @@ namespace Connected.Membership;
 
 public static class MembershipUtils
 {
+	public static async Task<bool> IsMemberOf(string identity, string membershipIdentity, IMembershipService membership, IRoleService roles)
+	{
+		if (string.IsNullOrWhiteSpace(identity) || string.IsNullOrWhiteSpace(membershipIdentity))
+			return false;
+
+		if (string.Equals(identity, membershipIdentity, StringComparison.OrdinalIgnoreCase))
+			return true;
+
+		var identityTokens = await ResolveIdentityTokens(identity, membership, roles);
+		var membershipTokens = await ResolveIdentityTokens(membershipIdentity, membership, roles);
+
+		return identityTokens.Any(token => membershipTokens.Any(target => string.Equals(token, target, StringComparison.OrdinalIgnoreCase)));
+	}
+
 	public static async Task<ImmutableList<string>> ResolveIdentityTokens(string? identity, IMembershipService membership, IRoleService roles)
 	{
 		var result = new List<string>();
@@ -14,7 +28,12 @@ public static class MembershipUtils
 		if (identity is null)
 			return [.. result];
 
-		result.Add(identity);
+		AddToken(result, identity);
+
+		var ownRole = await roles.Select(Dto.Factory.CreateValue(identity));
+
+		if (ownRole is not null)
+			await ProcessRole(roles, ownRole.Id, result);
 
 		var dto = Dto.Factory.Create<IQueryMembershipDto>();
 
@@ -28,6 +47,12 @@ public static class MembershipUtils
 		return [.. result];
 	}
 
+	private static void AddToken(List<string> items, string token)
+	{
+		if (!items.Any(f => string.Equals(f, token, StringComparison.OrdinalIgnoreCase)))
+			items.Add(token);
+	}
+
 	private static async Task ProcessRole(IRoleService roles, int roleId, List<string> items)
 	{
 		var role = await roles.Select(Dto.Factory.CreatePrimaryKey(roleId));
@@ -35,8 +60,7 @@ public static class MembershipUtils
 		if (role is null)
 			return;
 
-		if (!items.Contains(role.Token))
-			items.Add(role.Token);
+		AddToken(items, role.Token);
 
 		if (role.Parent is not null)
 			await ProcessRole(roles, role.Parent.GetValueOrDefault(), items);
