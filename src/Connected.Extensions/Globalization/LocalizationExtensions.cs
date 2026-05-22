@@ -1,5 +1,6 @@
 using Connected.Authentication;
 using Connected.Globalization.Languages;
+using Connected.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,6 +9,7 @@ using Microsoft.Extensions.Options;
 using System.Globalization;
 
 namespace Connected.Globalization;
+
 public static class LocalizationExtensions
 {
 	public static void AddLocalization(this IHostApplicationBuilder builder)
@@ -15,9 +17,9 @@ public static class LocalizationExtensions
 		builder.Services.AddScoped<RequestLocalizationCookiesMiddleware>();
 
 		builder.Services.AddOptions<RequestLocalizationOptions>()
-			.Configure<ILanguageService, IAuthenticationService>(async (o, languages, authentication) =>
+			.Configure(async (o) =>
 			{
-				await authentication.WithSystemIdentity();
+				using var scope = await Scope.Create().WithSystemIdentity();
 
 				o.DefaultRequestCulture = new RequestCulture(CultureInfo.InvariantCulture);
 				o.FallBackToParentCultures = true;
@@ -30,6 +32,7 @@ public static class LocalizationExtensions
 
 				instances.ForEach(obj => o.RequestCultureProviders.Remove(obj));
 
+				var languages = scope.ServiceProvider.GetRequiredService<ILanguageService>();
 				var items = await languages.Query(null);
 
 				o.SupportedCultures ??= [];
