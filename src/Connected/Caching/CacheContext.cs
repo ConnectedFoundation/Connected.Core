@@ -368,7 +368,7 @@ internal class CacheContext : ICacheContext
 		if (!_removeList.ContainsKey(key))
 			return false;
 
-		return IsRemoved(key, ResolveId(key));
+		return IsRemoved(key, ResolveId(item));
 	}
 
 	private bool IsRemoved(string key, object? id)
