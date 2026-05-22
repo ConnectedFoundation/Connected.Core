@@ -297,7 +297,12 @@ internal sealed class ServiceRequestDelegate : RestRequest
 					result.Add(i, list);
 				}
 				else
-					result.Add(i, value.ToString());
+				{
+					var v = value.ToString();
+
+					if (!string.IsNullOrEmpty(v))
+						result.Add(i, v);
+				}
 			}
 
 			return result;
