@@ -187,6 +187,30 @@ public class SqlFormatter
 
 	protected override Expression VisitMemberAccess(MemberExpression m)
 	{
+		if (string.Equals(m.Member.Name, nameof(Nullable<int>.Value), StringComparison.Ordinal)
+			&& m.Expression is not null
+			&& Nullable.GetUnderlyingType(m.Expression.Type) is not null)
+		{
+			/*
+			 * Nullable<T>.Value maps to the underlying member/column value.
+			 */
+			Visit(m.Expression);
+
+			return m;
+		}
+		else if (string.Equals(m.Member.Name, nameof(Nullable<int>.HasValue), StringComparison.Ordinal)
+			&& m.Expression is not null
+			&& Nullable.GetUnderlyingType(m.Expression.Type) is not null)
+		{
+			/*
+			 * Translate nullable.HasValue into SQL null check.
+			 */
+			Visit(m.Expression);
+			Write(" IS NOT NULL");
+
+			return m;
+		}
+
 		throw new NotSupportedException($"The member access '{m.Member}' is not supported.");
 	}
 
@@ -581,12 +605,20 @@ public class SqlFormatter
 		{
 			ExpressionType.And or ExpressionType.AndAlso or ExpressionType.Or or ExpressionType.OrElse => IsBoolean(((BinaryExpression)expr).Type),
 			ExpressionType.Not => IsBoolean(((UnaryExpression)expr).Type),
+			ExpressionType.MemberAccess => IsNullableHasValueAccess((MemberExpression)expr),
 			ExpressionType.Equal or ExpressionType.NotEqual or ExpressionType.LessThan or ExpressionType.LessThanOrEqual or
 			ExpressionType.GreaterThan or ExpressionType.GreaterThanOrEqual or (ExpressionType)DatabaseExpressionType.IsNull or
 			(ExpressionType)DatabaseExpressionType.Between or (ExpressionType)DatabaseExpressionType.Exists or (ExpressionType)DatabaseExpressionType.In => true,
 			ExpressionType.Call => IsBoolean(((MethodCallExpression)expr).Type),
 			_ => false,
 		};
+	}
+
+	private static bool IsNullableHasValueAccess(MemberExpression member)
+	{
+		return string.Equals(member.Member.Name, nameof(Nullable<int>.HasValue), StringComparison.Ordinal)
+			&& member.Expression is not null
+			&& Nullable.GetUnderlyingType(member.Expression.Type) is not null;
 	}
 
 	protected virtual Expression VisitPredicate(Expression expr)
