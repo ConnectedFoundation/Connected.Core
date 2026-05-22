@@ -3,6 +3,7 @@ using Connected.Data.Expressions.Languages;
 using Connected.Data.Expressions.Translation;
 using Connected.Data.Expressions.Visitors;
 using Connected.Reflection;
+using System.Collections;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq.Expressions;
@@ -254,8 +255,71 @@ public class SqlFormatter
 				return m;
 			}
 		}
+		else if (string.Equals(m.Method.Name, "Contains", StringComparison.Ordinal))
+		{
+			if (m.Arguments.Count >= 2 && TryWriteInList(m.Arguments[0], m.Arguments[1]))
+				return m;
+
+			if (!m.Method.IsStatic && m.Method.DeclaringType != typeof(string) && m.Object is not null && m.Arguments.Count == 1 && TryWriteInList(m.Object, m.Arguments[0]))
+				return m;
+		}
 
 		throw new NotSupportedException($"The method '{m.Method.Name}' is not supported");
+	}
+
+	protected virtual bool TryWriteInList(Expression source, Expression value)
+	{
+		if (source is NewArrayExpression newArray)
+		{
+			if (newArray.Expressions.Count == 0)
+			{
+				Write("0 <> 0");
+				return true;
+			}
+
+			Write(OpenBracket);
+			VisitValue(value);
+			Write($" IN {OpenBracket}");
+
+			for (var i = 0; i < newArray.Expressions.Count; i++)
+			{
+				if (i > 0)
+					Write(", ");
+
+				VisitValue(newArray.Expressions[i]);
+			}
+
+			Write(CloseBracket);
+			Write(CloseBracket);
+			return true;
+		}
+
+		if (source is not ConstantExpression constant || constant.Value is null || constant.Value is string || constant.Value is not IEnumerable values)
+			return false;
+
+		var valueList = values.Cast<object?>().ToList();
+
+		if (valueList.Count == 0)
+		{
+			Write("0 <> 0");
+			return true;
+		}
+
+		Write(OpenBracket);
+		VisitValue(value);
+		Write($" IN {OpenBracket}");
+
+		for (var i = 0; i < valueList.Count; i++)
+		{
+			if (i > 0)
+				Write(", ");
+
+			WriteValue(valueList[i]);
+		}
+
+		Write(CloseBracket);
+		Write(CloseBracket);
+		return true;
 	}
 
 	protected virtual bool IsInteger(Type type)

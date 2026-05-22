@@ -254,7 +254,9 @@ public abstract class ExpressionVisitor : IDisposable
 		 * Visit the instance part (may be null for static members). Rebuild only
 		 * when the instance differs; member info itself rarely changes.
 		 */
-		if (expression.Expression is null || Visit(expression.Expression) is not Expression member)
+		var member = expression.Expression is not null ? Visit(expression.Expression) : null;
+
+		if (expression.Expression is not null && member is null)
 			throw new NullReferenceException(nameof(member));
 
 		return UpdateMemberAccess(expression, member, expression.Member);
@@ -267,7 +269,7 @@ public abstract class ExpressionVisitor : IDisposable
 	/// <param name="e">Visited instance expression.</param>
 	/// <param name="member">The member info.</param>
 	/// <returns>Updated or original member access expression.</returns>
-	protected static MemberExpression UpdateMemberAccess(MemberExpression expression, Expression e, MemberInfo member)
+	protected static MemberExpression UpdateMemberAccess(MemberExpression expression, Expression? e, MemberInfo member)
 	{
 		/*
 		 * Allocate a new member access only when instance or member changed.
