@@ -94,6 +94,15 @@ public abstract class Service : IService, IDisposable
 		return ctx;
 	}
 
+	internal async Task ReEvaluateDto<TDto>(TDto dto, ICallerContext caller)
+		where TDto : IDto
+	{
+		await ProvideDtoValues(dto);
+		await InitializeAmbient(dto);
+		await Calibrate(caller, dto);
+		await Validate(caller, dto);
+	}
+
 	public TOperation GetOperation<TOperation>()
 	{
 		var result = ServiceLocator.GetService<TOperation>();

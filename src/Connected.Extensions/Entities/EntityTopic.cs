@@ -10,7 +10,7 @@ using System.Reflection;
 namespace Connected.Entities;
 
 public abstract class EntityTopic<TEntity, TEntityImplementation, TPrimaryKey>(IStorageProvider storage,
-	ICacheContainer<TEntity, TPrimaryKey>? cache, IEventService events, IValidationContext validation)
+	ICacheContainer<TEntity, TPrimaryKey>? cache, IEventService events, IValidationContext? validation)
 	: IEntityTopic<TEntity, TPrimaryKey>
 	where TEntity : IEntity<TPrimaryKey>
 	where TEntityImplementation : class, TEntity
@@ -41,10 +41,10 @@ public abstract class EntityTopic<TEntity, TEntityImplementation, TPrimaryKey>(I
 			await events.Deleted(sender, sender.Caller.Sender, entity.Id);
 	}
 
-	public async Task<TPrimaryKey> Insert<TDto>(IServiceOperation<TDto> sender)
+	public async Task<TPrimaryKey> Insert<TDto>(IServiceOperation<TDto> sender, params object[] propertySources)
 		where TDto : IDto
 	{
-		var entity = (await storage.Open<TEntityImplementation>().Update(sender.Dto.AsEntity<TEntityImplementation>(State.Add))).Required();
+		var entity = (await storage.Open<TEntityImplementation>().Update(sender.Dto.AsEntity<TEntityImplementation>(State.Add, propertySources))).Required();
 
 		sender.SetState(entity);
 
@@ -61,23 +61,26 @@ public abstract class EntityTopic<TEntity, TEntityImplementation, TPrimaryKey>(I
 	{
 		ValidateProperties<TUpdateDto>(sender.Dto);
 
-		var entity = sender.SetState(await Select(sender.Dto.CreatePrimaryKey(sender.Dto.Id)) as TEntityImplementation).Required();
+		var entity = sender.SetState(await Select(sender.Dto) as TEntityImplementation).Required();
 		var st = storage.Open<TEntityImplementation>();
 		var updateDto = ServicesExtensions.Patch<TUpdateDto, TEntity>(sender.Dto, entity, State.Update);
-		await validation.Validate(sender.Caller, updateDto);
+
+		if (sender.Caller.Sender is Service s)
+			await s.ReEvaluateDto(updateDto, sender.Caller);
 
 		var result = await st.Update(entity, async (f) =>
 		{
 			updateDto = ServicesExtensions.Patch<TUpdateDto, TEntityImplementation>(sender.Dto, entity, State.Update);
 
-			await validation.Validate(sender.Caller, updateDto);
+			if (sender.Caller.Sender is Service s)
+				await s.ReEvaluateDto(updateDto, sender.Caller);
 
 			return entity.Merge(updateDto, State.Update);
 		}, async () =>
 		{
 			await RefreshCache(entity.Id);
 
-			return sender.SetState(await Select(sender.Dto.CreatePrimaryKey(sender.Dto.Id)) as TEntityImplementation).Required();
+			return sender.SetState(await Select(sender.Dto) as TEntityImplementation).Required();
 		}, sender.Caller, sender.Dto.Properties.Select(f => f.Key));
 
 		await RefreshCache(entity.Id);
@@ -86,12 +89,12 @@ public abstract class EntityTopic<TEntity, TEntityImplementation, TPrimaryKey>(I
 			await events.Updated(sender, sender.Caller.Sender, sender.Dto.Id);
 	}
 
-	public async Task Update<TDto>(IServiceOperation<TDto> sender)
+	public async Task Update<TDto>(IServiceOperation<TDto> sender, params object[] propertySources)
 		where TDto : IPrimaryKeyDto<TPrimaryKey>
 	{
 		var entity = sender.SetState(await Select(sender.Dto) as TEntityImplementation).Required();
 		var st = storage.Open<TEntityImplementation>();
-		var result = await st.Update(entity.Merge(sender.Dto, State.Update), sender.Dto, async () =>
+		var result = await st.Update(entity.Merge(sender.Dto, State.Update, propertySources), sender.Dto, async () =>
 		{
 			await RefreshCache(entity.Id);
 
