@@ -6,9 +6,9 @@ public interface IEntityTopic<TEntity, TPrimaryKey>
 	where TEntity : IEntity<TPrimaryKey>
 	where TPrimaryKey : notnull
 {
-	Task<TPrimaryKey> Insert<TDto>(IServiceOperation<TDto> sender)
+	Task<TPrimaryKey> Insert<TDto>(IServiceOperation<TDto> sender, params object[] propertySources)
 		where TDto : IDto;
-	Task Update<TDto>(IServiceOperation<TDto> sender)
+	Task Update<TDto>(IServiceOperation<TDto> sender, params object[] propertySources)
 		where TDto : IPrimaryKeyDto<TPrimaryKey>;
 	Task Patch<TUpdateDto>(IServiceOperation<IPatchDto<TPrimaryKey>> sender)
 		where TUpdateDto : IPrimaryKeyDto<TPrimaryKey>;

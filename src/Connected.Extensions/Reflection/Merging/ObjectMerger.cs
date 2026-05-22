@@ -43,6 +43,8 @@ internal sealed class ObjectMerger : Merger
 
 			if (source is null)
 				property.SetValue(destination, null);
+			else if (source.GetType().IsTypePrimitive() && property.PropertyType.IsTypePrimitive())
+				TrySetValue(destination, property, source);
 			else if (source.GetType() is Type propertyType && PropertyResolver.Resolve(propertyType, property.Name) is PropertyInfo propertyInfo)
 			{
 				var value = propertyInfo.GetValue(source);
@@ -50,17 +52,13 @@ internal sealed class ObjectMerger : Merger
 				if (value is null)
 					property.SetValue(destination, null);
 				else
-				{
-					property.SetValue(destination, TypeConversion.Convert(value, property.PropertyType));
-				}
+					TrySetValue(destination, property, value);
 			}
 			else
 			{
 				if (source.GetType().IsTypePrimitive())
 				{
-					var converted = Types.Convert(source, property.PropertyType);
-
-					property.SetValue(destination, converted);
+					TrySetValue(destination, property, source);
 				}
 				else
 				{
@@ -73,11 +71,7 @@ internal sealed class ObjectMerger : Merger
 						if (value is null)
 							property.SetValue(destination, null);
 						else
-						{
-							var converted = Types.Convert(value, property.PropertyType);
-
-							property.SetValue(destination, converted);
-						}
+							TrySetValue(destination, property, value);
 					}
 				}
 			}
@@ -217,6 +211,31 @@ internal sealed class ObjectMerger : Merger
 		}
 
 		property.SetValue(destination, instance);
+	}
+
+	private static void TrySetValue(object destination, PropertyInfo property, object value)
+	{
+		var targetType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+
+		if (targetType.IsInstanceOfType(value))
+		{
+			property.SetValue(destination, value);
+
+			return;
+		}
+
+		try
+		{
+			var converted = Types.Convert(value, targetType);
+
+			property.SetValue(destination, converted);
+		}
+		catch
+		{
+			/*
+			 * Keep merge resilient: ignore values that cannot be converted.
+			 */
+		}
 	}
 
 	private void MergeObject(object destination, Dictionary<string, object?> source, PropertyInfo property)
