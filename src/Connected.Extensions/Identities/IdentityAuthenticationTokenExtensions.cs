@@ -35,6 +35,9 @@ public static class IdentityAuthenticationTokenExtensions
 			if (target is null)
 				return null;
 
+			if (target.Expire is null)
+				return target.Token;
+
 			if (target.Expire is not null && target.Expire.Value >= DateTimeOffset.UtcNow)
 				return target.Token;
 			else
