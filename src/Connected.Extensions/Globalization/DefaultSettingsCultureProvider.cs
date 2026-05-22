@@ -15,10 +15,15 @@ internal sealed class DefaultSettingsCultureProvider : CultureProviderBase, IReq
 		var settings = scope.ServiceProvider.GetRequiredService<ISettingService>();
 		var value = await settings.Select(Dto.Factory.CreateName("DefaultCulture"));
 
-		if (value is not null && !string.IsNullOrWhiteSpace(value.Value))
-			return new ProviderCultureResult(value.Value, value.Value);
-
-		await scope.Commit();
+		try
+		{
+			if (value is not null && !string.IsNullOrWhiteSpace(value.Value))
+				return new ProviderCultureResult(value.Value, value.Value);
+		}
+		finally
+		{
+			await scope.Commit();
+		}
 
 		return await Unresolved;
 	}

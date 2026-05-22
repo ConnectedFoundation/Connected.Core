@@ -1,3 +1,5 @@
+using Connected.Authentication;
+using Connected.Globalization.Languages;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,20 +14,36 @@ public static class LocalizationExtensions
 	{
 		builder.Services.AddScoped<RequestLocalizationCookiesMiddleware>();
 
-		builder.Services.Configure<RequestLocalizationOptions>(o =>
-		{
-			o.DefaultRequestCulture = new RequestCulture(CultureInfo.InvariantCulture);
-			o.FallBackToParentCultures = true;
-			o.FallBackToParentUICultures = true;
+		builder.Services.AddOptions<RequestLocalizationOptions>()
+			.Configure<ILanguageService, IAuthenticationService>(async (o, languages, authentication) =>
+			{
+				await authentication.WithSystemIdentity();
 
-			o.RequestCultureProviders.Insert(2, new DefaultSettingsCultureProvider());
-			o.RequestCultureProviders.Insert(2, new DomainCultureProvider());
-			o.RequestCultureProviders.Insert(1, new IdentityCultureProvider());
+				o.DefaultRequestCulture = new RequestCulture(CultureInfo.InvariantCulture);
+				o.FallBackToParentCultures = true;
+				o.FallBackToParentUICultures = true;
+				o.RequestCultureProviders.Insert(2, new DefaultSettingsCultureProvider());
+				o.RequestCultureProviders.Insert(2, new DomainCultureProvider());
+				o.RequestCultureProviders.Insert(1, new IdentityCultureProvider());
 
-			var instances = o.RequestCultureProviders.Where(f => f.GetType() == typeof(AcceptLanguageHeaderRequestCultureProvider)).ToList();
+				var instances = o.RequestCultureProviders.Where(f => f.GetType() == typeof(AcceptLanguageHeaderRequestCultureProvider)).ToList();
 
-			instances.ForEach(obj => o.RequestCultureProviders.Remove(obj));
-		});
+				instances.ForEach(obj => o.RequestCultureProviders.Remove(obj));
+
+				var items = await languages.Query(null);
+
+				o.SupportedCultures ??= [];
+				o.SupportedUICultures ??= [];
+
+				foreach (var language in items)
+				{
+					if (string.IsNullOrWhiteSpace(language.Culture))
+						continue;
+
+					o.SupportedCultures.Add(new CultureInfo(language.Culture));
+					o.SupportedUICultures.Add(new CultureInfo(language.Culture));
+				}
+			});
 	}
 
 	public static void ActivateLocalization(this IApplicationBuilder app)
