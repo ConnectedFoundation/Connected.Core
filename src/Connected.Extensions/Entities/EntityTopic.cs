@@ -89,6 +89,28 @@ public abstract class EntityTopic<TEntity, TEntityImplementation, TPrimaryKey>(I
 			await events.Updated(sender, sender.Caller.Sender, sender.Dto.Id);
 	}
 
+	public async Task Patch<TUpdateDto, TInsertDto>(IServiceOperation<IPatchDto<TPrimaryKey>> sender)
+		where TUpdateDto : IPrimaryKeyDto<TPrimaryKey>
+		where TInsertDto : IDto
+	{
+		ValidateProperties<TInsertDto>(sender.Dto);
+
+		if (await Select(sender.Dto) is null)
+		{
+			var insertDto = ServicesExtensions.Patch<TInsertDto, TEntityImplementation>(sender.Dto, default, State.Add);
+			var entity = (await storage.Open<TEntityImplementation>().Update(sender.Dto.AsEntity<TEntityImplementation>(State.Add, insertDto))).Required();
+
+			sender.SetState(entity);
+
+			await RefreshCache(entity.Id);
+
+			if (TriggerEvents)
+				await events.Inserted(sender, sender.Caller.Sender, entity.Id);
+		}
+		else
+			await Patch<TUpdateDto>(sender);
+	}
+
 	public async Task Update<TDto>(IServiceOperation<TDto> sender, params object[] propertySources)
 		where TDto : IPrimaryKeyDto<TPrimaryKey>
 	{
