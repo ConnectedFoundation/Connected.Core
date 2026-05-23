@@ -57,7 +57,7 @@ internal sealed class Update(IMiddlewareService middleware, ILogger<ISchemaServi
 			logger.LogTrace("Synchronizing entity '{entity}'", entity.Name);
 
 			var synchronized = false;
-			var dto = Dto.Create<ISelectSchemaDto>();
+			var dto = new Dto<ISelectSchemaDto>().Value;
 
 			dto.Type = entity;
 
@@ -78,7 +78,7 @@ internal sealed class Update(IMiddlewareService middleware, ILogger<ISchemaServi
 				/*
 				 * Note that sharding synchronization will be handled by the middleware.
 				 */
-				var middlewareDto = Dto.Create<ISchemaMiddlewareDto>();
+				var middlewareDto = new Dto<ISchemaMiddlewareDto>().Value;
 
 				middlewareDto.Type = entity;
 				middlewareDto.Schema = schema;

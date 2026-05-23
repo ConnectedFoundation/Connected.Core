@@ -6,7 +6,6 @@ using Connected.Reflection;
 using Connected.Storage.Schemas;
 using Connected.Storage.Sharding;
 using Connected.Storage.Sharding.Nodes;
-using System.Collections.Immutable;
 
 namespace Connected.Storage.Sql.Schemas;
 
@@ -45,7 +44,7 @@ internal enum ConstraintNameType
 /// on each node to ensure consistent schema across the distributed database infrastructure.
 /// </remarks>
 [Priority(0)]
-internal sealed class SqlSchemaMiddleware(IMiddlewareService middleware, IStorageProvider storage, IConfigurationService configuration)
+internal sealed class SqlSchemaMiddleware(IMiddlewareService middleware, IStorageProvider storage, IConfigurationService configuration, IShardingNodeService nodes)
 	: Middleware, ISchemaMiddleware
 {
 	/// <summary>
@@ -74,8 +73,13 @@ internal sealed class SqlSchemaMiddleware(IMiddlewareService middleware, IStorag
 		 * First query all sharding middleware because we must perform synchronization
 		 * on all nodes.
 		 */
-		foreach (var connection in await ResolveShardingMiddleware(dto.Type))
-			await Synchronize(dto.Schema, connection.ConnectionString);
+		if (await SupportsSharding(dto.Type))
+		{
+			var nodeEntities = (await nodes.Query(null)).Where(f => f.Status == Status.Enabled);
+
+			foreach (var node in nodeEntities)
+				await Synchronize(dto.Schema, node.ConnectionString);
+		}
 
 		return true;
 	}
@@ -103,45 +107,30 @@ internal sealed class SqlSchemaMiddleware(IMiddlewareService middleware, IStorag
 	}
 
 	/// <summary>
-	/// Resolves all sharding nodes for an entity type.
+	/// Determines if an entity type supports sharding.
 	/// </summary>
-	/// <param name="entityType">The entity type to resolve sharding nodes for.</param>
+	/// <param name="entityType">The entity type to check for sharding support.</param>
 	/// <returns>
-	/// A task representing the asynchronous operation. The task result contains an immutable list
-	/// of sharding nodes, or an empty list if the entity is not sharded.
+	/// A task representing the asynchronous operation. The task result contains a boolean
+	/// indicating whether the entity supports sharding.
 	/// </returns>
 	/// <remarks>
 	/// This method queries registered sharding node providers to determine all database nodes
 	/// where the entity should be synchronized. It uses reflection to invoke the provider's
 	/// Invoke method dynamically based on the entity type.
 	/// </remarks>
-	private async Task<IImmutableList<IShardingNode>> ResolveShardingMiddleware(Type entityType)
+	private async Task<bool> SupportsSharding(Type entityType)
 	{
 		var entity = EntitiesExtensions.GetUnderlyingEntity(entityType);
 
 		if (entity is null)
-			return [];
+			return false;
 
 		/*
 		 * Construct the generic IShardingNodeProvider<> type for the entity.
 		 */
 		var type = typeof(IShardingNodeProvider<>).MakeGenericType([entity]);
-		var providers = await middleware.Query(type);
-		var methodName = nameof(IShardingNodeProvider<IEntity>.Invoke);
-		var parameterTypes = new Type[] { typeof(IStorageOperation) };
-		var method = Methods.ResolveMethod(type, methodName, null, parameterTypes) ?? throw new NullReferenceException($"{Strings.ErrMethodNotFound} ('{type.Name}.{methodName}')");
 
-		/*
-		 * Query each provider to get the list of sharding nodes.
-		 */
-		foreach (var provider in providers)
-		{
-			var nodes = await method.InvokeAsync(provider, [null]);
-
-			if (nodes is IImmutableList<IShardingNode> items && items.Count != 0)
-				return items;
-		}
-
-		return [];
+		return (await middleware.Query(type)).Count != 0;
 	}
 }
