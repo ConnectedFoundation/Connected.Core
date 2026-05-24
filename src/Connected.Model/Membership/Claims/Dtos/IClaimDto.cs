@@ -24,4 +24,6 @@ public interface IClaimDto : IDto
 	/// If a claim protects a specific entity, the entity id. Use "*" for all entities of the specified type, or if the entity is unspecified. IClaim.UndefinedId equals this value.
 	/// </summary>
 	string EntityId { get; set; }
+
+	ClaimStatus Status { get; set; }
 }

@@ -1,6 +1,7 @@
 using Connected.Annotations;
 using Connected.Annotations.Entities;
 using Connected.Entities;
+using System.ComponentModel;
 
 namespace Connected.Membership.Claims;
 
@@ -20,6 +21,7 @@ internal sealed record Claim : Entity<long>, IClaim
 	public required string EntityId { get; init; }
 
 	[Ordinal(4), Length(256)]
+	[Default(ClaimStatus.Approved)]
 	public ClaimStatus Status { get; init; }
 
 	[Ordinal(5), Length(256)]

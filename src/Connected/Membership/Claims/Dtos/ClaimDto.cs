@@ -19,4 +19,5 @@ internal abstract class ClaimDto : Dto, IClaimDto
 
 	[Required, MaxLength(256)]
 	public required string EntityId { get; set; }
+	public ClaimStatus Status { get; set; } = ClaimStatus.Approved;
 }
