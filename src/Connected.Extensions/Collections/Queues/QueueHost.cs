@@ -256,7 +256,7 @@ public abstract class QueueHost<TEntity, TCache>
 			 * We don't have a cleanup task so this is a good place to check if the message
 			 * is invalid.
 			 */
-			if (i.Expire <= DateTimeOffset.UtcNow || i.DequeueCount >= i.MaxDequeueCount)
+			if (i.Action is null || i.Expire <= DateTimeOffset.UtcNow || i.DequeueCount >= i.MaxDequeueCount)
 			{
 				var instance = typeof(TEntity).CreateInstance();
 

@@ -79,10 +79,10 @@ internal sealed class QueueJob<TEntity, TCache>(IStorageProvider storage, TCache
 		await Update();
 
 		/*
-		 * Start the periodic timeout guard that extends visibility every 20 seconds.
+		 * Start the periodic timeout guard that extends visibility every n seconds.
 		 * This prevents the message from becoming visible again if processing exceeds the default window.
 		 */
-		Timeout = new TaskTimeout(Update, TimeSpan.FromSeconds(20), Cancel);
+		Timeout = new TaskTimeout(Update, TimeSpan.FromSeconds(Math.Max(5, Dto.PopInterval / 2)), Cancel);
 
 		/*
 		 * Start the guard task.

@@ -32,6 +32,7 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 	where TAction : IQueueAction<TDto>
 {
 	private string? _group;
+	private bool _groupSet = false;
 	/// <summary>
 	/// Gets the group identifier used for message debouncing and duplicate prevention.
 	/// </summary>
@@ -46,7 +47,7 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 	{
 		get
 		{
-			if (_group is null)
+			if (_group is null && !_groupSet)
 			{
 				/*
 				 * Check if the DTO implements IPrimaryKeyDto<> and extract the Id property value.
@@ -69,6 +70,7 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 		set
 		{
 			_group = value;
+			_groupSet = true;
 		}
 	}
 
@@ -248,12 +250,14 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 		 * Query the cache for an existing message with the same action type and group identifier.
 		 * This performs the duplicate detection that enables debouncing.
 		 */
-		var existing = await cache.Select(typeof(TAction), Group);
+		var existing = await cache.First(typeof(TAction), Group, false);
 
 		/*
-		 * If no existing message is found, allow enqueueing.
+		 * If no existing message is found, allow enqueueing. Also, if the pop receipt property
+		 * is set, it means the message is currently being processed or it has been already unsuccessfully processed, 
+		 * so allow enqueueing a new message to prevent incomplete data processing.
 		 */
-		if (existing is not TEntity entity)
+		if (existing is not TEntity entity || existing.PopReceipt.HasValue)
 			return true;
 
 		/*
@@ -337,6 +341,21 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 	/// </returns>
 	protected async Task<bool> IsEmpty(string? proposedGroup)
 	{
-		return await cache.Select(typeof(TAction), proposedGroup) is null;
+		return await cache.First(typeof(TAction), proposedGroup, false) is null;
+	}
+
+	/// <summary>
+	/// Determines whether the queue contains any message for the specified group, including in-flight entries.
+	/// </summary>
+	/// <param name="proposedGroup">The group identifier to query.</param>
+	/// <returns>
+	/// A task whose result is <see langword="true"/> when at least one matching entry exists; otherwise <see langword="false"/>.
+	/// </returns>
+	/// <remarks>
+	/// This check includes entries that are currently being processed and have a pop receipt assigned.
+	/// </remarks>
+	protected async Task<bool> HasEntries(string? proposedGroup)
+	{
+		return await cache.First(typeof(TAction), proposedGroup, true) is not null;
 	}
 }

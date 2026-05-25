@@ -1,4 +1,5 @@
 using Connected.Caching;
+using Connected.Entities;
 using Connected.Storage;
 using System.Collections.Immutable;
 
@@ -31,13 +32,30 @@ public abstract class QueueMessageCache<TEntity>(ICachingService cache, IStorage
 	/// <param name="batch">The group identifier used for debouncing.</param>
 	/// <returns>The matching queue message if found; otherwise null.</returns>
 	/// <inheritdoc/>
-	public async Task<IQueueMessage?> Select(Type client, string? group)
+	public async Task<IQueueMessage?> First(Type client, string? group, bool includeActive)
 	{
 		/*
 		 * Query the cache for a message matching both the action type and group identifier.
 		 * This enables debouncing by detecting duplicate messages for the same processing context.
 		 */
-		return await Get(f => (group is null || string.Equals(f.Group, group, StringComparison.OrdinalIgnoreCase)) && f.Action == client);
+		var candidates = await this.AsEntities(f => (group is null || string.Equals(f.Group, group, StringComparison.OrdinalIgnoreCase)) && f.Action == client);
+
+		if (candidates.Count == 0)
+			return default;
+		else if (candidates.Count == 1)
+			return candidates[0];
+		else
+		{
+			var ordered = candidates.OrderBy(f => f.Id);
+
+			if (!includeActive)
+			{
+				if (ordered.FirstOrDefault(f => !f.PopReceipt.HasValue) is IQueueMessage message)
+					return message;
+			}
+
+			return ordered.First();
+		}
 	}
 
 	/// <summary>

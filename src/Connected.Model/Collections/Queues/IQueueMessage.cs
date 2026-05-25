@@ -3,6 +3,7 @@ using Connected.Entities;
 using Connected.Services;
 
 namespace Connected.Collections.Queues;
+
 /// <summary>
 /// Represents a single queue message.
 /// </summary>
