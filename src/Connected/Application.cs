@@ -75,7 +75,7 @@ public static class Application
 
 			var webApp = builder.Build();
 
-			OnConfigureStaticFiles(webApp);
+			await OnConfigureStaticFiles(webApp);
 
 			webApp.ActivateRequestAuthentication();
 			webApp.ActivateLocalization();
