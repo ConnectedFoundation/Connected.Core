@@ -1,3 +1,5 @@
+using Connected.Annotations;
+
 namespace Connected;
 
 /// <summary>
@@ -29,6 +31,24 @@ public static class CoreExtensions
 	{
 		Middlewares.Add(typeof(T));
 		services.AddTransient(typeof(T));
+	}
+
+	public static void AddMiddleware<T>(this IServiceCollection services, ServiceRegistrationScope scope)
+	{
+		Middlewares.Add(typeof(T));
+
+		switch (scope)
+		{
+			case ServiceRegistrationScope.Singleton:
+				services.AddSingleton(typeof(T));
+				break;
+			case ServiceRegistrationScope.Scoped:
+				services.AddScoped(typeof(T));
+				break;
+			case ServiceRegistrationScope.Transient:
+				services.AddTransient(typeof(T));
+				break;
+		}
 	}
 
 	/// <summary>

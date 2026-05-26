@@ -6,7 +6,7 @@ public static class Enumerables
 {
 	public static Type? FindEnumerable(this Type type)
 	{
-		if (type is null || type == typeof(string))
+		if (type is null || type == typeof(string) || type.IsPrimitive)
 			return default;
 
 		if (type.IsArray)

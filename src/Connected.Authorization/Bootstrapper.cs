@@ -1,4 +1,4 @@
-using Connected;
+using Connected.Annotations;
 using Connected.Runtime;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,8 +13,8 @@ internal sealed class Bootstrapper : Startup
 
 		if (enabled)
 		{
-			services.AddMiddleware<DefaultHttpRequestAuthorization>();
-			services.AddMiddleware<DefaultScopeAuthorization>();
+			services.AddMiddleware<DefaultHttpRequestAuthorization>(ServiceRegistrationScope.Scoped);
+			services.AddMiddleware<DefaultScopeAuthorization>(ServiceRegistrationScope.Scoped);
 		}
 	}
 }
