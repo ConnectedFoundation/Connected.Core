@@ -7,13 +7,16 @@ internal sealed class CacheScope : ICache, IDisposable
 {
 	private bool _disposedValue;
 	private readonly ConcurrentDictionary<string, Entries> _items = [];
-	private readonly Task _scavenger;
+	private readonly Task? _scavenger;
 	private readonly CancellationTokenSource _cancel = new();
 
-	public CacheScope()
+	public CacheScope(bool shared)
 	{
-		_scavenger = new Task(OnScaveging, _cancel.Token, TaskCreationOptions.LongRunning);
-		_scavenger.Start();
+		if (shared)
+		{
+			_scavenger = new Task(OnScaveging, _cancel.Token, TaskCreationOptions.LongRunning);
+			_scavenger.Start();
+		}
 	}
 
 	public ConcurrentDictionary<string, Entries> Items => _items;
@@ -35,7 +38,7 @@ internal sealed class CacheScope : ICache, IDisposable
 				foreach (var i in empties)
 					Items.TryRemove(i, out _);
 
-				token.WaitHandle.WaitOne(TimeSpan.FromSeconds(1));
+				token.WaitHandle.WaitOne(TimeSpan.FromMinutes(1));
 			}
 			catch { }
 		}

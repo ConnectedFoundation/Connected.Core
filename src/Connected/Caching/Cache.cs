@@ -2,9 +2,10 @@ using System.Collections.Immutable;
 
 namespace Connected.Caching;
 
-internal abstract class Cache : ICache
+internal abstract class Cache
+	: ICache
 {
-	private static readonly CacheScope _scope = new();
+	private static readonly CacheScope _scope = new(true);
 
 	public virtual bool IsEmpty(string key)
 	{

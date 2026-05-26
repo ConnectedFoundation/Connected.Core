@@ -11,6 +11,8 @@ namespace Connected.Authorization;
 internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpContextAccessor? http)
 	: IAuthorizationContext
 {
+	private static readonly Dictionary<Type, bool> _entityCache = [];
+
 	public bool IsAuthorized { get; set; }
 
 	public void Reset()
@@ -231,6 +233,9 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 		where TDto : IDto
 		where TEntity : IEntity
 	{
+		if (!await IsEntityProtected(context, entity))
+			return AuthorizationResult.Pass;
+
 		var middlewares = await middleware.Query<IEntityAuthorization<TEntity>>(context);
 		var entityDto = Dto.Factory.Create<IEntityAuthorizationDto<TDto, TEntity>>();
 		var onePassed = false;
@@ -270,7 +275,14 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 	public async Task<bool> IsEntityProtected<TEntity>(ICallerContext context, TEntity entity)
 		where TEntity : IEntity
 	{
-		return (await middleware.Query<IEntityAuthorization<TEntity>>(context)).Any();
+		if (_entityCache.TryGetValue(typeof(TEntity), out var entityDto))
+			return entityDto;
+
+		var result = (await middleware.Query<IEntityAuthorization<TEntity>>(context)).Any();
+
+		_entityCache[typeof(TEntity)] = result;
+
+		return result;
 	}
 
 	private async Task<AuthorizationResult> InvokeDecorations(IAuthorization instance)

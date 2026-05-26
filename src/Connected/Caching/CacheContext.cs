@@ -6,7 +6,7 @@ namespace Connected.Caching;
 
 internal class CacheContext : ICacheContext
 {
-	private readonly CacheScope _scope = new();
+	private readonly CacheScope _scope = new(false);
 	private readonly Dictionary<string, HashSet<object?>> _removeList = [];
 	public CacheContext(ICachingService cache, ITransactionContext transactions)
 	{
