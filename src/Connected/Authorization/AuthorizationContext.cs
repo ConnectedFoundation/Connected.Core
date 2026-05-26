@@ -13,13 +13,6 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 {
 	private static readonly Dictionary<Type, bool> _entityCache = [];
 
-	public bool IsAuthorized { get; set; }
-
-	public void Reset()
-	{
-		IsAuthorized = false;
-	}
-
 	private async Task<AuthorizationResult> Authorize()
 	{
 		if (http?.HttpContext is null)
@@ -50,9 +43,6 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 				break;
 		}
 
-		if (middlewares.Count != 0 && onePassed)
-			IsAuthorized = true;
-
 		if (onePassed)
 			return AuthorizationResult.Pass;
 
@@ -62,30 +52,25 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 	public async Task<AuthorizationResult> Authorize<TDto>(ICallerContext context, TDto dto)
 		where TDto : IDto
 	{
-		IsAuthorized = false;
+		var result = await AuthorizeServiceOperation(context, dto);
 
-		var operationResult = await AuthorizeServiceOperation(context, dto);
-
-		if (operationResult == AuthorizationResult.Fail)
+		if (result == AuthorizationResult.Fail)
 			return AuthorizationResult.Fail;
-
-		if (IsAuthorized)
+		else if (result == AuthorizationResult.Pass)
 			return AuthorizationResult.Pass;
 
-		var serviceResult = await AuthorizeService(context, dto);
+		result = await AuthorizeService(context, dto);
 
-		if (serviceResult == AuthorizationResult.Fail)
+		if (result == AuthorizationResult.Fail)
 			return AuthorizationResult.Fail;
-
-		if (IsAuthorized)
+		else if (result == AuthorizationResult.Pass)
 			return AuthorizationResult.Pass;
 
-		var scopeResult = await AuthorizeScope(context, dto);
+		result = await AuthorizeScope(context, dto);
 
-		if (scopeResult == AuthorizationResult.Fail)
+		if (result == AuthorizationResult.Fail)
 			return AuthorizationResult.Fail;
-
-		if (IsAuthorized)
+		else if (result == AuthorizationResult.Pass)
 			return AuthorizationResult.Pass;
 
 		return await Authorize();
@@ -98,12 +83,13 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 		 * We need to strip method from the caller since we are looking for 
 		 * the service scope middleware.
 		 */
-		var middlewares = await middleware.Query<IScopeAuthorization>();
-		var authorizationDto = Dto.Factory.Create<IScopeAuthorizationDto>();
 		var onePassed = false;
-
-		authorizationDto.Caller = context;
-		authorizationDto.Dto = dto;
+		var middlewares = await middleware.Query<IScopeAuthorization>();
+		var authorizationDto = DtoFactory.Create<IScopeAuthorizationDto>((f) =>
+		{
+			f.Caller = context;
+			f.Dto = dto;
+		});
 
 		foreach (var middleware in middlewares)
 		{
@@ -126,9 +112,6 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 			if (middleware.IsSealed)
 				break;
 		}
-
-		if (middlewares.Count != 0 && onePassed)
-			IsAuthorized = true;
 
 		if (onePassed)
 			return AuthorizationResult.Pass;
@@ -143,12 +126,13 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 		 * the service scope middleware.
 		 */
 		var caller = new CallerContext { Sender = context.Sender };
-		var middlewares = await middleware.Query<IServiceAuthorization>(caller);
-		var authorizationDto = Dto.Factory.Create<IServiceAuthorizationDto>();
 		var onePassed = false;
-
-		authorizationDto.Caller = context;
-		authorizationDto.Dto = dto;
+		var middlewares = await middleware.Query<IServiceAuthorization>(caller);
+		var authorizationDto = DtoFactory.Create<IServiceAuthorizationDto>((f) =>
+		{
+			f.Caller = context;
+			f.Dto = dto;
+		});
 
 		foreach (var middleware in middlewares)
 		{
@@ -172,9 +156,6 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 				break;
 		}
 
-		if (middlewares.Count != 0 && onePassed)
-			IsAuthorized = true;
-
 		if (onePassed)
 			return AuthorizationResult.Pass;
 
@@ -183,12 +164,13 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 
 	private async Task<AuthorizationResult> AuthorizeServiceOperation<TDto>(ICallerContext context, TDto dto) where TDto : IDto
 	{
-		var middlewares = await middleware.Query<IServiceOperationAuthorization<TDto>>(context);
-		var operationDto = Dto.Factory.Create<IServiceOperationAuthorizationDto<TDto>>();
 		var onePassed = false;
-
-		operationDto.Caller = context;
-		operationDto.Dto = dto;
+		var middlewares = await middleware.Query<IServiceOperationAuthorization<TDto>>(context);
+		var operationDto = DtoFactory.Create<IServiceOperationAuthorizationDto<TDto>>((f) =>
+		{
+			f.Caller = context;
+			f.Dto = dto;
+		});
 
 		foreach (var middleware in middlewares)
 		{
@@ -212,9 +194,6 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 				break;
 		}
 
-		if (middlewares.Count != 0 && onePassed)
-			IsAuthorized = true;
-
 		if (onePassed)
 			return AuthorizationResult.Pass;
 
@@ -236,13 +215,14 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 		if (!await IsEntityProtected(context, entity))
 			return AuthorizationResult.Pass;
 
-		var middlewares = await middleware.Query<IEntityAuthorization<TEntity>>(context);
-		var entityDto = Dto.Factory.Create<IEntityAuthorizationDto<TDto, TEntity>>();
 		var onePassed = false;
-
-		entityDto.Caller = context;
-		entityDto.Dto = dto;
-		entityDto.Entity = entity;
+		var middlewares = await middleware.Query<IEntityAuthorization<TEntity>>(context);
+		var entityDto = DtoFactory.Create<IEntityAuthorizationDto<TDto, TEntity>>((f) =>
+		{
+			f.Caller = context;
+			f.Entity = entity;
+			f.Dto = dto;
+		});
 
 		foreach (var middleware in middlewares)
 		{
@@ -287,11 +267,12 @@ internal sealed class AuthorizationContext(IMiddlewareService middleware, IHttpC
 
 	private async Task<AuthorizationResult> InvokeDecorations(IAuthorization instance)
 	{
-		var handlers = await middleware.Query<IAuthorizationDecorationHandler>();
-		var dto = Dto.Factory.Create<IAuthorizationDecorationHandlerDto>();
 		var onePassed = false;
-
-		dto.Middleware = instance;
+		var handlers = await middleware.Query<IAuthorizationDecorationHandler>();
+		var dto = DtoFactory.Create<IAuthorizationDecorationHandlerDto>((f) =>
+		{
+			f.Middleware = instance;
+		});
 
 		foreach (var handler in handlers)
 		{

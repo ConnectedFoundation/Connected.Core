@@ -167,11 +167,32 @@ public static class EntitiesExtensions
 	private static Expression<Func<T, object>> ResolvePropertyPredicate<T>(string propToOrder)
 	{
 		var param = Expression.Parameter(typeof(T));
-		var memberAccess = Expression.Property(param, propToOrder);
+		var property = ResolveProperty(typeof(T), propToOrder)
+			?? throw new NullReferenceException($"Property '{propToOrder}' is not defined for type '{typeof(T).FullName}'.");
+
+		var memberAccess = Expression.Property(param, property);
 		var convertedMemberAccess = Expression.Convert(memberAccess, typeof(object));
 		var orderPredicate = Expression.Lambda<Func<T, object>>(convertedMemberAccess, param);
 
 		return orderPredicate;
+	}
+
+	private static PropertyInfo? ResolveProperty(Type type, string propertyName)
+	{
+		var property = type.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+
+		if (property is not null)
+			return property;
+
+		foreach (var iface in type.GetInterfaces())
+		{
+			property = iface.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+
+			if (property is not null)
+				return property;
+		}
+
+		return null;
 	}
 
 	private static async Task<TResult?> Execute<TSource, TResult>(MethodInfo operatorMethodInfo, IQueryable<TSource> source, Expression? expression)

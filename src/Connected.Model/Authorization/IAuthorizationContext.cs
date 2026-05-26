@@ -10,11 +10,11 @@ public interface IAuthorizationContext
 	/// <summary>
 	/// Gets a value indicating whether the most recent authorization evaluation approved the request.
 	/// </summary>
-	bool IsAuthorized { get; }
+	//bool IsAuthorized { get; }
 	/// <summary>
 	/// Resets internal state so subsequent authorization checks run from a clean context.
 	/// </summary>
-	void Reset();
+	//void Reset();
 	/// <summary>
 	/// Performs <c>IServiceOperationAuthorization</c> authorization.
 	/// </summary>

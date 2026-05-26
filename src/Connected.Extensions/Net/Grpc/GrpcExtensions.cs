@@ -7,13 +7,14 @@ using Grpc.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Connected.Net.Grpc;
+
 public static class GrpcExtensions
 {
 	public static async Task<TReturnValue> Invoke<TService, TDto, TReturnValue>(this ServerCallContext context, string operation, object request, Func<AsyncServiceScope, Task>? invoking)
 		where TService : notnull
 		where TDto : IDto
 	{
-		using var scope = Scope.Create();
+		using var scope = await Scope.Create().WithRequestIdentity();
 
 		var dto = Serializer.Merge(Dto.Factory.Create<TDto>(), request);
 		var service = scope.ServiceProvider.GetRequiredService<TService>();
