@@ -275,6 +275,9 @@ public static class EntitiesExtensions
 		if (source is IAsyncEnumerable<TSource> asyncEnumerable)
 			return asyncEnumerable;
 
+		if (source?.GetType().IsEnumerable() == true)
+			return new AdHocAsyncEnumerable<TSource>(source);
+
 		throw new InvalidOperationException();
 	}
 
