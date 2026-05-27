@@ -5,7 +5,7 @@ namespace Connected.Caching;
 /// Represents the client of the cache providing access to the specific container.
 /// </summary>
 public interface ICacheContainer<TEntry, TKey>
-	: IEnumerable<TEntry>, IDisposable
+	: IEnumerable<TEntry>, IAsyncEnumerable<TEntry>, IDisposable, IQueryable, IQueryable<TEntry>
 {
 	/// <summary>
 	/// The key of the container which manages this client.
