@@ -1,11 +1,12 @@
+using Connected.Entities;
 using Connected.Services;
 
 namespace Connected.Configuration.Settings;
 
 internal sealed class Select(ISettingCache cache) : ServiceFunction<IPrimaryKeyDto<int>, ISetting?>
 {
-	protected override Task<ISetting?> OnInvoke()
+	protected override async Task<ISetting?> OnInvoke()
 	{
-		return Task.FromResult<ISetting?>(cache.FirstOrDefault(f => f.Id == Dto.Id));
+		return await cache.AsEntity(f => f.Id == Dto.Id);
 	}
 }
