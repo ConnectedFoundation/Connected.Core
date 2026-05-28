@@ -32,8 +32,10 @@ public static class MembershipUtils
 
 		var ownRole = await roles.Select(Dto.Factory.CreateValue(identity));
 
+		var references = new List<int>();
+
 		if (ownRole is not null)
-			await ProcessRole(roles, ownRole.Id, result);
+			await ProcessRole(roles, ownRole.Id, result, references);
 
 		var dto = Dto.Factory.Create<IQueryMembershipDto>();
 
@@ -42,7 +44,7 @@ public static class MembershipUtils
 		var items = await membership.Query(dto);
 
 		foreach (var item in items)
-			await ProcessRole(roles, item.Role, result);
+			await ProcessRole(roles, item.Role, result, references);
 
 		return [.. result];
 	}
@@ -53,8 +55,13 @@ public static class MembershipUtils
 			items.Add(token);
 	}
 
-	private static async Task ProcessRole(IRoleService roles, int roleId, List<string> items)
+	private static async Task ProcessRole(IRoleService roles, int roleId, List<string> items, List<int> references)
 	{
+		if (references.Contains(roleId))
+			return;
+
+		references.Add(roleId);
+
 		var role = await roles.Select(Dto.Factory.CreatePrimaryKey(roleId));
 
 		if (role is null)
@@ -63,6 +70,6 @@ public static class MembershipUtils
 		AddToken(items, role.Token);
 
 		if (role.Parent is not null)
-			await ProcessRole(roles, role.Parent.GetValueOrDefault(), items);
+			await ProcessRole(roles, role.Parent.GetValueOrDefault(), items, references);
 	}
 }
