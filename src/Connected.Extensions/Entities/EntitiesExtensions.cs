@@ -122,6 +122,9 @@ public static class EntitiesExtensions
 
 	public static IEnumerable<TEntity> WithDto<TEntity>(this IEnumerable<TEntity> source, IQueryDto dto)
 	{
+		if (dto is IDynamicQueryDto<TEntity> dynamicDto && dynamicDto.Predicate is not null)
+			source = source.Where(dynamicDto.Predicate);
+
 		return source.WithOrderBy(dto).WithPaging(dto);
 	}
 

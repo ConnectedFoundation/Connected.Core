@@ -17,6 +17,7 @@ public class Dto : IDto
 	public static IDto Factory => new Dto();
 }
 
+[Obsolete("Use DtoFactory instead.")]
 public class Dto<TDto> : Dto
 	where TDto : IDto
 {

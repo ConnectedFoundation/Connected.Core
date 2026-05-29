@@ -5,6 +5,7 @@ using Connected.Reflection;
 using Connected.Storage;
 using System.Data;
 using System.Linq.Expressions;
+using System.Text.Json;
 
 namespace Connected.Data.Expressions.Evaluation;
 
@@ -51,12 +52,18 @@ public sealed class ExecutionBuilder
 
 		foreach (var parameter in Context.Parameters)
 		{
+			var dbType = parameter.Value.Type.ToDbType();
+			object? value = parameter.Value.Value;
+
+			if (dbType == DbType.Object && value != null)
+				value = JsonSerializer.Serialize(value);
+
 			command.Parameters.Add(new StorageParameter
 			{
 				Direction = ParameterDirection.Input,
 				Name = $"@{parameter.Key}",
-				Type = parameter.Value.Type.ToDbType(),
-				Value = parameter.Value.Value
+				Type = dbType,
+				Value = value
 			});
 		}
 

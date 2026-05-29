@@ -80,6 +80,9 @@ internal sealed class ObjectMerger : Merger
 			MergeEnumerable(destination, sourceProperties, property);
 		else
 		{
+			if (!property.CanWrite)
+				return;
+
 			var value = property.GetValue(destination);
 			var sourceInstance = sourceProperties.FirstOrDefault(f => string.Equals(f.Key, property.Name, StringComparison.Ordinal)).Value;
 
@@ -148,17 +151,47 @@ internal sealed class ObjectMerger : Merger
 		if (destinationValue is null && !property.CanWrite)
 			return;
 
-		var addMethod = property.PropertyType.GetMethod(nameof(IList.Add), BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+		var addMethod = Methods.ResolveMethod(property.PropertyType, nameof(IList.Add), null, [property.PropertyType.GetElementType()!]);
+
+		if (addMethod is null)
+		{
+			var methods = property.PropertyType.GetMethods(BindingFlags.Public | BindingFlags.Instance);
+
+			foreach (var method in methods)
+			{
+				var parameters = method.GetParameters();
+
+				if (string.Equals(method.Name, nameof(IList.Add), StringComparison.Ordinal) && parameters.Length == 1)
+				{
+					/*
+					 * GRPC proto objects has overload on Add method which takes IEnumerable<T> but we want to use the one that takes T.
+					 * We can check if the parameter type is enumerable and skip it if it is.
+					 * This way we ensure that we are using the correct Add method for collections that have overloads.
+					 */
+					if (!parameters[0].ParameterType.IsEnumerable())
+					{
+						addMethod = method;
+						break;
+					}
+				}
+			}
+		}
+
 		object? instance = null;
 
-		if (addMethod is not null)
-			instance = CreateInstance(property.PropertyType);
+		if (!property.CanWrite)
+			instance = destinationValue;
 		else
 		{
-			var arrayType = property.PropertyType.GetElementType();
+			if (addMethod is not null)
+				instance = CreateInstance(property.PropertyType);
+			else
+			{
+				var arrayType = property.PropertyType.GetElementType();
 
-			if (arrayType is not null)
-				instance = Array.CreateInstance(arrayType, sourceElements.Count);
+				if (arrayType is not null)
+					instance = Array.CreateInstance(arrayType, sourceElements.Count);
+			}
 		}
 
 		if (instance is null)
@@ -210,7 +243,8 @@ internal sealed class ObjectMerger : Merger
 			}
 		}
 
-		property.SetValue(destination, instance);
+		if (property.CanWrite)
+			property.SetValue(destination, instance);
 	}
 
 	private static void TrySetValue(object destination, PropertyInfo property, object value)

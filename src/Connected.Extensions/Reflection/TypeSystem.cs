@@ -143,6 +143,8 @@ public static class TypeSystem
 			return DbType.UInt64;
 		else if (underlyingType == typeof(byte[]))
 			return DbType.Binary;
+		else if (underlyingType is not null && underlyingType.IsEnumerable())
+			return DbType.Object;
 		else
 			return DbType.String;
 	}
