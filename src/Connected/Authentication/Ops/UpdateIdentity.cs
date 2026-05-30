@@ -11,6 +11,6 @@ internal sealed class UpdateIdentity(IAuthenticationService authentication, IEve
 		if (authentication is AuthenticationService service)
 			service.Identity = Dto.Identity;
 
-		//await events.Updated(this, authentication, Dto.Identity?.Token);
+		await events.Updated(this, authentication, Dto.Identity?.Token);
 	}
 }
