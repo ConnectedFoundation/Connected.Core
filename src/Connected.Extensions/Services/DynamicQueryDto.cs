@@ -6,6 +6,6 @@ namespace Connected.Services;
 public class DynamicQueryDto<TEntity>
 	: QueryDto, IDynamicQueryDto<TEntity>
 {
-	[SkipValidation, JsonIgnore]
+	[SkipValidation, JsonIgnore, Mergeable(false)]
 	public Func<TEntity, bool>? Predicate { get; set; }
 }
