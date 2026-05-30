@@ -10,6 +10,6 @@ public interface IIdentityExtensions
 	[ServiceOperation(ServiceOperationVerbs.Get), ServiceUrl("select-descriptor")]
 	Task<IIdentityDescriptor?> Select(IValueDto<string> dto);
 
-	[ServiceOperation(ServiceOperationVerbs.Get), ServiceUrl("query-descriptors")]
+	[ServiceOperation(ServiceOperationVerbs.Get | ServiceOperationVerbs.Post), ServiceUrl("query-descriptors")]
 	Task<IImmutableList<IIdentityDescriptor>> Query(IValueListDto<string> dto);
 }

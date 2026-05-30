@@ -1,11 +1,14 @@
 using Connected.Reflection;
 using System.Collections;
 using System.Collections.Immutable;
+using System.Linq.Expressions;
 
 namespace Connected.Caching;
 
 public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKey>
 {
+	private IQueryable<TEntry>? _queryable;
+
 	protected CacheContainer(ICachingService cachingService, string key)
 	{
 		if (cachingService is null)
@@ -153,4 +156,27 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 	{
 		return GetEnumerator();
 	}
+
+	public async IAsyncEnumerator<TEntry> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+	{
+		foreach (var item in this)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+
+			yield return item;
+
+			await Task.CompletedTask;
+		}
+	}
+
+	private IQueryable<TEntry> AsQueryable()
+	{
+		_queryable ??= Context.All<TEntry>(Key).AsQueryable();
+
+		return _queryable;
+	}
+
+	public Type ElementType => typeof(TEntry);
+	public Expression Expression => AsQueryable().Expression;
+	public IQueryProvider Provider => AsQueryable().Provider;
 }
