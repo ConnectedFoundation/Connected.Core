@@ -18,6 +18,7 @@ public abstract class ScheduledWorker : Worker
 {
 	private Task? _executingTask = null;
 	private readonly CancellationTokenSource _stoppingCts = new();
+	private CancellationTokenRegistration _stoppingRegistration;
 
 	/// <summary>
 	/// Gets or sets the interval between invocations of the worker.
@@ -51,7 +52,11 @@ public abstract class ScheduledWorker : Worker
 		/*
 		 * Register the stopping token to propagate cancellation to our internal cancellation source.
 		 */
-		stoppingToken.Register(_stoppingCts.Cancel);
+		_stoppingRegistration = stoppingToken.Register(static state =>
+		{
+			if (state is CancellationTokenSource source)
+				source.Cancel();
+		}, _stoppingCts);
 		/*
 		 * Start the background execution loop.
 		 * This task runs continuously until cancellation is requested.
@@ -148,14 +153,24 @@ public abstract class ScheduledWorker : Worker
 			 * Signal the execution loop to stop.
 			 */
 			_stoppingCts.Cancel();
+
+			/*
+			 * Await completion of the executing task with cancellation support.
+			 */
+			await _executingTask.WaitAsync(cancellationToken);
+		}
+		catch (OperationCanceledException)
+		{
+			/*
+			 * Stop wait was canceled by the caller.
+			 */
 		}
 		finally
 		{
 			/*
-			 * Wait for either the execution task to complete or the cancellation token to be cancelled.
-			 * This allows for graceful shutdown with a timeout.
+			 * Release the registration associated with the host stopping token.
 			 */
-			await Task.WhenAny(_executingTask, Task.Delay(Timeout.Infinite, cancellationToken));
+			_stoppingRegistration.Dispose();
 		}
 	}
 

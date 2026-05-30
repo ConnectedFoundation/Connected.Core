@@ -76,20 +76,28 @@ public abstract class Dispatcher<TDto, TJob> : IDispatcher<TDto, TJob>
 
 		await OnInitializeJob(scope, job);
 
-		_ = Task.Run(async () =>
+		_ = ExecuteJob(item, scope, job);
+	}
+
+	private async Task ExecuteJob(TDto item, AsyncServiceScope scope, DispatcherJob<TDto> job)
+	{
+		try
 		{
 			await job.Invoke(item, CancellationToken);
 			await job.Scope.Flush();
+		}
+		finally
+		{
 			await scope.DisposeAsync();
-			await job.Scope.Value.DisposeAsync();
 
+			if (job.Scope.HasValue)
+				await job.Scope.Value.DisposeAsync();
 
 			job.Dispose();
 
 			if (!Queue.IsEmpty)
 				await RunJob();
-
-		}, CancellationToken);
+		}
 	}
 
 	protected virtual async Task OnInitializeJob(AsyncServiceScope scope, IDispatcherJob<TDto> job)
