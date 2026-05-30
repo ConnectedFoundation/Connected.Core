@@ -1,3 +1,4 @@
+using Connected.Annotations;
 using Connected.Annotations.Entities;
 using Connected.Entities;
 using Connected.Services;
@@ -33,6 +34,12 @@ internal sealed class ObjectMerger : Merger
 
 	private void MergeProperty(object destination, Dictionary<string, object?> sourceProperties, PropertyInfo property)
 	{
+		/*
+		 * It's not mergeable
+		 */
+		if (property.FindAttribute<MergeableAttribute>() is MergeableAttribute mergeable && !mergeable.IsMergeable)
+			return;
+
 		if (property.PropertyType.IsTypePrimitive())
 		{
 			if (!property.CanWrite)
