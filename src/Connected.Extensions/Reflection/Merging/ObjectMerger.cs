@@ -4,7 +4,6 @@ using Connected.Services;
 using System.Collections;
 using System.Data;
 using System.Reflection;
-using System.Text.Json.Serialization;
 
 namespace Connected.Reflection.Merging;
 
@@ -34,12 +33,6 @@ internal sealed class ObjectMerger : Merger
 
 	private void MergeProperty(object destination, Dictionary<string, object?> sourceProperties, PropertyInfo property)
 	{
-		/*
-		 * It's not serializable
-		 */
-		if (property.FindAttribute<JsonIgnoreAttribute>() != null)
-			return;
-
 		if (property.PropertyType.IsTypePrimitive())
 		{
 			if (!property.CanWrite)

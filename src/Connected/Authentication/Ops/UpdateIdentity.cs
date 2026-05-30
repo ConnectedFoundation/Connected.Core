@@ -2,6 +2,7 @@ using Connected.Notifications;
 using Connected.Services;
 
 namespace Connected.Authentication.Ops;
+
 internal sealed class UpdateIdentity(IAuthenticationService authentication, IEventService events)
 	: ServiceAction<IUpdateIdentityDto>
 {
@@ -10,6 +11,6 @@ internal sealed class UpdateIdentity(IAuthenticationService authentication, IEve
 		if (authentication is AuthenticationService service)
 			service.Identity = Dto.Identity;
 
-		await events.Updated(this, authentication, Dto.Identity?.Token);
+		//await events.Updated(this, authentication, Dto.Identity?.Token);
 	}
 }
