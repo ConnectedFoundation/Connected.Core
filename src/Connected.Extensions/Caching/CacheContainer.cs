@@ -7,8 +7,6 @@ namespace Connected.Caching;
 
 public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKey>
 {
-	private IQueryable<TEntry>? _queryable;
-
 	protected CacheContainer(ICachingService cachingService, string key)
 	{
 		if (cachingService is null)
@@ -34,6 +32,7 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 			throw new ArgumentNullException(nameof(id));
 
 		await Context.Remove(Key, id);
+
 		await OnRemoved(id);
 	}
 
@@ -168,14 +167,15 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 			await Task.CompletedTask;
 		}
 	}
-
-	private IQueryable<TEntry> AsQueryable()
-	{
-		_queryable ??= Context.All<TEntry>(Key).AsQueryable();
-
-		return _queryable;
-	}
-
+	/*
+	 * Here is potential performance penalty, as this will create a new IQueryable on each call. 
+	 * However, since the underlying data source is likely in-memory, the performance impact may be negligible. 
+	 * If performance becomes an issue, consider caching the IQueryable or implementing a more efficient way to handle LINQ queries.
+	 * But the current problem is the All method combines entities from two caches, the scoped one and shared one.
+	 * The problem is with the shared one because we are unaware of the changes so we can't make a snapshot and safely
+	 * share it inside the scope.
+	 */
+	protected virtual IQueryable<TEntry> AsQueryable() => Context.All<TEntry>(Key).AsQueryable();
 	public Type ElementType => typeof(TEntry);
 	public Expression Expression => AsQueryable().Expression;
 	public IQueryProvider Provider => AsQueryable().Provider;

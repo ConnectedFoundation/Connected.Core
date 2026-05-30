@@ -158,4 +158,11 @@ public abstract class SynchronizedCache<TEntry, TKey>(ICachingService cachingSer
 			return Initializers.Contains(key);
 		}
 	}
+
+	protected override IQueryable<TEntry> AsQueryable()
+	{
+		((ICachingDataProvider)this).Initialize().Wait();
+
+		return base.AsQueryable();
+	}
 }
