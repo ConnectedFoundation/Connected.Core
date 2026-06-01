@@ -1,4 +1,5 @@
 using Connected.Annotations.Entities;
+using Connected.Collections;
 using Connected.Reflection;
 using Connected.Services;
 using Microsoft.Extensions.Logging;
@@ -46,6 +47,9 @@ internal sealed class Update(IMiddlewareService middleware, ILogger<ISchemaServi
 		 * Process each entity type to determine if it requires schema synchronization
 		 * and invoke the appropriate middleware to perform the update.
 		 */
+
+		Dto.Schemas.SortByPriority();
+
 		foreach (var entity in Dto.Schemas)
 		{
 			/*
@@ -54,17 +58,17 @@ internal sealed class Update(IMiddlewareService middleware, ILogger<ISchemaServi
 			if (!IsPersistent(entity))
 				continue;
 
-			logger.LogTrace("Synchronizing entity '{entity}'", entity.Name);
+			logger.LogDebug("Synchronizing entity '{entity}'", entity.Name);
 
 			var synchronized = false;
-			var dto = new Dto<ISelectSchemaDto>().Value;
-
-			dto.Type = entity;
 
 			/*
 			 * Retrieve the schema definition for the entity type to be synchronized.
 			 */
-			var schema = await schemas.Select(dto);
+			var schema = await schemas.Select(DtoFactory.Create<ISelectSchemaDto>(f =>
+			{
+				f.Type = entity;
+			}));
 
 			if (schema is null || schema.Ignore)
 				continue;
@@ -78,10 +82,11 @@ internal sealed class Update(IMiddlewareService middleware, ILogger<ISchemaServi
 				/*
 				 * Note that sharding synchronization will be handled by the middleware.
 				 */
-				var middlewareDto = new Dto<ISchemaMiddlewareDto>().Value;
-
-				middlewareDto.Type = entity;
-				middlewareDto.Schema = schema;
+				var middlewareDto = DtoFactory.Create<ISchemaMiddlewareDto>(f =>
+				{
+					f.Type = entity;
+					f.Schema = schema;
+				});
 
 				try
 				{
