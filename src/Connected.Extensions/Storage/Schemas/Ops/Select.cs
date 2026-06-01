@@ -198,6 +198,7 @@ internal sealed class Select
 					/*
 					 * Default to DateTime2 with maximum precision (7) when no explicit date attribute is specified.
 					 */
+					column.DataType = DbType.DateTime2;
 					column.DateKind = DateKind.DateTime2;
 					column.DatePrecision = 7;
 				}

@@ -83,14 +83,23 @@ internal sealed class Update(IMiddlewareService middleware, ILogger<ISchemaServi
 				middlewareDto.Type = entity;
 				middlewareDto.Schema = schema;
 
-				/*
-				 * Invoke the middleware and check if it successfully handled the synchronization.
-				 * Break on the first successful synchronization.
-				 */
-				if (await middleware.Invoke(middlewareDto))
+				try
 				{
-					synchronized = true;
-					break;
+					/*
+					 * Invoke the middleware and check if it successfully handled the synchronization.
+					 * Break on the first successful synchronization.
+					 */
+					if (await middleware.Invoke(middlewareDto))
+					{
+						synchronized = true;
+						break;
+					}
+				}
+				catch (Exception ex)
+				{
+					logger.LogError(ex, "An error occurred while synchronizing the entity ({entity}) with middleware ({middleware}).", entity.Name, middleware.GetType().Name);
+
+					throw;
 				}
 			}
 

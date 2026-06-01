@@ -80,6 +80,8 @@ internal class Columns(ExistingSchema existing)
 				column.DateKind = DateKind.DateTime2;
 			else if (column.DataType == DbType.Time)
 				column.DateKind = DateKind.Time;
+			else if (column.DataType == DbType.DateTimeOffset)
+				column.DateKind = DateKind.Offset;
 			/*
 			 * Determine the binary storage kind (binary vs varbinary).
 			 */
