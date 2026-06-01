@@ -994,7 +994,10 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 				else
 					first = false;
 
-				Write(value);
+				if (NeedsEscaping(en.Current))
+					Write($"'{value}'");
+				else
+					Write(value);
 			}
 
 			return c;
@@ -1289,5 +1292,31 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 		}
 
 		return decl;
+	}
+
+	private static bool NeedsEscaping(object? value)
+	{
+		if (value is null)
+			return false;
+
+		var type = value.GetType().ToDbType();
+
+		switch (type)
+		{
+			case System.Data.DbType.AnsiString:
+			case System.Data.DbType.Date:
+			case System.Data.DbType.DateTime:
+			case System.Data.DbType.Guid:
+			case System.Data.DbType.String:
+			case System.Data.DbType.Time:
+			case System.Data.DbType.AnsiStringFixedLength:
+			case System.Data.DbType.StringFixedLength:
+			case System.Data.DbType.Xml:
+			case System.Data.DbType.DateTime2:
+			case System.Data.DbType.DateTimeOffset:
+				return true;
+			default:
+				return false;
+		}
 	}
 }
