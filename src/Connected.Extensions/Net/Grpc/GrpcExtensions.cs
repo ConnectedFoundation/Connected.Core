@@ -16,7 +16,7 @@ public static class GrpcExtensions
 	{
 		using var scope = await Scope.Create().WithRequestIdentity();
 
-		var dto = Serializer.Merge(Dto.Factory.Create<TDto>(), request);
+		var dto = Serializer.Merge(DtoFactory.Create<TDto>(), request);
 		var service = scope.ServiceProvider.GetRequiredService<TService>();
 		var method = typeof(TService).ResolveMethod(operation, null, [typeof(TDto)]) ?? throw new NullReferenceException($"{Strings.ErrMethodNotFound} ('{typeof(TService).Name}.{operation}')");
 

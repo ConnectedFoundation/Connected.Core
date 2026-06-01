@@ -11,14 +11,14 @@ internal sealed class Update(IIdentityGlobalizationCache cache, IStorageProvider
 {
 	protected override async Task OnInvoke()
 	{
-		if (SetState(await globalization.Select(Dto.CreatePrimaryKey(Dto.Id))) is not IdentityGlobalization existing)
+		if (SetState(await globalization.Select(DtoFactory.Create<IPrimaryKeyDto<string>>(f => f.Id = Dto.Id))) is not IdentityGlobalization existing)
 			return;
 
 		await storage.Open<IdentityGlobalization>().Update(Dto.AsEntity<IdentityGlobalization>(State.Update), Dto, async () =>
 		{
 			await cache.Refresh(Dto.Id);
 
-			return SetState(await globalization.Select(Dto.CreatePrimaryKey(Dto.Id))) as IdentityGlobalization;
+			return SetState(await globalization.Select(DtoFactory.Create<IPrimaryKeyDto<string>>(f => f.Id = Dto.Id))) as IdentityGlobalization;
 		}, Caller);
 
 		await cache.Refresh(Dto.Id);

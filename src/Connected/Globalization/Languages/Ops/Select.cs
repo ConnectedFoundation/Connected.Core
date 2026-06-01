@@ -1,8 +1,10 @@
+using Connected.Caching;
 using Connected.Entities;
 using Connected.Services;
 
-namespace Connected.Globalization.Languages;
-internal sealed class Select(ILanguageCache cache)
+namespace Connected.Globalization.Languages.Ops;
+
+internal sealed class Select(IEntityCache<ILanguage, int> cache)
 	: ServiceFunction<IPrimaryKeyDto<int>, ILanguage?>
 {
 	protected override async Task<ILanguage?> OnInvoke()

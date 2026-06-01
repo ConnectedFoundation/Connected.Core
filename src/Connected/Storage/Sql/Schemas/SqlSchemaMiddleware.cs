@@ -6,6 +6,7 @@ using Connected.Reflection;
 using Connected.Storage.Schemas;
 using Connected.Storage.Sharding;
 using Connected.Storage.Sharding.Nodes;
+using Microsoft.Extensions.Logging;
 
 namespace Connected.Storage.Sql.Schemas;
 
@@ -44,7 +45,8 @@ internal enum ConstraintNameType
 /// on each node to ensure consistent schema across the distributed database infrastructure.
 /// </remarks>
 [Priority(0)]
-internal sealed class SqlSchemaMiddleware(IMiddlewareService middleware, IStorageProvider storage, IConfigurationService configuration, IShardingNodeService nodes)
+internal sealed class SqlSchemaMiddleware(IMiddlewareService middleware, IStorageProvider storage,
+	IConfigurationService configuration, IShardingNodeService nodes, ILogger<SqlSchemaMiddleware> logger)
 	: Middleware, ISchemaMiddleware
 {
 	/// <summary>
@@ -103,7 +105,7 @@ internal sealed class SqlSchemaMiddleware(IMiddlewareService middleware, IStorag
 		 * Only tables are supported.
 		 */
 		if (string.IsNullOrWhiteSpace(schema.Type) || string.Equals(schema.Type, SchemaAttribute.SchemaTypeTable, StringComparison.OrdinalIgnoreCase))
-			await new TableSynchronize().Execute(args);
+			await new TableSynchronize(logger).Execute(args);
 	}
 
 	/// <summary>

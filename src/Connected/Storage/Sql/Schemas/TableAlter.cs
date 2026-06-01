@@ -1,4 +1,5 @@
 using Connected.Storage.Schemas;
+using Microsoft.Extensions.Logging;
 
 namespace Connected.Storage.Sql.Schemas;
 
@@ -14,8 +15,8 @@ namespace Connected.Storage.Sql.Schemas;
 /// while applying schema changes efficiently. The transaction intelligently compares existing and
 /// target index definitions to avoid unnecessary drops and recreations of matching indexes.
 /// </remarks>
-internal class TableAlter(ExistingSchema schema)
-	: TableSynchronize
+internal class TableAlter(ILogger logger, ExistingSchema schema)
+	: TableSynchronize(logger)
 {
 	/// <inheritdoc/>
 	protected override async Task OnExecute()

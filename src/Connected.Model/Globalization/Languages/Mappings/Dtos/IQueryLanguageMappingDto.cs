@@ -1,10 +1,10 @@
 using Connected.Services;
 
-namespace Connected.Globalization.Languages;
+namespace Connected.Globalization.Languages.Mappings.Dtos;
 /// <summary>
 /// DTO for querying language mappings with optional filtering by language identifier.
 /// </summary>
-public interface IQueryLanguageMappingsDto
+public interface IQueryLanguageMappingDto
 	: IDto
 {
 	/// <summary>

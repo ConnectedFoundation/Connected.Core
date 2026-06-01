@@ -49,7 +49,7 @@ public static class LocalizationExtensions
 			});
 	}
 
-	public static void ActivateLocalization(this IApplicationBuilder app)
+	public static async Task ActivateLocalization(this IApplicationBuilder app)
 	{
 		var service = app.ApplicationServices.GetService<IOptions<RequestLocalizationOptions>>();
 

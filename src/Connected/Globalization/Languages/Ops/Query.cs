@@ -1,9 +1,11 @@
+using Connected.Caching;
 using Connected.Entities;
 using Connected.Services;
 using System.Collections.Immutable;
 
-namespace Connected.Globalization.Languages;
-internal sealed class Query(ILanguageCache cache)
+namespace Connected.Globalization.Languages.Ops;
+
+internal sealed class Query(IEntityCache<ILanguage, int> cache)
 	: ServiceFunction<IQueryDto, IImmutableList<ILanguage>>
 {
 	protected override async Task<IImmutableList<ILanguage>> OnInvoke()

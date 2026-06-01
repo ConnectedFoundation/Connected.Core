@@ -1,4 +1,5 @@
 using Connected.Storage.Schemas;
+using Microsoft.Extensions.Logging;
 
 namespace Connected.Storage.Sql.Schemas;
 
@@ -15,7 +16,7 @@ namespace Connected.Storage.Sql.Schemas;
 /// identity column modifications. The decision logic ensures data preservation while applying
 /// schema changes efficiently based on the nature of the modifications required.
 /// </remarks>
-internal class TableSynchronize
+internal class TableSynchronize(ILogger logger)
 	: TableTransaction
 {
 	private ExistingSchema? _existingSchema = null;
@@ -38,6 +39,8 @@ internal class TableSynchronize
 		 */
 		if (!TableExists)
 		{
+			logger.LogDebug("Creating table '{Schema}.{Name}' as it does not exist.", Context.Schema.Schema, Context.Schema.Name);
+
 			await new TableCreate(false).Execute(Context);
 			return;
 		}
@@ -60,9 +63,19 @@ internal class TableSynchronize
 		 * Choose the appropriate synchronization strategy based on the type of changes required.
 		 */
 		if (ShouldRecreate)
+		{
+			logger.LogDebug("Recreating table '{Schema}.{Name}' due to identity or critical metadata changes.", Context.Schema.Schema, Context.Schema.Name);
+
 			await new TableRecreate(_existingSchema).Execute(Context);
+		}
 		else if (ShouldAlter)
-			await new TableAlter(_existingSchema).Execute(Context);
+		{
+			logger.LogDebug("Altering table '{Schema}.{Name}' due to non-critical metadata changes.", Context.Schema.Schema, Context.Schema.Name);
+
+			await new TableAlter(logger, _existingSchema).Execute(Context);
+		}
+		else
+			logger.LogDebug("No changes detected for table '{Schema}.{Name}'. No synchronization actions required.", Context.Schema.Schema, Context.Schema.Name);
 	}
 
 	/// <summary>

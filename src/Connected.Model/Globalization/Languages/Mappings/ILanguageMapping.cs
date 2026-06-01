@@ -1,6 +1,6 @@
 using Connected.Entities;
 
-namespace Connected.Globalization.Languages;
+namespace Connected.Globalization.Languages.Mappings;
 
 /// <summary>
 /// Represents a mapping between a language and an external identifier or key.

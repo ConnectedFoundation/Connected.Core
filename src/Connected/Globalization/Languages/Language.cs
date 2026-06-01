@@ -4,8 +4,9 @@ using Connected.Entities;
 
 namespace Connected.Globalization.Languages;
 
-[Table(Schema = SchemaAttribute.CoreSchema)]
-internal sealed record Language : ConsistentEntity<int>, ILanguage
+[Persistence(PersistenceMode.InMemory)]
+internal sealed record Language
+	: Entity<int>, ILanguage
 {
 	[Ordinal(0), Length(32)]
 	public required string Name { get; init; }

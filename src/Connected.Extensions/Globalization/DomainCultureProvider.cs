@@ -1,5 +1,6 @@
 using Connected.Authentication;
 using Connected.Globalization.Languages;
+using Connected.Globalization.Languages.Mappings;
 using Connected.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Localization;

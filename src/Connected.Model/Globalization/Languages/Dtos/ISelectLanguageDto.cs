@@ -1,6 +1,6 @@
 using Connected.Services;
 
-namespace Connected.Globalization.Languages;
+namespace Connected.Globalization.Languages.Dtos;
 /// <summary>
 /// DTO for selecting a language by its locale identifier (LCID).
 /// </summary>
