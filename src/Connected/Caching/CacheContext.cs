@@ -55,7 +55,7 @@ internal class CacheContext : ICacheContext
 
 	public IImmutableList<T> All<T>(string key)
 	{
-		return Merge(_scope.All<T>(key), Cache.All<T>(key));
+		return Merge(key, _scope.All<T>(key), Cache.All<T>(key));
 	}
 
 	public async Task<T?> Get<T>(string key, object id, Func<IEntryOptions, Task<T?>>? retrieve)
@@ -163,7 +163,7 @@ internal class CacheContext : ICacheContext
 
 	public IImmutableList<T> Where<T>(string key, Func<T, bool> predicate)
 	{
-		return Merge(_scope.Where(key, predicate), Cache.Where(key, predicate));
+		return Merge(key, _scope.Where(key, predicate), Cache.Where(key, predicate));
 	}
 
 	public T? Set<T>(string key, object id, T? instance)
@@ -227,7 +227,7 @@ internal class CacheContext : ICacheContext
 		Cache.Merge(this);
 	}
 
-	private static IImmutableList<T> Merge<T>(IImmutableList<T> scope, IImmutableList<T> shared)
+	private IImmutableList<T> Merge<T>(string key, IImmutableList<T> scope, IImmutableList<T> shared)
 	{
 		if (scope is null)
 			return shared;
@@ -253,7 +253,7 @@ internal class CacheContext : ICacheContext
 		{
 			var id = ResolveId(item);
 
-			if (id is null)
+			if (id is null || IsItemRemoved(key, item))
 				continue;
 
 			sharedIndex[id] = item;
@@ -296,7 +296,7 @@ internal class CacheContext : ICacheContext
 
 	public int Count(string key)
 	{
-		var merged = Merge(_scope.All<object>(key), Cache.All<object>(key));
+		var merged = Merge(key, _scope.All<object>(key), Cache.All<object>(key));
 
 		if (merged is null)
 			return 0;
