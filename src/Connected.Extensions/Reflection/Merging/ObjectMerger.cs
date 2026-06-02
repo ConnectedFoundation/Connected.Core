@@ -168,7 +168,15 @@ internal sealed class ObjectMerger : Merger
 			{
 				var parameters = method.GetParameters();
 
-				if (string.Equals(method.Name, nameof(IList.Add), StringComparison.Ordinal) && parameters.Length == 1)
+				if (property.PropertyType.IsDictionary())
+				{
+					if (string.Equals(method.Name, nameof(IDictionary.Add), StringComparison.Ordinal) && parameters.Length == 2)
+					{
+						addMethod = method;
+						break;
+					}
+				}
+				else if (string.Equals(method.Name, nameof(IList.Add), StringComparison.Ordinal) && parameters.Length == 1)
 				{
 					/*
 					 * GRPC proto objects has overload on Add method which takes IEnumerable<T> but we want to use the one that takes T.
