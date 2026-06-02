@@ -122,8 +122,8 @@ public static class EntitiesExtensions
 
 	public static IEnumerable<TEntity> WithDto<TEntity>(this IEnumerable<TEntity> source, IQueryDto dto)
 	{
-		if (dto is IDynamicQueryDto<TEntity> dynamicDto && dynamicDto.Predicate is not null)
-			source = source.Where(dynamicDto.Predicate);
+		if (ResolveDynamicPredicate<TEntity>(dto) is Func<TEntity, bool> predicate)
+			source = source.Where(predicate);
 
 		return source.WithOrderBy(dto).WithPaging(dto);
 	}
@@ -165,6 +165,34 @@ public static class EntitiesExtensions
 		}
 
 		return result;
+	}
+
+	private static Func<TEntity, bool>? ResolveDynamicPredicate<TEntity>(IQueryDto dto)
+	{
+		if (dto is IDynamicQueryDto<TEntity> dynamicDto && dynamicDto.Predicate is not null)
+			return dynamicDto.Predicate;
+
+		if (typeof(TEntity).IsInterface)
+			return null;
+
+		var entityType = typeof(TEntity).ResolveImplementedEntity();
+
+		if (entityType == null)
+			return null;
+
+		var dynamicDtoDefinition = typeof(IDynamicQueryDto<>).MakeGenericType(entityType);
+
+		if (dto.GetType().IsAssignableTo(dynamicDtoDefinition))
+		{
+			var predicate = dto.GetType().GetProperty(nameof(IDynamicQueryDto<object>.Predicate), BindingFlags.Public | BindingFlags.Instance | BindingFlags.GetProperty);
+
+			if (predicate == null)
+				return null;
+
+			return predicate.GetValue(dto) as Func<TEntity, bool>;
+		}
+
+		return null;
 	}
 
 	private static Expression<Func<T, object>> ResolvePropertyPredicate<T>(string propToOrder)
