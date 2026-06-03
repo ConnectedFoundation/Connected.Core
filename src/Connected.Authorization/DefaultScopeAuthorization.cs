@@ -8,17 +8,11 @@ namespace Connected.Authorization;
 internal sealed class DefaultScopeAuthorization(IAuthenticationService authentication)
 	: ScopeAuthorization
 {
-	internal AuthorizationResult? _result = null;
 	protected override async Task<AuthorizationResult> OnInvoke()
 	{
-		if (_result.HasValue)
-			return _result.Value;
-
 		if (await authentication.SelectIdentity() is null)
-			_result = AuthorizationResult.Fail;
+			return AuthorizationResult.Fail;
 
-		_result = AuthorizationResult.Pass;
-
-		return _result.Value;
+		return AuthorizationResult.Pass;
 	}
 }
