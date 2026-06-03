@@ -208,4 +208,13 @@ public static class DtoExtensions
 	{
 		return $"{dto.Head}.{dto.Id}";
 	}
+
+	public static TReturnValue? TryGetProperty<TPrimaryKey, TReturnValue>(this IPatchDto<TPrimaryKey> dto, string propertyName)
+		where TPrimaryKey : notnull
+	{
+		if (!dto.Properties.TryGetValue(propertyName, out var value) || value is not TReturnValue result)
+			return default;
+
+		return result;
+	}
 }
