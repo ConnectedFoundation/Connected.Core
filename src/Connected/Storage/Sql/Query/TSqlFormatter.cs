@@ -984,7 +984,7 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 
 			while (en.MoveNext())
 			{
-				var value = en.Current?.ToString();
+				var value = ResolveValue(en.Current);
 
 				if (value is null)
 					continue;
@@ -994,10 +994,7 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 				else
 					first = false;
 
-				if (NeedsEscaping(en.Current))
-					Write($"'{value}'");
-				else
-					Write(value);
+				Write(value);
 			}
 
 			return c;
@@ -1301,22 +1298,27 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 
 		var type = value.GetType().ToDbType();
 
-		switch (type)
+		return type switch
 		{
-			case System.Data.DbType.AnsiString:
-			case System.Data.DbType.Date:
-			case System.Data.DbType.DateTime:
-			case System.Data.DbType.Guid:
-			case System.Data.DbType.String:
-			case System.Data.DbType.Time:
-			case System.Data.DbType.AnsiStringFixedLength:
-			case System.Data.DbType.StringFixedLength:
-			case System.Data.DbType.Xml:
-			case System.Data.DbType.DateTime2:
-			case System.Data.DbType.DateTimeOffset:
-				return true;
-			default:
-				return false;
-		}
+			System.Data.DbType.AnsiString or System.Data.DbType.Date or System.Data.DbType.DateTime
+			or System.Data.DbType.Guid or System.Data.DbType.String or System.Data.DbType.Time
+			or System.Data.DbType.AnsiStringFixedLength or System.Data.DbType.StringFixedLength
+			or System.Data.DbType.Xml or System.Data.DbType.DateTime2 or System.Data.DbType.DateTimeOffset => true,
+			_ => false,
+		};
+	}
+
+	private static string? ResolveValue(object? value)
+	{
+		if (value == null)
+			return default;
+
+		if (value.GetType().IsEnum)
+			return Convert.ChangeType(value, Enum.GetUnderlyingType(value.GetType()))?.ToString();
+
+		if (NeedsEscaping(value))
+			return $"'{value}'";
+
+		return value.ToString();
 	}
 }
