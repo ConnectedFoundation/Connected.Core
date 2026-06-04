@@ -212,9 +212,21 @@ public static class DtoExtensions
 	public static TReturnValue? TryGetProperty<TPrimaryKey, TReturnValue>(this IPatchDto<TPrimaryKey> dto, string propertyName)
 		where TPrimaryKey : notnull
 	{
-		if (!dto.Properties.TryGetValue(propertyName, out var value) || value is not TReturnValue result)
-			return default;
+		if (dto.Properties.TryGetValue(propertyName, out var value) && value is TReturnValue result)
+			return result;
 
-		return result;
+		foreach (var property in dto.Properties)
+		{
+			if (!string.Equals(property.Key, propertyName, StringComparison.OrdinalIgnoreCase))
+				continue;
+
+			if (property.Value is TReturnValue caseInsensitiveResult)
+				return caseInsensitiveResult;
+
+			if (property.Value is not null)
+				return Types.Convert<TReturnValue>(property.Value);
+		}
+
+		return default;
 	}
 }
