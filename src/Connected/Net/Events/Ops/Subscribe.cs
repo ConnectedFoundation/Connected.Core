@@ -1,4 +1,5 @@
 using Connected.Net.Events.Dtos;
+using Connected.Net.Messaging;
 using Connected.Services;
 
 namespace Connected.Net.Events.Ops;
@@ -14,14 +15,23 @@ internal sealed class Subscribe(EventClients eventClients, EventSubscriptions su
 
 		var target = $"{Dto.Service}/{Dto.Event}".ToLowerInvariant();
 
-		var clients = subscriptions.Items.GetOrAdd(target, _ => []);
-
-		lock (clients)
+		if (subscriptions.Items.TryGetValue(target, out List<IClient>? clients))
 		{
-			if (clients.FirstOrDefault(f => string.Equals(f.Connection, Dto.Connection, StringComparison.OrdinalIgnoreCase)) is not null)
-				return;
+			if (clients is null)
+				throw new NullReferenceException("Client list is null.");
 
-			clients.Add(client);
+			lock (clients)
+			{
+				if (clients.FirstOrDefault(f => string.Equals(f.Connection, Dto.Connection, StringComparison.OrdinalIgnoreCase)) is not null)
+					return;
+
+				clients.Add(client);
+			}
+		}
+		else
+		{
+			if (!subscriptions.Items.TryAdd(target, [client]))
+				throw new InvalidOperationException($"Cannot add subscription ({Dto.Service}/{Dto.Event})");
 		}
 
 		await Task.CompletedTask;
