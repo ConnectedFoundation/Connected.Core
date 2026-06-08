@@ -38,7 +38,11 @@ public abstract class QueueMessageCache<TEntity>(ICachingService cache, IStorage
 		 * Query the cache for a message matching both the action type and group identifier.
 		 * This enables debouncing by detecting duplicate messages for the same processing context.
 		 */
-		var candidates = await this.AsEntities(f => (group is null || string.Equals(f.Group, group, StringComparison.OrdinalIgnoreCase)) && f.Action == client);
+		var query = this.AsQueryable();
+
+		query = query.Where(f => (group == null || string.Equals(f.Group, group, StringComparison.OrdinalIgnoreCase)) && f.Action == client);
+
+		var candidates = await query.AsEntities();
 
 		if (candidates.Count == 0)
 			return default;

@@ -1502,8 +1502,15 @@ public sealed class Binder
 		 * Inline invocation of captured lambda delegates by mapping the lambda
 		 * parameters to the invocation arguments and visiting the body in the
 		 * current parameter mapping context.
+		 * Also handle the case where partial evaluation has wrapped the lambda
+		 * in a ConstantExpression (e.g. a captured Expression<Func<T,bool>>).
 		 */
-		if (expression.Expression is LambdaExpression lambda)
+		var target = expression.Expression;
+
+		if (target is ConstantExpression ce && ce.Value is LambdaExpression constantLambda)
+			target = constantLambda;
+
+		if (target is LambdaExpression lambda)
 		{
 			for (var i = 0; i < lambda.Parameters.Count; i++)
 				ParameterMapping[lambda.Parameters[i]] = expression.Arguments[i];

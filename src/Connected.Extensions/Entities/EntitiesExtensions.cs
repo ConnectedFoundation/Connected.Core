@@ -50,7 +50,7 @@ public static class EntitiesExtensions
 		return Serializer.Merge(newEntity, existing);
 	}
 
-	public static async Task<IImmutableList<TSource>> AsEntities<TSource>(this IQueryable<TSource> source, CancellationToken cancellationToken = default)
+	public static async Task<IImmutableList<TSource>> ExecuteMulti<TSource>(this IQueryable<TSource> source, CancellationToken cancellationToken = default)
 	{
 		if (source is null)
 			return [];
@@ -61,6 +61,19 @@ public static class EntitiesExtensions
 			list.Add(element);
 
 		return [.. list];
+	}
+
+	public static async Task<TSource?> ExecuteSingle<TSource>(this IQueryable<TSource> source)
+	{
+		if (source is null)
+			return default;
+
+		return await Execute<TSource, TSource>(QueryableMethods.SingleOrDefaultWithoutPredicate, source);
+	}
+
+	public static async Task<IImmutableList<TSource>> AsEntities<TSource>(this IQueryable<TSource> source, CancellationToken cancellationToken = default)
+	{
+		return await ExecuteMulti<TSource>(source, cancellationToken);
 	}
 
 	/*
@@ -74,6 +87,17 @@ public static class EntitiesExtensions
 
 		await Task.CompletedTask;
 
+		if (source is IQueryable<TSource> queryable)
+		{
+			/*
+			 * A compiled Func<> delegate cannot be translated to SQL.
+			 * Execute the full query first then apply the predicate in memory.
+			 */
+			var all = await ExecuteMulti<TSource>(queryable);
+
+			return predicate is null ? all : [.. all.Where(predicate)];
+		}
+
 		return source.Where(predicate).ToImmutableList();
 	}
 
@@ -83,6 +107,9 @@ public static class EntitiesExtensions
 			return [];
 
 		await Task.CompletedTask;
+
+		if (source is IQueryable<TSource> queryable)
+			return await ExecuteMulti<TSource>(queryable);
 
 		return source.ToImmutableList();
 	}
@@ -98,26 +125,37 @@ public static class EntitiesExtensions
 
 	public static async Task<TSource?> AsEntity<TSource>(this IQueryable<TSource> source)
 	{
+		return await ExecuteSingle<TSource>(source);
+	}
+
+	public static async Task<TSource?> AsEntity<TSource>(this IEnumerable<TSource> source)
+	{
 		if (source is null)
 			return default;
 
-		return await Execute<TSource, TSource>(QueryableMethods.SingleOrDefaultWithoutPredicate, source);
+		if (source is IQueryable<TSource> queryable)
+			return await ExecuteSingle<TSource>(queryable);
+
+		return source.FirstOrDefault();
 	}
 
-	public static Task<TSource?> AsEntity<TSource>(this IEnumerable<TSource> source)
+	public static async Task<TSource?> AsEntity<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate)
 	{
 		if (source is null)
-			return Task.FromResult<TSource?>(default);
+			return default;
 
-		return Task.FromResult(source.FirstOrDefault());
-	}
+		if (source is IQueryable<TSource> queryable)
+		{
+			/*
+			 * A compiled Func<> delegate cannot be translated to SQL.
+			 * Execute the full query first then apply the predicate in memory.
+			 */
+			var all = await ExecuteMulti<TSource>(queryable);
 
-	public static Task<TSource?> AsEntity<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate)
-	{
-		if (source is null)
-			return Task.FromResult<TSource?>(default);
+			return predicate is null ? all.FirstOrDefault() : all.FirstOrDefault(predicate);
+		}
 
-		return Task.FromResult(source.FirstOrDefault(predicate));
+		return source.FirstOrDefault(predicate);
 	}
 
 	public static IEnumerable<TEntity> WithDto<TEntity>(this IEnumerable<TEntity> source, IQueryDto dto)
