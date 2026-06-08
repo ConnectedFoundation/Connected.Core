@@ -7,67 +7,108 @@ using Microsoft.AspNetCore.Http;
 
 namespace Connected.Net.Events;
 
-internal sealed class EventHub(IAuthenticationService authentication, IHttpContextAccessor http, IEventServer server, EventClients clients)
-	: ServerHub(clients)
+internal sealed class EventHub(IServiceProvider services, EventClients clients, IAuthenticationService authentication, IHttpContextAccessor http, IEventServer server)
+	: ServerHub(services, clients)
 {
 	public override async Task OnDisconnectedAsync(Exception? ex)
 	{
-		await HubAuthentication.Authenticate(Context, clients);
+		try
+		{
+			await HubAuthentication.Authenticate(Context, clients);
+			await base.OnDisconnectedAsync(ex);
+			await authentication.WithSystemIdentity();
 
-		await base.OnDisconnectedAsync(ex);
-		await authentication.WithSystemIdentity();
+			var dto = new Dto<IUnsubscribeEventDto>().Value;
 
-		var dto = new Dto<IUnsubscribeEventDto>().Value;
+			dto.Connection = Context.ConnectionId;
 
-		dto.Connection = Context.ConnectionId;
+			await server.Unsubscribe(dto);
+			await Commit();
+		}
+		catch
+		{
+			await Rollback();
 
-		await server.Unsubscribe(dto);
+			throw;
+		}
 	}
 
 	public async Task Subscribe(List<EventSubscription> subscriptions)
 	{
-		await HubAuthentication.Authenticate(Context, clients);
-		await authentication.WithRequestIdentity(http);
-
-		foreach (var subscription in subscriptions)
+		try
 		{
-			var dto = new Dto<ISubscribeEventDto>().Value;
+			await HubAuthentication.Authenticate(Context, clients);
+			await authentication.WithRequestIdentity(http);
 
-			dto.Connection = Context.ConnectionId;
-			dto.Service = subscription.Service;
-			dto.Event = subscription.Event;
+			foreach (var subscription in subscriptions)
+			{
+				var dto = new Dto<ISubscribeEventDto>().Value;
 
-			await server.Subscribe(dto);
+				dto.Connection = Context.ConnectionId;
+				dto.Service = subscription.Service;
+				dto.Event = subscription.Event;
+
+				await server.Subscribe(dto);
+			}
+
+			await Commit();
+		}
+		catch
+		{
+			await Rollback();
+
+			throw;
 		}
 	}
 
 	public async Task Unsubscribe(List<EventSubscription> subscriptions)
 	{
-		await HubAuthentication.Authenticate(Context, clients);
-		await authentication.WithRequestIdentity(http);
-
-		foreach (var subscription in subscriptions)
+		try
 		{
-			var dto = new Dto<IUnsubscribeEventDto>().Value;
+			await HubAuthentication.Authenticate(Context, clients);
+			await authentication.WithRequestIdentity(http);
 
-			dto.Connection = Context.ConnectionId;
-			dto.Service = subscription.Service;
-			dto.Event = subscription.Event;
+			foreach (var subscription in subscriptions)
+			{
+				var dto = new Dto<IUnsubscribeEventDto>().Value;
 
-			await server.Unsubscribe(dto);
+				dto.Connection = Context.ConnectionId;
+				dto.Service = subscription.Service;
+				dto.Event = subscription.Event;
+
+				await server.Unsubscribe(dto);
+			}
+
+			await Commit();
+		}
+		catch
+		{
+			await Rollback();
+
+			throw;
 		}
 	}
 
 	public async Task Acknowledge(MessageAcknowledgeDto dto)
 	{
-		await HubAuthentication.Authenticate(Context, clients);
-		await authentication.WithRequestIdentity(http);
+		try
+		{
+			await HubAuthentication.Authenticate(Context, clients);
+			await authentication.WithRequestIdentity(http);
 
-		var boundDto = new Dto<IBoundMessageAcknowledgeDto>().Value;
+			var boundDto = new Dto<IBoundMessageAcknowledgeDto>().Value;
 
-		boundDto.Connection = Context.ConnectionId;
-		boundDto.Id = dto.Id;
+			boundDto.Connection = Context.ConnectionId;
+			boundDto.Id = dto.Id;
 
-		await server.Acknowledge(boundDto);
+			await server.Acknowledge(boundDto);
+			await Commit();
+		}
+		catch
+		{
+			await Rollback();
+
+			throw;
+		}
 	}
 }
