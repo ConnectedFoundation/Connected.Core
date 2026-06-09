@@ -5,7 +5,7 @@ public class PatchDto<TPrimaryKey> : PrimaryKeyDto<TPrimaryKey>, IPatchDto<TPrim
 {
 	public PatchDto()
 	{
-		Properties = [];
+		Properties = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
 	}
 
 	public Dictionary<string, object?> Properties { get; set; }

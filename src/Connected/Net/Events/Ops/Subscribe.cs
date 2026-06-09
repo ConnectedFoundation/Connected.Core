@@ -31,7 +31,25 @@ internal sealed class Subscribe(EventClients eventClients, EventSubscriptions su
 		else
 		{
 			if (!subscriptions.Items.TryAdd(target, [client]))
+			{
+				if (subscriptions.Items.TryGetValue(target, out List<IClient>? subClients))
+				{
+					if (subClients is null)
+						throw new NullReferenceException("Client list is null.");
+
+					lock (subClients)
+					{
+						if (subClients.FirstOrDefault(f => string.Equals(f.Connection, Dto.Connection, StringComparison.OrdinalIgnoreCase)) is not null)
+							return;
+
+						subClients.Add(client);
+					}
+
+					return;
+				}
+
 				throw new InvalidOperationException($"Cannot add subscription ({Dto.Service}/{Dto.Event})");
+			}
 		}
 
 		await Task.CompletedTask;
