@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Connected.Services;
 
-public class DynamicQueryDto<TEntity>
+public abstract class DynamicQueryDto<TEntity>
 	: QueryDto, IDynamicQueryDto<TEntity>
 {
 	[SkipValidation, JsonIgnore, Mergeable(false)]
