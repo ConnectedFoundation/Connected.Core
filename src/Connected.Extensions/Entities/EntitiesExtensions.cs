@@ -76,33 +76,6 @@ public static class EntitiesExtensions
 		return await ExecuteMulti(source, cancellationToken);
 	}
 
-	/*
-	 * This method is actually not asynchronous but to avoid future refactorings its signature is 
-	 * marked as async.
-	 */
-	public static async Task<IImmutableList<TSource>> AsEntities<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate)
-	{
-		if (source is null)
-			return [];
-
-		if (predicate != null)
-			source = source.Where(predicate);
-
-		await Task.CompletedTask;
-
-		if (source is IQueryable<TSource> queryable)
-		{
-			/*
-			 * A compiled Func<> delegate cannot be translated to SQL.
-			 * Execute the full query first then apply the predicate in memory.
-			 */
-			var all = await ExecuteMulti(queryable);
-
-			return predicate is null ? all : [.. all.Where(predicate)];
-		}
-
-		return predicate == null ? [.. source] : source.Where(predicate).ToImmutableList();
-	}
 	public static async Task<IImmutableList<TSource>> AsEntities<TSource>(this IQueryable<TSource> source, Expression<Func<TSource, bool>> predicate)
 	{
 		if (source is null)
@@ -116,28 +89,6 @@ public static class EntitiesExtensions
 		return await ExecuteMulti(source);
 	}
 
-
-	public static async Task<IImmutableList<TSource>> AsEntities<TSource>(this IEnumerable<TSource> source)
-	{
-		if (source is null)
-			return [];
-
-		await Task.CompletedTask;
-
-		if (source is IQueryable<TSource> queryable)
-			return await ExecuteMulti(queryable);
-
-		return source.ToImmutableList();
-	}
-
-	public static Task<IImmutableList<TDestination>> AsEntities<TSource, TDestination>(this IEnumerable<TSource> source)
-		where TSource : TDestination
-	{
-		if (source is null)
-			return Task.FromResult<IImmutableList<TDestination>>(ImmutableList<TDestination>.Empty);
-
-		return Task.FromResult<IImmutableList<TDestination>>(source.Cast<TDestination>().ToImmutableList());
-	}
 
 	public static async Task<TSource?> AsEntity<TSource>(this IQueryable<TSource> source)
 	{
@@ -155,84 +106,53 @@ public static class EntitiesExtensions
 		return await ExecuteSingle(source);
 	}
 
-	public static async Task<TSource?> AsEntity<TSource>(this IEnumerable<TSource> source)
+	public static IQueryable<TEntity> WithDto<TEntity>(this IQueryable<TEntity> source, IQueryDto dto)
 	{
-		if (source is null)
-			return default;
-
-		if (source is IQueryable<TSource> queryable)
-			return await ExecuteSingle(queryable);
-
-		return source.FirstOrDefault();
-	}
-
-	public static async Task<TSource?> AsEntity<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate)
-	{
-		if (source is null)
-			return default;
-
-		if (source is IQueryable<TSource> queryable)
-		{
-			/*
-			 * A compiled Func<> delegate cannot be translated to SQL.
-			 * Execute the full query first then apply the predicate in memory.
-			 */
-			var all = await ExecuteMulti(queryable);
-
-			return predicate is null ? all.FirstOrDefault() : all.FirstOrDefault(predicate);
-		}
-
-		return source.FirstOrDefault(predicate);
-	}
-
-	public static IEnumerable<TEntity> WithDto<TEntity>(this IEnumerable<TEntity> source, IQueryDto dto)
-	{
-		if (ResolveDynamicPredicate<TEntity>(dto) is Func<TEntity, bool> predicate)
+		if (ResolveDynamicPredicate<TEntity>(dto) is Expression<Func<TEntity, bool>> predicate)
 			source = source.Where(predicate);
 
 		return source.WithOrderBy(dto).WithPaging(dto);
 	}
 
-	private static IEnumerable<TEntity> WithPaging<TEntity>(this IEnumerable<TEntity> source, IQueryDto dto)
+	private static IQueryable<TEntity> WithPaging<TEntity>(this IQueryable<TEntity> source, IQueryDto dto)
 	{
 		if (dto.Paging.Size < 1)
 			return source;
 
-		return source.Skip((dto.Paging.Index - 1) * dto.Paging.Size)
-				.Take(dto.Paging.Size);
+		return source.Skip((dto.Paging.Index - 1) * dto.Paging.Size).Take(dto.Paging.Size);
 	}
 
-	private static IEnumerable<TEntity> WithOrderBy<TEntity>(this IEnumerable<TEntity> entities, IQueryDto dto)
+	private static IQueryable<TEntity> WithOrderBy<TEntity>(this IQueryable<TEntity> entities, IQueryDto dto)
 	{
-		if (entities.AsQueryable() as IOrderedQueryable<TEntity> is not IOrderedQueryable<TEntity> result)
+		if (dto.OrderBy == null || dto.OrderBy.Count == 0)
 			return entities;
 
-		var top = true;
+		IOrderedQueryable<TEntity>? result = null;
 
 		foreach (var criteria in dto.OrderBy)
 		{
-			if (top)
+			var selector = ResolvePropertyPredicate<TEntity>(criteria.Property);
+
+			if (result == null)
 			{
 				if (criteria.Mode == OrderByMode.Ascending)
-					result = result.OrderBy(ResolvePropertyPredicate<TEntity>(criteria.Property));
+					result = entities.OrderBy(selector);
 				else
-					result = result.OrderByDescending(ResolvePropertyPredicate<TEntity>(criteria.Property));
+					result = entities.OrderByDescending(selector);
 			}
 			else
 			{
 				if (criteria.Mode == OrderByMode.Ascending)
-					result = result.ThenBy(ResolvePropertyPredicate<TEntity>(criteria.Property));
+					result = result.ThenBy(selector);
 				else
-					result = result.ThenByDescending(ResolvePropertyPredicate<TEntity>(criteria.Property));
+					result = result.ThenByDescending(selector);
 			}
-
-			top = false;
 		}
 
-		return result;
+		return result ?? entities;
 	}
 
-	private static Func<TEntity, bool>? ResolveDynamicPredicate<TEntity>(IQueryDto dto)
+	private static Expression<Func<TEntity, bool>>? ResolveDynamicPredicate<TEntity>(IQueryDto dto)
 	{
 		if (dto is IDynamicQueryDto<TEntity> dynamicDto && dynamicDto.Predicate is not null)
 			return dynamicDto.Predicate;
@@ -254,7 +174,7 @@ public static class EntitiesExtensions
 			if (predicate == null)
 				return null;
 
-			return predicate.GetValue(dto) as Func<TEntity, bool>;
+			return predicate.GetValue(dto) as Expression<Func<TEntity, bool>>;
 		}
 
 		return null;
