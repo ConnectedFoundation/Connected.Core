@@ -76,7 +76,12 @@ public static class EntitiesExtensions
 		await Task.CompletedTask;
 
 		if (predicate != null)
+		{
+			if (typeof(TSource).IsInterface && source.ElementType != typeof(TSource) && source.ElementType.IsAssignableTo(typeof(TSource)))
+				return RewriteAndExecuteMulti(source, predicate);
+
 			source = source.Where(predicate);
+		}
 
 		return await Enumerate(source);
 	}
@@ -98,7 +103,12 @@ public static class EntitiesExtensions
 			return default;
 
 		if (predicate is not null)
+		{
+			if (typeof(TSource).IsInterface && source.ElementType != typeof(TSource) && source.ElementType.IsAssignableTo(typeof(TSource)))
+				return await RewriteAndExecuteSingle(source, predicate);
+
 			source = source.Where(predicate);
+		}
 
 		var filtered = await Enumerate(source);
 
@@ -391,5 +401,83 @@ public static class EntitiesExtensions
 			throw new NullReferenceException($"{Strings.ErrEntityExpected} ({typeof(TEntity).ShortName()})");
 
 		return (TEntity)entity;
+	}
+
+	private static Task<TSource?> RewriteAndExecuteSingle<TSource>(IQueryable<TSource> source, Expression<Func<TSource, bool>> predicate)
+	{
+		foreach (var item in BuildRewrittenQuery(source, predicate))
+			return Task.FromResult<TSource?>((TSource)item!);
+
+		return Task.FromResult<TSource?>(default);
+	}
+
+	private static IImmutableList<TSource> RewriteAndExecuteMulti<TSource>(IQueryable<TSource> source, Expression<Func<TSource, bool>> predicate)
+	{
+		var list = new List<TSource>();
+
+		foreach (var item in BuildRewrittenQuery(source, predicate))
+			list.Add((TSource)item!);
+
+		return [.. list];
+	}
+
+	private static IQueryable BuildRewrittenQuery<TSource>(IQueryable<TSource> source, Expression<Func<TSource, bool>> predicate)
+	{
+		var elementType = source.ElementType;
+		var originalParam = predicate.Parameters[0];
+		var newParam = Expression.Parameter(elementType, originalParam.Name);
+		var newBody = new ParameterTypeRewriter(originalParam, newParam).Visit(predicate.Body)!;
+		var newLambda = Expression.Lambda(newBody, newParam);
+		var whereMethod = GetQueryableWhereMethod(elementType);
+		var callExpr = Expression.Call(null, whereMethod, source.Expression, Expression.Quote(newLambda));
+
+		return source.Provider.CreateQuery(callExpr);
+	}
+
+	private static MethodInfo GetQueryableWhereMethod(Type elementType)
+	{
+		var method = typeof(Queryable)
+			.GetMethods(BindingFlags.Static | BindingFlags.Public)
+			.First(m =>
+			{
+				if (m.Name != nameof(Queryable.Where))
+					return false;
+
+				var parameters = m.GetParameters();
+
+				if (parameters.Length != 2)
+					return false;
+
+				var paramType = parameters[1].ParameterType;
+
+				if (!paramType.IsGenericType)
+					return false;
+
+				var funcType = paramType.GetGenericArguments().FirstOrDefault();
+
+				return funcType?.IsGenericType == true && funcType.GetGenericArguments().Length == 2;
+			});
+
+		return method.MakeGenericMethod(elementType);
+	}
+
+	private sealed class ParameterTypeRewriter(ParameterExpression oldParam, ParameterExpression newParam) : ExpressionVisitor
+	{
+		protected override Expression VisitParameter(ParameterExpression node)
+			=> node == oldParam ? newParam : base.VisitParameter(node);
+
+		protected override Expression VisitMember(MemberExpression node)
+		{
+			if (node.Expression is ParameterExpression pe && pe == oldParam)
+			{
+				var member = newParam.Type
+					.GetMember(node.Member.Name, MemberTypes.Property | MemberTypes.Field, BindingFlags.Public | BindingFlags.Instance)
+					.FirstOrDefault();
+
+				return Expression.MakeMemberAccess(newParam, member ?? node.Member);
+			}
+
+			return base.VisitMember(node);
+		}
 	}
 }
