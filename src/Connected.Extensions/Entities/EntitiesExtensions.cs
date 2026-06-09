@@ -73,7 +73,7 @@ public static class EntitiesExtensions
 
 	public static async Task<IImmutableList<TSource>> AsEntities<TSource>(this IQueryable<TSource> source, CancellationToken cancellationToken = default)
 	{
-		return await ExecuteMulti<TSource>(source, cancellationToken);
+		return await ExecuteMulti(source, cancellationToken);
 	}
 
 	/*
@@ -85,6 +85,9 @@ public static class EntitiesExtensions
 		if (source is null)
 			return [];
 
+		if (predicate != null)
+			source = source.Where(predicate);
+
 		await Task.CompletedTask;
 
 		if (source is IQueryable<TSource> queryable)
@@ -93,13 +96,26 @@ public static class EntitiesExtensions
 			 * A compiled Func<> delegate cannot be translated to SQL.
 			 * Execute the full query first then apply the predicate in memory.
 			 */
-			var all = await ExecuteMulti<TSource>(queryable);
+			var all = await ExecuteMulti(queryable);
 
 			return predicate is null ? all : [.. all.Where(predicate)];
 		}
 
-		return source.Where(predicate).ToImmutableList();
+		return predicate == null ? [.. source] : source.Where(predicate).ToImmutableList();
 	}
+	public static async Task<IImmutableList<TSource>> AsEntities<TSource>(this IQueryable<TSource> source, Expression<Func<TSource, bool>> predicate)
+	{
+		if (source is null)
+			return [];
+
+		await Task.CompletedTask;
+
+		if (predicate != null)
+			source = source.Where(predicate);
+
+		return await ExecuteMulti(source);
+	}
+
 
 	public static async Task<IImmutableList<TSource>> AsEntities<TSource>(this IEnumerable<TSource> source)
 	{
@@ -109,7 +125,7 @@ public static class EntitiesExtensions
 		await Task.CompletedTask;
 
 		if (source is IQueryable<TSource> queryable)
-			return await ExecuteMulti<TSource>(queryable);
+			return await ExecuteMulti(queryable);
 
 		return source.ToImmutableList();
 	}
@@ -125,7 +141,18 @@ public static class EntitiesExtensions
 
 	public static async Task<TSource?> AsEntity<TSource>(this IQueryable<TSource> source)
 	{
-		return await ExecuteSingle<TSource>(source);
+		return await ExecuteSingle(source);
+	}
+
+	public static async Task<TSource?> AsEntity<TSource>(this IQueryable<TSource> source, Expression<Func<TSource, bool>> predicate)
+	{
+		if (source is null)
+			return default;
+
+		if (predicate is not null)
+			source = source.Where(predicate);
+
+		return await ExecuteSingle(source);
 	}
 
 	public static async Task<TSource?> AsEntity<TSource>(this IEnumerable<TSource> source)
@@ -134,7 +161,7 @@ public static class EntitiesExtensions
 			return default;
 
 		if (source is IQueryable<TSource> queryable)
-			return await ExecuteSingle<TSource>(queryable);
+			return await ExecuteSingle(queryable);
 
 		return source.FirstOrDefault();
 	}
@@ -150,7 +177,7 @@ public static class EntitiesExtensions
 			 * A compiled Func<> delegate cannot be translated to SQL.
 			 * Execute the full query first then apply the predicate in memory.
 			 */
-			var all = await ExecuteMulti<TSource>(queryable);
+			var all = await ExecuteMulti(queryable);
 
 			return predicate is null ? all.FirstOrDefault() : all.FirstOrDefault(predicate);
 		}

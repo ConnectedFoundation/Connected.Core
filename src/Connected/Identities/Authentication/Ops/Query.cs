@@ -12,7 +12,7 @@ internal class Query(IStorageProvider storage)
 	protected override async Task<IImmutableList<IIdentityAuthenticationToken>> OnInvoke()
 	{
 		return await storage.Open<IdentityAuthenticationToken>().AsEntities<IIdentityAuthenticationToken>(f =>
-						(Dto.Identity is null || string.Equals(f.Identity, Dto.Identity, StringComparison.Ordinal))
-					&& (Dto.Key is null || string.Equals(f.Key, Dto.Key, StringComparison.Ordinal)));
+						(Dto.Identity == null || string.Equals(f.Identity, Dto.Identity, StringComparison.Ordinal))
+					&& (Dto.Key == null || string.Equals(f.Key, Dto.Key, StringComparison.Ordinal)));
 	}
 }

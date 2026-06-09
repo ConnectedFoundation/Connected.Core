@@ -632,6 +632,9 @@ public static class RuntimeExtensions
 
 			if (i.IsAssignableTo(typeof(IDto)))
 			{
+				if ((i.IsGenericType && !type.IsGenericType) || (!i.IsGenericType && type.IsGenericType))
+					continue;
+
 				var interfaceDefinition = i.IsGenericType ? i.GetGenericTypeDefinition() : i;
 				var typeDefinition = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
 

@@ -11,7 +11,7 @@ internal class Query(IMembershipCache cache)
 	protected override async Task<IImmutableList<IMembership>> OnInvoke()
 	{
 		return await cache.AsEntities<IMembership>(f =>
-				(Dto.Identity is null || string.Equals(f.Identity, Dto.Identity, StringComparison.OrdinalIgnoreCase))
-			&& (Dto.Role is null || f.Role == Dto.Role.GetValueOrDefault()));
+				(Dto.Identity == null || string.Equals(f.Identity, Dto.Identity, StringComparison.OrdinalIgnoreCase))
+			&& (Dto.Role == null || f.Role == Dto.Role.GetValueOrDefault()));
 	}
 }
