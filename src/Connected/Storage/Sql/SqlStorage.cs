@@ -26,12 +26,12 @@ internal sealed class SqlStorage(IStorageProvider storage)
 		return Task.FromResult(true);
 	}
 
-	protected override object OnExecute(Expression expression)
+	protected override async Task<object?> OnExecute(Expression expression)
 	{
-		return CreateExecutionPlan(expression).Compile()(this);
+		return await CreateExecutionPlan(expression).Compile()(this);
 	}
 
-	private static Expression<Func<IStorageExecutor, object>> CreateExecutionPlan(Expression expression)
+	private static Expression<Func<IStorageExecutor, Task<object>>> CreateExecutionPlan(Expression expression)
 	{
 		var lambda = expression as LambdaExpression;
 
@@ -61,7 +61,7 @@ internal sealed class SqlStorage(IStorageProvider storage)
 		return SubtreeResolver.Resolve(expression, type);
 	}
 
-	public IEnumerable<TResult?> Execute<TResult>(IStorageOperation operation)
+	public async Task<IEnumerable<TResult?>> Execute<TResult>(IStorageOperation operation)
 		 where TResult : IEntity
 	{
 		var dto = Dto.Factory.Create<IStorageContextDto>();
@@ -80,6 +80,6 @@ internal sealed class SqlStorage(IStorageProvider storage)
 		dto.Operation = operation;
 		dto.ConnectionMode = ConnectionMode;
 
-		return Storage.Open<TResult>(ConnectionMode).Query(dto).Result;
+		return await Storage.Open<TResult>(ConnectionMode).Query(dto);
 	}
 }

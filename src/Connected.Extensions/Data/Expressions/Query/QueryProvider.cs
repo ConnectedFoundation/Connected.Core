@@ -5,6 +5,26 @@ namespace Connected.Data.Expressions.Query;
 public abstract class QueryProvider
 	: Middleware, IQueryProvider
 {
+	IQueryable IQueryProvider.CreateQuery(Expression expression)
+	{
+		return CreateQuery(expression);
+	}
+
+	IQueryable<TElement> IQueryProvider.CreateQuery<TElement>(Expression expression)
+	{
+		return CreateQuery<TElement>(expression);
+	}
+
+	object? IQueryProvider.Execute(Expression expression)
+	{
+		return Execute(expression).GetAwaiter().GetResult();
+	}
+
+	TResult IQueryProvider.Execute<TResult>(Expression expression)
+	{
+		return Execute<TResult>(expression).GetAwaiter().GetResult();
+	}
+
 	public IQueryable CreateQuery(Expression expression)
 	{
 		var type = expression.Type.GetElementType() ?? throw new NullReferenceException(SR.ErrCannotResolveElementType);
@@ -21,15 +41,15 @@ public abstract class QueryProvider
 		return new EntityQuery<TElement>(this, expression);
 	}
 
-	public object? Execute(Expression expression)
+	public virtual async Task<object?> Execute(Expression expression)
 	{
-		return OnExecute(expression);
+		return await OnExecute(expression);
 	}
 
-	public TResult Execute<TResult>(Expression expression)
+	public virtual async Task<TResult> Execute<TResult>(Expression expression)
 	{
-		return (TResult)OnExecute(expression);
+		return (TResult)(await OnExecute(expression) ?? throw new NullReferenceException(nameof(expression)));
 	}
 
-	protected abstract object OnExecute(Expression expression);
+	protected abstract Task<object?> OnExecute(Expression expression);
 }

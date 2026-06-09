@@ -14,9 +14,9 @@ internal class Request(IClaimCache cache, IMembershipService membership, IRoleSe
 		var values = Dto.Values.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 		var targets = await cache.AsEntities(f =>
 					values.Any(g => string.Equals(g, f.Value, StringComparison.OrdinalIgnoreCase))
-				&& (Dto.Identity is null || identities.Any(g => string.Equals(g, f.Identity, StringComparison.Ordinal)))
-				&& (Dto.Entity is null || string.Equals(f.Entity, Dto.Entity, StringComparison.OrdinalIgnoreCase))
-				&& (Dto.EntityId is null || string.Equals(f.EntityId, Dto.EntityId, StringComparison.OrdinalIgnoreCase))
+				&& (Dto.Identity == null || identities.Any(g => string.Equals(g, f.Identity, StringComparison.Ordinal)))
+				&& (Dto.Entity == null || string.Equals(f.Entity, Dto.Entity, StringComparison.OrdinalIgnoreCase))
+				&& (Dto.EntityId == null || string.Equals(f.EntityId, Dto.EntityId, StringComparison.OrdinalIgnoreCase))
 				&& f.Status == ClaimStatus.Approved);
 
 		return targets.Any();

@@ -75,9 +75,9 @@ internal sealed class OracleStorage(IStorageProvider storage)
 	/// plan handles translation from LINQ expressions to Oracle SQL statements with proper
 	/// bind variables, identifiers, and Oracle-specific functions.
 	/// </remarks>
-	protected override object OnExecute(Expression expression)
+	protected override async Task<object?> OnExecute(Expression expression)
 	{
-		return CreateExecutionPlan(expression).Compile()(this);
+		return await CreateExecutionPlan(expression).Compile()(this);
 	}
 
 	/// <summary>
@@ -97,7 +97,7 @@ internal sealed class OracleStorage(IStorageProvider storage)
 	/// double-quoted identifiers ("schema"."table"), and Oracle-specific functions (SUBSTR, INSTR,
 	/// LENGTH, TO_DATE, NVL, etc.).
 	/// </remarks>
-	private static Expression<Func<IStorageExecutor, object>> CreateExecutionPlan(Expression expression)
+	private static Expression<Func<IStorageExecutor, Task<object>>> CreateExecutionPlan(Expression expression)
 	{
 		var lambda = expression as LambdaExpression;
 
@@ -165,7 +165,7 @@ internal sealed class OracleStorage(IStorageProvider storage)
 	/// VARCHAR2/CLOB to strings, RAW/BLOB to byte arrays). Results are returned synchronously
 	/// as an enumerable sequence. Oracle connection pooling ensures efficient connection reuse.
 	/// </remarks>
-	public IEnumerable<TResult?> Execute<TResult>(IStorageOperation operation)
+	public async Task<IEnumerable<TResult?>> Execute<TResult>(IStorageOperation operation)
 		 where TResult : IEntity
 	{
 		/*
@@ -190,6 +190,6 @@ internal sealed class OracleStorage(IStorageProvider storage)
 		/*
 		 * Execute query through storage provider and return Oracle results
 		 */
-		return Storage.Open<TResult>(ConnectionMode).Query(dto).Result;
+		return await Storage.Open<TResult>(ConnectionMode).Query(dto);
 	}
 }

@@ -15,9 +15,9 @@ internal sealed class EntityQuery<TEntity>(IQueryProvider provider, Expression e
 
 	public async IAsyncEnumerator<TEntity> GetAsyncEnumerator(CancellationToken cancellationToken = default)
 	{
-		var result = Provider.Execute<IImmutableList<TEntity>>(Expression);
-
-		await Task.CompletedTask;
+		var result = Provider is QueryProvider qp
+			? await qp.Execute<IImmutableList<TEntity>>(Expression)
+			: Provider.Execute<IImmutableList<TEntity>>(Expression);
 
 		if (result is IEnumerable en)
 		{

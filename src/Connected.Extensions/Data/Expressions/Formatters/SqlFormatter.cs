@@ -181,8 +181,50 @@ public class SqlFormatter
 	  or (ExpressionType)DatabaseExpressionType.Projection or (ExpressionType)DatabaseExpressionType.NamedValue
 	  or (ExpressionType)DatabaseExpressionType.Block or (ExpressionType)DatabaseExpressionType.If or (ExpressionType)DatabaseExpressionType.Declaration
 	  or (ExpressionType)DatabaseExpressionType.Variable or (ExpressionType)DatabaseExpressionType.Function => base.Visit(exp),
+			ExpressionType.Invoke => VisitInvocation((InvocationExpression)exp),
 			_ => throw new NotSupportedException($"The expression node of type '{exp.ResolveNodeTypeName()}' is not supported."),
 		};
+	}
+
+	protected override Expression VisitInvocation(InvocationExpression iv)
+	{
+		/*
+		 * Resolve the target: unwrap ConstantExpression(LambdaExpression) produced
+		 * by partial evaluation of captured Expression<Func<T,bool>> predicates.
+		 */
+		var target = iv.Expression;
+
+		if (target is ConstantExpression ce && ce.Value is LambdaExpression constantLambda)
+			target = constantLambda;
+
+		if (target is LambdaExpression lambda)
+		{
+			/*
+			 * Inline the lambda: replace each parameter with its corresponding
+			 * argument and visit the resulting body expression.
+			 */
+			var body = lambda.Body;
+
+			for (var i = 0; i < lambda.Parameters.Count; i++)
+				body = ParameterReplacer.Replace(body, lambda.Parameters[i], iv.Arguments[i]);
+
+			return Visit(body);
+		}
+
+		return Visit(iv.Expression);
+	}
+
+	private static class ParameterReplacer
+	{
+		public static Expression Replace(Expression expression, ParameterExpression parameter, Expression replacement)
+			=> new Replacer(parameter, replacement).Visit(expression)!;
+
+		private sealed class Replacer(ParameterExpression parameter, Expression replacement)
+			: System.Linq.Expressions.ExpressionVisitor
+		{
+			protected override Expression VisitParameter(ParameterExpression node)
+				=> node == parameter ? replacement : base.VisitParameter(node);
+		}
 	}
 
 	protected override Expression VisitMemberAccess(MemberExpression m)

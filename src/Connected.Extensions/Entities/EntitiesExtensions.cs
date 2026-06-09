@@ -50,7 +50,7 @@ public static class EntitiesExtensions
 		return Serializer.Merge(newEntity, existing);
 	}
 
-	public static async Task<IImmutableList<TSource>> AsEntities<TSource>(this IQueryable<TSource> source, CancellationToken cancellationToken = default)
+	private static async Task<IImmutableList<TSource>> Enumerate<TSource>(this IQueryable<TSource> source, CancellationToken cancellationToken = default)
 	{
 		if (source is null)
 			return [];
@@ -63,111 +63,98 @@ public static class EntitiesExtensions
 		return [.. list];
 	}
 
-	/*
-	 * This method is actually not asynchronous but to avoid future refactorings its signature is 
-	 * marked as async.
-	 */
-	public static async Task<IImmutableList<TSource>> AsEntities<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate)
+	public static async Task<IImmutableList<TSource>> AsEntities<TSource>(this IQueryable<TSource> source, CancellationToken cancellationToken = default)
+	{
+		return await Enumerate(source, cancellationToken);
+	}
+
+	public static async Task<IImmutableList<TSource>> AsEntities<TSource>(this IQueryable<TSource> source, Expression<Func<TSource, bool>> predicate)
 	{
 		if (source is null)
 			return [];
 
 		await Task.CompletedTask;
 
-		return source.Where(predicate).ToImmutableList();
+		if (predicate != null)
+			source = source.Where(predicate);
+
+		return await Enumerate(source);
 	}
 
-	public static async Task<IImmutableList<TSource>> AsEntities<TSource>(this IEnumerable<TSource> source)
-	{
-		if (source is null)
-			return [];
-
-		await Task.CompletedTask;
-
-		return source.ToImmutableList();
-	}
-
-	public static Task<IImmutableList<TDestination>> AsEntities<TSource, TDestination>(this IEnumerable<TSource> source)
-		where TSource : TDestination
-	{
-		if (source is null)
-			return Task.FromResult<IImmutableList<TDestination>>(ImmutableList<TDestination>.Empty);
-
-		return Task.FromResult<IImmutableList<TDestination>>(source.Cast<TDestination>().ToImmutableList());
-	}
 
 	public static async Task<TSource?> AsEntity<TSource>(this IQueryable<TSource> source)
+	{
+		var result = await Enumerate(source);
+
+		if (result == null || result.Count == 0)
+			return default;
+
+		return result[0];
+	}
+
+	public static async Task<TSource?> AsEntity<TSource>(this IQueryable<TSource> source, Expression<Func<TSource, bool>> predicate)
 	{
 		if (source is null)
 			return default;
 
-		return await Execute<TSource, TSource>(QueryableMethods.SingleOrDefaultWithoutPredicate, source);
+		if (predicate is not null)
+			source = source.Where(predicate);
+
+		var filtered = await Enumerate(source);
+
+		if (filtered == null || filtered.Count == 0)
+			return default;
+
+		return filtered[0];
 	}
 
-	public static Task<TSource?> AsEntity<TSource>(this IEnumerable<TSource> source)
+	public static IQueryable<TEntity> WithDto<TEntity>(this IQueryable<TEntity> source, IQueryDto dto)
 	{
-		if (source is null)
-			return Task.FromResult<TSource?>(default);
-
-		return Task.FromResult(source.FirstOrDefault());
-	}
-
-	public static Task<TSource?> AsEntity<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate)
-	{
-		if (source is null)
-			return Task.FromResult<TSource?>(default);
-
-		return Task.FromResult(source.FirstOrDefault(predicate));
-	}
-
-	public static IEnumerable<TEntity> WithDto<TEntity>(this IEnumerable<TEntity> source, IQueryDto dto)
-	{
-		if (ResolveDynamicPredicate<TEntity>(dto) is Func<TEntity, bool> predicate)
+		if (ResolveDynamicPredicate<TEntity>(dto) is Expression<Func<TEntity, bool>> predicate)
 			source = source.Where(predicate);
 
 		return source.WithOrderBy(dto).WithPaging(dto);
 	}
 
-	private static IEnumerable<TEntity> WithPaging<TEntity>(this IEnumerable<TEntity> source, IQueryDto dto)
+	private static IQueryable<TEntity> WithPaging<TEntity>(this IQueryable<TEntity> source, IQueryDto dto)
 	{
 		if (dto.Paging.Size < 1)
 			return source;
 
-		return source.Skip((dto.Paging.Index - 1) * dto.Paging.Size)
-				.Take(dto.Paging.Size);
+		return source.Skip((dto.Paging.Index - 1) * dto.Paging.Size).Take(dto.Paging.Size);
 	}
 
-	private static IEnumerable<TEntity> WithOrderBy<TEntity>(this IEnumerable<TEntity> entities, IQueryDto dto)
+	private static IQueryable<TEntity> WithOrderBy<TEntity>(this IQueryable<TEntity> entities, IQueryDto dto)
 	{
-		if (entities.AsQueryable() as IOrderedQueryable<TEntity> is not IOrderedQueryable<TEntity> result)
+		if (dto.OrderBy == null || dto.OrderBy.Count == 0)
 			return entities;
 
-		var top = true;
+		IOrderedQueryable<TEntity>? result = null;
 
 		foreach (var criteria in dto.OrderBy)
 		{
-			if (top)
+			var selector = ResolvePropertyPredicate<TEntity>(criteria.Property);
+
+			if (result == null)
 			{
 				if (criteria.Mode == OrderByMode.Ascending)
-					result = result.OrderBy(ResolvePropertyPredicate<TEntity>(criteria.Property));
+					result = entities.OrderBy(selector);
 				else
-					result = result.OrderByDescending(ResolvePropertyPredicate<TEntity>(criteria.Property));
+					result = entities.OrderByDescending(selector);
 			}
 			else
 			{
 				if (criteria.Mode == OrderByMode.Ascending)
-					result = result.ThenBy(ResolvePropertyPredicate<TEntity>(criteria.Property));
+					result = result.ThenBy(selector);
 				else
-					result = result.ThenByDescending(ResolvePropertyPredicate<TEntity>(criteria.Property));
+					result = result.ThenByDescending(selector);
 			}
-
-			top = false;
 		}
 
-		return result;
+		return result ?? entities;
 	}
 
-	private static Func<TEntity, bool>? ResolveDynamicPredicate<TEntity>(IQueryDto dto)
+	private static Expression<Func<TEntity, bool>>? ResolveDynamicPredicate<TEntity>(IQueryDto dto)
 	{
 		if (dto is IDynamicQueryDto<TEntity> dynamicDto && dynamicDto.Predicate is not null)
 			return dynamicDto.Predicate;
@@ -189,7 +176,7 @@ public static class EntitiesExtensions
 			if (predicate == null)
 				return null;
 
-			return predicate.GetValue(dto) as Func<TEntity, bool>;
+			return predicate.GetValue(dto) as Expression<Func<TEntity, bool>>;
 		}
 
 		return null;
@@ -224,32 +211,6 @@ public static class EntitiesExtensions
 		}
 
 		return null;
-	}
-
-	private static async Task<TResult?> Execute<TSource, TResult>(MethodInfo operatorMethodInfo, IQueryable<TSource> source, Expression? expression)
-	{
-		if (operatorMethodInfo.IsGenericMethod)
-		{
-			operatorMethodInfo = operatorMethodInfo.GetGenericArguments().Length == 2
-					  ? operatorMethodInfo.MakeGenericMethod(typeof(TSource), typeof(TResult).GetGenericArguments().Single())
-					  : operatorMethodInfo.MakeGenericMethod(typeof(TSource));
-		}
-
-		await Task.CompletedTask;
-
-		var arguments = expression is null ? [source.Expression] : new[] { source.Expression, expression };
-		var callExpression = Expression.Call(instance: null, method: operatorMethodInfo, arguments: arguments);
-		var result = source.Provider.Execute(callExpression);
-
-		if (result is null)
-			return default;
-
-		return (TResult)result;
-	}
-
-	private static async Task<TResult?> Execute<TSource, TResult>(MethodInfo operatorMethodInfo, IQueryable<TSource> source)
-	{
-		return await Execute<TSource, TResult>(operatorMethodInfo, source, null);
 	}
 
 	public static PropertyInfo? PrimaryKeyProperty(this IEntity entity)
@@ -402,10 +363,7 @@ public static class EntitiesExtensions
 
 		var serializerInstance = attribute.Type.CreateInstance() ?? throw new NullReferenceException($"{Strings.ErrCreateInstanceNull} ('{attribute.Type}')");
 
-		serializer = serializerInstance as IEntityPropertySerializer;
-
-		if (serializer is null)
-			throw new NullReferenceException($"{Strings.ErrInterfaceExpected} ('{attribute.Type}, {nameof(IEntityPropertySerializer)}')");
+		serializer = serializerInstance as IEntityPropertySerializer ?? throw new NullReferenceException($"{Strings.ErrInterfaceExpected} ('{attribute.Type}, {nameof(IEntityPropertySerializer)}')");
 
 		return serializer;
 	}

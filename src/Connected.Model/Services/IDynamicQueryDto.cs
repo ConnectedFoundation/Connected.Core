@@ -1,7 +1,9 @@
-﻿namespace Connected.Services;
+﻿using System.Linq.Expressions;
+
+namespace Connected.Services;
 
 public interface IDynamicQueryDto<TEntity>
 	: IQueryDto
 {
-	Func<TEntity, bool>? Predicate { get; set; }
+	Expression<Func<TEntity, bool>>? Predicate { get; set; }
 }

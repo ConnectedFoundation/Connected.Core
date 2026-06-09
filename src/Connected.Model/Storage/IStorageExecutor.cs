@@ -4,6 +4,6 @@ namespace Connected.Storage;
 
 public interface IStorageExecutor
 {
-	IEnumerable<TResult?> Execute<TResult>(IStorageOperation operation)
+	Task<IEnumerable<TResult?>> Execute<TResult>(IStorageOperation operation)
 		where TResult : IEntity;
 }

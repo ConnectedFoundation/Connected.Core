@@ -89,7 +89,15 @@ internal sealed class SubtreeEvaluator
 				var value = ce.Value is null ? null : me.Member.GetValue(ce.Value);
 				var constant = Expression.Constant(value, type);
 
-				Context.Parameters.Add(me.Member.Name, constant);
+				/*
+				 * Only register as a SQL parameter when the value is a scalar that
+				 * the DB driver can serialize. Delegates, expression trees and other
+				 * non-serializable types must not enter the parameter dictionary
+				 * because they cannot be converted to a DB type and will cause an
+				 * InvalidCastException when the command is executed.
+				 */
+				if (!IsDelegate(type) && !IsExpressionTree(type))
+					Context.Parameters.Add(me.Member.Name, constant);
 
 				return PostEval(constant);
 			}
@@ -103,4 +111,11 @@ internal sealed class SubtreeEvaluator
 
 		return PostEval(Expression.Constant(fn(), type));
 	}
+
+	private static bool IsDelegate(Type type)
+		=> typeof(Delegate).IsAssignableFrom(type);
+
+	private static bool IsExpressionTree(Type type)
+		=> typeof(LambdaExpression).IsAssignableFrom(type)
+		   || (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Expression<>));
 }

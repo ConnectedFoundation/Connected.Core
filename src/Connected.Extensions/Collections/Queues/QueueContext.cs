@@ -205,7 +205,12 @@ public abstract class QueueContext<TEntity, TAction, TDto>(IStorageProvider stor
 		 * Retrieve the saved instance with generated Id and other server-side values.
 		 */
 		instance = (await st.Update(instance)).Required();
-		instance = (await st.AsEntity(f => f.Id == instance.Id)).Required();
+
+		var query = st.AsQueryable<TEntity>();
+
+		query = query.Where(f => f.Id == instance.Id);
+
+		instance = (await query.AsEntity()).Required();
 
 		/*
 		 * Synchronize the cache with the newly created message to enable efficient dequeue operations.

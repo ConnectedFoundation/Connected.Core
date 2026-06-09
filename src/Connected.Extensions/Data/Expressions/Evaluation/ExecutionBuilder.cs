@@ -23,7 +23,7 @@ public sealed class ExecutionBuilder
 	private Linguist Linguist { get; }
 	private Expression Executor { get; }
 
-	public static Expression<Func<IStorageExecutor, object>> Build(ExpressionCompilationContext context, Linguist linguist, Expression expression)
+	public static Expression<Func<IStorageExecutor, Task<object>>> Build(ExpressionCompilationContext context, Linguist linguist, Expression expression)
 	{
 		var executor = Expression.Parameter(typeof(IStorageExecutor), "executor");
 		var builder = new ExecutionBuilder(context, linguist, executor);
@@ -31,12 +31,30 @@ public sealed class ExecutionBuilder
 		return builder.Build(expression);
 	}
 
-	private Expression<Func<IStorageExecutor, object>> Build(Expression expression)
+	private Expression<Func<IStorageExecutor, Task<object>>> Build(Expression expression)
 	{
 		expression = Visit(expression);
-		expression = Expression.Lambda<Func<IStorageExecutor, object>>(expression, (ParameterExpression)Executor);
 
-		return (Expression<Func<IStorageExecutor, object>>)expression;
+		if (expression is not MethodCallExpression call || !IsTaskType(call.Type))
+			expression = Expression.Call(typeof(Task), nameof(Task.FromResult), [expression.Type], expression);
+
+		var taskResultType = expression.Type.GetGenericArguments().Single();
+		var result = Expression.Call(typeof(ExecutionBuilder), nameof(ConvertToObjectTask), [taskResultType], expression);
+		expression = Expression.Lambda<Func<IStorageExecutor, Task<object>>>(result, (ParameterExpression)Executor);
+
+		return (Expression<Func<IStorageExecutor, Task<object>>>)expression;
+	}
+
+	private static bool IsTaskType(Type type)
+	{
+		return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Task<>);
+	}
+
+	private static async Task<object> ConvertToObjectTask<TResult>(Task<TResult> task)
+	{
+		var value = await task;
+
+		return value is null ? throw new NullReferenceException(nameof(value)) : value;
 	}
 
 	protected override Expression VisitProjection(ProjectionExpression projection)
@@ -94,9 +112,6 @@ public sealed class ExecutionBuilder
 
 		var constant = Expression.Constant(operation);
 		Expression body = Expression.Call(Executor, nameof(IStorageExecutor.Execute), [typeArgument], constant);
-
-		if (projection.Aggregator is not null)// apply aggregator
-			body = ExpressionReplacer.Replace(projection.Aggregator.Body, projection.Aggregator.Parameters[0], body);
 
 		return body;
 	}
