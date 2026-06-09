@@ -69,9 +69,9 @@ internal sealed class PostgreSqlStorage(IStorageProvider storage)
 	/// a delegate, and invokes it with this storage executor as the context. The execution
 	/// plan handles translation from LINQ expressions to PostgreSQL SQL statements.
 	/// </remarks>
-	protected override object OnExecute(Expression expression)
+	protected override async Task<object?> OnExecute(Expression expression)
 	{
-		return CreateExecutionPlan(expression).Compile()(this);
+		return await CreateExecutionPlan(expression).Compile()(this);
 	}
 
 	/// <summary>
@@ -89,7 +89,7 @@ internal sealed class PostgreSqlStorage(IStorageProvider storage)
 	/// 4. Builds an execution plan using <see cref="PostgreSqlLinguist"/> for formatting
 	/// The resulting execution plan can be compiled and invoked to execute the query.
 	/// </remarks>
-	private static Expression<Func<IStorageExecutor, object>> CreateExecutionPlan(Expression expression)
+	private static Expression<Func<IStorageExecutor, Task<object>>> CreateExecutionPlan(Expression expression)
 	{
 		var lambda = expression as LambdaExpression;
 
@@ -155,7 +155,7 @@ internal sealed class PostgreSqlStorage(IStorageProvider storage)
 	/// handles actual database communication, parameter binding, and result materialization.
 	/// Results are returned synchronously as an enumerable sequence.
 	/// </remarks>
-	public IEnumerable<TResult?> Execute<TResult>(IStorageOperation operation)
+	public async Task<IEnumerable<TResult?>> Execute<TResult>(IStorageOperation operation)
 		 where TResult : IEntity
 	{
 		/*
@@ -180,6 +180,6 @@ internal sealed class PostgreSqlStorage(IStorageProvider storage)
 		/*
 		 * Execute query through storage provider and return results
 		 */
-		return Storage.Open<TResult>(ConnectionMode).Query(dto).Result;
+		return await Storage.Open<TResult>(ConnectionMode).Query(dto);
 	}
 }

@@ -50,7 +50,7 @@ public static class EntitiesExtensions
 		return Serializer.Merge(newEntity, existing);
 	}
 
-	public static async Task<IImmutableList<TSource>> ExecuteMulti<TSource>(this IQueryable<TSource> source, CancellationToken cancellationToken = default)
+	private static async Task<IImmutableList<TSource>> Enumerate<TSource>(this IQueryable<TSource> source, CancellationToken cancellationToken = default)
 	{
 		if (source is null)
 			return [];
@@ -63,17 +63,9 @@ public static class EntitiesExtensions
 		return [.. list];
 	}
 
-	public static async Task<TSource?> ExecuteSingle<TSource>(this IQueryable<TSource> source)
-	{
-		if (source is null)
-			return default;
-
-		return await Execute<TSource, TSource>(QueryableMethods.SingleOrDefaultWithoutPredicate, source);
-	}
-
 	public static async Task<IImmutableList<TSource>> AsEntities<TSource>(this IQueryable<TSource> source, CancellationToken cancellationToken = default)
 	{
-		return await ExecuteMulti(source, cancellationToken);
+		return await Enumerate(source, cancellationToken);
 	}
 
 	public static async Task<IImmutableList<TSource>> AsEntities<TSource>(this IQueryable<TSource> source, Expression<Func<TSource, bool>> predicate)
@@ -86,13 +78,18 @@ public static class EntitiesExtensions
 		if (predicate != null)
 			source = source.Where(predicate);
 
-		return await ExecuteMulti(source);
+		return await Enumerate(source);
 	}
 
 
 	public static async Task<TSource?> AsEntity<TSource>(this IQueryable<TSource> source)
 	{
-		return await ExecuteSingle(source);
+		var result = await Enumerate(source);
+
+		if (result == null || result.Count == 0)
+			return default;
+
+		return result[0];
 	}
 
 	public static async Task<TSource?> AsEntity<TSource>(this IQueryable<TSource> source, Expression<Func<TSource, bool>> predicate)
@@ -103,7 +100,12 @@ public static class EntitiesExtensions
 		if (predicate is not null)
 			source = source.Where(predicate);
 
-		return await ExecuteSingle(source);
+		var filtered = await Enumerate(source);
+
+		if (filtered == null || filtered.Count == 0)
+			return default;
+
+		return filtered[0];
 	}
 
 	public static IQueryable<TEntity> WithDto<TEntity>(this IQueryable<TEntity> source, IQueryDto dto)
@@ -209,32 +211,6 @@ public static class EntitiesExtensions
 		}
 
 		return null;
-	}
-
-	private static async Task<TResult?> Execute<TSource, TResult>(MethodInfo operatorMethodInfo, IQueryable<TSource> source, Expression? expression)
-	{
-		if (operatorMethodInfo.IsGenericMethod)
-		{
-			operatorMethodInfo = operatorMethodInfo.GetGenericArguments().Length == 2
-					  ? operatorMethodInfo.MakeGenericMethod(typeof(TSource), typeof(TResult).GetGenericArguments().Single())
-					  : operatorMethodInfo.MakeGenericMethod(typeof(TSource));
-		}
-
-		await Task.CompletedTask;
-
-		var arguments = expression is null ? [source.Expression] : new[] { source.Expression, expression };
-		var callExpression = Expression.Call(instance: null, method: operatorMethodInfo, arguments: arguments);
-		var result = source.Provider.Execute(callExpression);
-
-		if (result is null)
-			return default;
-
-		return (TResult)result;
-	}
-
-	private static async Task<TResult?> Execute<TSource, TResult>(MethodInfo operatorMethodInfo, IQueryable<TSource> source)
-	{
-		return await Execute<TSource, TResult>(operatorMethodInfo, source, null);
 	}
 
 	public static PropertyInfo? PrimaryKeyProperty(this IEntity entity)
@@ -387,10 +363,7 @@ public static class EntitiesExtensions
 
 		var serializerInstance = attribute.Type.CreateInstance() ?? throw new NullReferenceException($"{Strings.ErrCreateInstanceNull} ('{attribute.Type}')");
 
-		serializer = serializerInstance as IEntityPropertySerializer;
-
-		if (serializer is null)
-			throw new NullReferenceException($"{Strings.ErrInterfaceExpected} ('{attribute.Type}, {nameof(IEntityPropertySerializer)}')");
+		serializer = serializerInstance as IEntityPropertySerializer ?? throw new NullReferenceException($"{Strings.ErrInterfaceExpected} ('{attribute.Type}, {nameof(IEntityPropertySerializer)}')");
 
 		return serializer;
 	}
