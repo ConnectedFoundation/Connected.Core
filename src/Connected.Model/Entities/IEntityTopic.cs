@@ -10,7 +10,7 @@ public interface IEntityTopic<TEntity, TPrimaryKey>
 		where TDto : IDto;
 	Task Update<TDto>(IServiceOperation<TDto> sender, params object[] propertySources)
 		where TDto : IPrimaryKeyDto<TPrimaryKey>;
-	Task Patch<TUpdateDto>(IServiceOperation<IPatchDto<TPrimaryKey>> sender)
+	Task Patch<TUpdateDto>(IServiceOperation<IPatchDto<TPrimaryKey>> sender, params object[] propertySources)
 		where TUpdateDto : IPrimaryKeyDto<TPrimaryKey>;
 	/// <summary>
 	/// This method is used when performing patch on one to one entities 
@@ -25,7 +25,7 @@ public interface IEntityTopic<TEntity, TPrimaryKey>
 	/// <typeparam name="TInsertDto"></typeparam>
 	/// <param name="sender"></param>
 	/// <returns></returns>
-	Task Patch<TUpdateDto, TInsertDto>(IServiceOperation<IPatchDto<TPrimaryKey>> sender)
+	Task Patch<TUpdateDto, TInsertDto>(IServiceOperation<IPatchDto<TPrimaryKey>> sender, params object[] propertySources)
 		where TUpdateDto : IPrimaryKeyDto<TPrimaryKey>
 		where TInsertDto : IDto;
 	Task Delete(IServiceOperation<IPrimaryKeyDto<TPrimaryKey>> sender);
