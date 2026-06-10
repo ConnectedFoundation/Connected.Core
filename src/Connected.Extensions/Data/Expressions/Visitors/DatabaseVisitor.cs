@@ -431,8 +431,9 @@ public abstract class DatabaseVisitor
 		if (Visit(expression.Expression) is not Expression inExpression)
 			throw new NullReferenceException(nameof(inExpression));
 
-		if (expression.Select is null || Visit(expression.Select) is not SelectExpression selectExpression)
-			throw new NullReferenceException(nameof(selectExpression));
+		var selectExpression = expression.Select is not null 
+			? Visit(expression.Select) as SelectExpression 
+			: null;
 
 		return UpdateIn(expression, inExpression, selectExpression, VisitExpressionList(expression.Values));
 	}
