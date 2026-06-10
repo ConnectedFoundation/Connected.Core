@@ -93,12 +93,14 @@ public abstract class QueryProvider
 		// If target is IImmutableList<G>, materialize with ToImmutableList<G>()
 		if (IsGenericType(targetType, typeof(IImmutableList<>)))
 		{
-			MethodInfo toImmutableListMethod = typeof(ImmutableList)
+			MethodInfo toImmutableListMethod = typeof(ImmutableList) 
 				 .GetMethods()
 				 .Single(m =>
 					  m.Name == nameof(ImmutableList.ToImmutableList) &&
 					  m.IsGenericMethodDefinition &&
-					  m.GetParameters().Length == 1)
+					  m.GetParameters().Length == 1 &&
+					  m.GetParameters()[0].ParameterType.GetGenericTypeDefinition() == typeof(IEnumerable<>)
+					  )
 				 .MakeGenericMethod(elementType);
 
 			return toImmutableListMethod.Invoke(null, new[] { castedEnumerable })!;
