@@ -1,7 +1,8 @@
 using Connected.Net.Messaging.Dtos;
 using Connected.Services;
 
-namespace Connected.Net;
+namespace Connected.Net.Dtos;
+
 internal sealed class SendContextDto
 	: Dto, ISendContextDto
 {

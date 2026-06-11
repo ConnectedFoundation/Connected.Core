@@ -1,7 +1,6 @@
-using Connected.Net.Dtos;
 using Connected.Services;
 
-namespace Connected.Net;
+namespace Connected.Net.Dtos;
 
 internal class MessageAcknowledgeDto
 	: Dto, IMessageAcknowledgeDto
