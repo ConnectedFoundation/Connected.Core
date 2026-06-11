@@ -25,7 +25,7 @@ public class QueryDto : Dto, IQueryDto
 		Paging = new PagingOptions
 		{
 			Index = 0,
-			Size = int.MaxValue
+			Size = 0
 		}
 	};
 }

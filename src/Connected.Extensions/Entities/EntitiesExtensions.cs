@@ -131,7 +131,7 @@ public static class EntitiesExtensions
 		if (dto.Paging.Size < 1)
 			return source;
 
-		return source.Skip((dto.Paging.Index - 1) * dto.Paging.Size).Take(dto.Paging.Size);
+		return source.Skip(dto.Paging.Index * dto.Paging.Size).Take(dto.Paging.Size);
 	}
 
 	private static IQueryable<TEntity> WithOrderBy<TEntity>(this IQueryable<TEntity> entities, IQueryDto dto)
