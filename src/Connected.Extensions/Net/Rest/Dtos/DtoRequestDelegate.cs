@@ -33,9 +33,16 @@ internal sealed class DtoRequestDelegate(HttpContext context)
 		if (descriptor.Parameters is null || descriptor.Parameters.Length == 0)
 			return;
 
-		await ResolveDto(descriptor.Parameters[0]);
-	}
+		var paramType = descriptor.Parameters[0];
 
+		if (paramType.IsInterface)
+		{
+			var instance = scope.ServiceProvider.GetRequiredService(paramType);
+			paramType = instance.GetType();
+		}
+
+		await ResolveDto(paramType);
+	}
 	private async Task ResolveDto(Type argument)
 	{
 		var descriptor = CreateDescriptor(argument);
@@ -50,9 +57,7 @@ internal sealed class DtoRequestDelegate(HttpContext context)
 	private static DtoDescriptor CreateDescriptor(Type type)
 	{
 		var result = new DtoDescriptor();
-		var properties = type.IsInterface
-				  ? GetInterfaceProperties(type)
-				  : type.GetProperties(BindingFlags.Public | BindingFlags.GetProperty | BindingFlags.Instance);
+		var properties = type.GetProperties(BindingFlags.Public | BindingFlags.GetProperty | BindingFlags.Instance);
 
 		foreach (var property in properties)
 		{
@@ -79,18 +84,6 @@ internal sealed class DtoRequestDelegate(HttpContext context)
 		}
 
 		return result;
-	}
-
-	private static PropertyInfo[] GetInterfaceProperties(Type interfaceType)
-	{
-		var properties = new List<PropertyInfo>(interfaceType.GetProperties());
-
-		foreach (var baseInterface in interfaceType.GetInterfaces())
-		{
-			properties.AddRange(baseInterface.GetProperties());
-		}
-
-		return properties.ToArray();
 	}
 
 	private static string ResolvePropertyType(PropertyInfo property)
