@@ -325,6 +325,16 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 					Visit(m.Arguments[0]);
 					Write(" = '')");
 					return m;
+				case "IsNullOrWhiteSpace":
+					/*
+					 * Convert string.IsNullOrWhiteSpace to IS NULL OR trimmed = '' check
+					 */
+					Write("(");
+					Visit(m.Arguments[0]);
+					Write(" IS NULL OR LTRIM(RTRIM(");
+					Visit(m.Arguments[0]);
+					Write(")) = '')");
+					return m;
 				case "ToUpper":
 					/*
 					 * Convert string.ToUpper to UPPER() function
