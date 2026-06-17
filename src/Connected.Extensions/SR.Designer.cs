@@ -160,6 +160,15 @@ namespace Connected {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Invalid token. It might be disabled or expired..
+        /// </summary>
+        internal static string ErrInvalidToken {
+            get {
+                return ResourceManager.GetString("ErrInvalidToken", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Queue message not found.
         /// </summary>
         internal static string ErrQueueMessageNull {

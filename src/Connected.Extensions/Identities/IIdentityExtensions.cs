@@ -12,4 +12,10 @@ public interface IIdentityExtensions
 
 	[ServiceOperation(ServiceOperationVerbs.Get | ServiceOperationVerbs.Post), ServiceUrl("query-descriptors")]
 	Task<IImmutableList<IIdentityDescriptor>> Query(IValueListDto<string> dto);
+
+	[ServiceOperation(ServiceOperationVerbs.Put)]
+	Task<string?> Reset(IValueDto<string> dto);
+
+	[ServiceOperation(ServiceOperationVerbs.Put)]
+	Task Ping(IValueDto<string> dto);
 }

@@ -150,6 +150,9 @@
   <data name="ErrInterfaceNoImplementation" xml:space="preserve">
     <value>Interface has no implementation</value>
   </data>
+  <data name="ErrInvalidToken" xml:space="preserve">
+    <value>Invalid token. It might be disabled or expired.</value>
+  </data>
   <data name="ErrQueueMessageNull" xml:space="preserve">
     <value>Queue message not found</value>
   </data>
