@@ -8,13 +8,14 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Globalization;
 
 namespace Connected.Globalization;
+
 internal sealed class DomainCultureProvider : CultureProviderBase, IRequestCultureProvider
 {
 	public override async Task<ProviderCultureResult?> DetermineProviderCultureResult(HttpContext httpContext)
 	{
 		var domain = httpContext.Request.Host.ToString().Split('.').LastOrDefault()?.Split(':').FirstOrDefault();
 
-		if (string.IsNullOrWhiteSpace(domain))
+		if (string.IsNullOrWhiteSpace(domain) || (domain.Length == 1 && char.IsNumber(domain[0])))
 			return await Unresolved;
 
 		using var scope = await Scope.Create().WithSystemIdentity();
