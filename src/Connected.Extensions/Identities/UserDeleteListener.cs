@@ -15,7 +15,7 @@ namespace Connected.Identities;
 
 [Middleware<IUserService>(ServiceEvents.Deleted)]
 internal sealed  class UserDeleteListener(IIdentityAuthenticationTokenService identityAuthenticationTokenService)
-	: EventListener<IPrimaryKeyDto<int>>
+	: EventListener<IPrimaryKeyDto<long>>
 {
 	protected override async Task OnInvoke()
 	{
