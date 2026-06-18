@@ -1,16 +1,20 @@
-﻿using Connected.Entities;
+﻿using Connected.Authentication;
+using Connected.Entities;
 using Connected.Identities.Authentication;
 using Connected.Identities.Authentication.Dtos;
 using Connected.Services;
 
 namespace Connected.Identities.Ops;
 
-internal sealed class Reset(IIdentityAuthenticationTokenService identityAuthenticationTokenService)
+internal sealed class Reset(IIdentityAuthenticationTokenService identityAuthenticationTokenService, IAuthenticationService authentication)
 	: ServiceFunction<IValueDto<string>, string?>
 {
 	protected override async Task<string?> OnInvoke()
 	{
 		var token = (await identityAuthenticationTokenService.Select(Dto)).Required();
+
+		if (token.IsValid())
+			await authentication.WithSystemIdentity();
 
 		await identityAuthenticationTokenService.Delete(DtoFactory.Create<IPrimaryKeyDto<long>>(f =>
 		{
