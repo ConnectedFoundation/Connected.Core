@@ -21,6 +21,8 @@ internal sealed class Ping(IIdentityAuthenticationTokenService identityAuthentic
 		await identityAuthenticationTokenService.Update(DtoFactory.Create<IUpdateIdentityAuthenticationTokenDto>(f =>
 		{
 			f.Expire = DateTimeOffset.UtcNow.AddMinutes(20);
+			f.Token = token.Token;
+			f.Status = token.Status;
 			f.Id = token.Id;
 		}));
 	}
