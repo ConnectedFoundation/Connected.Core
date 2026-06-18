@@ -11,7 +11,7 @@ public class CacheEntryOptions
 	: IEntryOptions
 {
 	/// <inheritdoc/>
-	public string Key { get; set; }
+	public string? Key { get; set; }
 
 	/// <inheritdoc/>
 	public string? KeyProperty { get; set; }
@@ -48,6 +48,5 @@ public class CacheEntryOptions
 		 */
 		Duration = TimeSpan.FromMinutes(5);
 		SlidingExpiration = true;
-		Key = ".";
 	}
 }

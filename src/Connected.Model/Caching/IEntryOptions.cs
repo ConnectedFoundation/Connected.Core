@@ -37,7 +37,7 @@ public interface IEntryOptions
 	/// <summary>
 	/// Gets or sets the key of the entry to be used for cache storage and retrieval.
 	/// </summary>
-	string Key { get; set; }
+	string? Key { get; set; }
 
 	/// <summary>
 	/// Gets or sets the property name to be used when retrieving the key value from the cached object.
