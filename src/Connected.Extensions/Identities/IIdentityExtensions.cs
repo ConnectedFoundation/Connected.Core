@@ -1,4 +1,6 @@
 using Connected.Annotations;
+using Connected.Identities.Ops;
+using Connected.Membership.Claims;
 using Connected.Services;
 using System.Collections.Immutable;
 
@@ -18,4 +20,7 @@ public interface IIdentityExtensions
 
 	[ServiceOperation(ServiceOperationVerbs.Put)]
 	Task Ping(IValueDto<string> dto);
+
+	[ServiceOperation(ServiceOperationVerbs.Get), ServiceUrl("query-claims")]
+	Task<IImmutableList<IClaim>> QueryClaims();
 }
