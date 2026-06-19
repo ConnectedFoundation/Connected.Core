@@ -9,8 +9,11 @@ internal sealed class QueryClaimAmbient : AmbientProvider<IQueryClaimDto>, IQuer
 {
 	protected override async Task OnInvoke()
 	{
-		Dto.Entity ??= IClaim.UndefinedEntity;
-		Dto.EntityId ??= IClaim.UndefinedId;
+		if (!Dto.Entities.Any())
+			Dto.Entities = [IClaim.UndefinedEntity];
+
+		if (!Dto.EntityIds.Any())
+			Dto.EntityIds = [IClaim.UndefinedId];
 
 		await Task.CompletedTask;
 	}
