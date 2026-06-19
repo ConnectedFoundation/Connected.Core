@@ -10,10 +10,26 @@ internal class Query(IClaimCache cache)
 {
 	protected override async Task<IImmutableList<IClaim>> OnInvoke()
 	{
-		return await cache.AsEntities(f =>
-					(Dto.Identity == null || string.Equals(f.Identity, Dto.Identity, StringComparison.Ordinal))
-				&& (Dto.Schema == null || string.Equals(f.Schema, Dto.Schema, StringComparison.OrdinalIgnoreCase))
-				&& (Dto.EntityId == null || string.Equals(f.Entity, Dto.Entity, StringComparison.OrdinalIgnoreCase))
-				&& (Dto.EntityId == null || string.Equals(f.EntityId, Dto.EntityId, StringComparison.OrdinalIgnoreCase)));
+		var query = cache.AsQueryable();
+
+		if (Dto.Identities is { Count: > 0 })
+			query = query.Where(f => Dto.Identities.Contains(f.Identity, StringComparer.OrdinalIgnoreCase));
+
+		if (Dto.Schemas is { Count: > 0 })
+			query = query.Where(f => Dto.Schemas.Contains(f.Schema, StringComparer.OrdinalIgnoreCase));
+
+		if (Dto.Entities is { Count: > 0 })
+			query = query.Where(f => Dto.Entities.Contains(f.Entity, StringComparer.OrdinalIgnoreCase));
+
+		if (Dto.EntityIds is { Count: > 0 })
+			query = query.Where(f => Dto.EntityIds.Contains(f.EntityId, StringComparer.OrdinalIgnoreCase));
+
+		if (Dto.Values is { Count: > 0 })
+			query = query.Where(f => Dto.Values.Contains(f.Value, StringComparer.OrdinalIgnoreCase));
+		
+		if (Dto.Statuses is { Count: > 0 })
+			query = query.Where(f => Dto.Statuses.Contains(f.Status));
+
+		return await query.AsEntities();
 	}
 }

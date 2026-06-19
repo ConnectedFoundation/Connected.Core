@@ -5,15 +5,10 @@ namespace Connected.Membership.Claims.Dtos;
 
 internal sealed class QueryClaimDto : Dto, IQueryClaimDto
 {
-	[MaxLength(256)]
-	public string? Schema { get; set; }
-
-	[MaxLength(256)]
-	public string? Identity { get; set; }
-
-	[Required, MaxLength(256)]
-	public required string Entity { get; set; }
-
-	[Required, MaxLength(256)]
-	public required string EntityId { get; set; }
+	public List<string> Schemas { get; set; } = [];
+	public List<string> Identities { get; set; } = [];
+	public List<string> Entities { get; set; } = [];
+	public List<string> EntityIds { get; set; } = [];
+	public List<string> Values { get; set; } = [];
+	public List<ClaimStatus> Statuses { get; set; } = [];
 }

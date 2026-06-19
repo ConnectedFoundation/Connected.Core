@@ -4,8 +4,10 @@ namespace Connected.Membership.Claims.Dtos;
 
 public interface IQueryClaimDto : IDto
 {
-	string? Schema { get; set; }
-	string? Identity { get; set; }
-	string Entity { get; set; }
-	string EntityId { get; set; }
+	List<string> Schemas { get; set; }
+	List<string> Identities { get; set; }
+	List<string> Entities { get; set; }
+	List<string> EntityIds { get; set; }
+	List<string> Values { get; set; }
+	List<ClaimStatus> Statuses { get; set; }
 }

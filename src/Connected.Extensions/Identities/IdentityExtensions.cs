@@ -1,4 +1,5 @@
 using Connected.Identities.Ops;
+using Connected.Membership.Claims;
 using Connected.Services;
 using System.Collections.Immutable;
 
@@ -14,4 +15,6 @@ internal sealed class IdentityExtensions(IServiceProvider services)
 	public async Task<string?> Reset(IValueDto<string> dto) => await Invoke(GetOperation<Reset>(), dto);
 
 	public async Task<IIdentityDescriptor?> Select(IValueDto<string> dto) => await Invoke(GetOperation<SelectIdentityDescriptor>(), dto);
+
+	public async Task<IImmutableList<IClaim>> QueryClaims() => await Invoke(GetOperation<QueryClaims>(), Dto.Empty);
 }
