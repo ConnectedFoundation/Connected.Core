@@ -68,6 +68,20 @@ internal class Entries
 		return [.. r];
 	}
 
+	private IEnumerable<T> AsEnumerable<T>()
+	{
+		var r = new List<T>();
+		var instances = Items.Select(f => f.Value.Instance);
+
+		foreach (var i in instances)
+		{
+			if (i is not T t)
+				throw new InvalidCastException($"{Exceptions.ExInvalidCacheEntry} ({i?.GetType().ShortName()}->{typeof(T).ShortName()})");
+
+			yield return t;
+		}
+	}
+
 	public void Remove(string key)
 	{
 		if (Items.IsEmpty)

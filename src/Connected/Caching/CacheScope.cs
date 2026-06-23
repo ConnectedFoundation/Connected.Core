@@ -1,3 +1,4 @@
+﻿using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 
@@ -24,6 +25,7 @@ internal sealed class CacheScope : ICache, IDisposable
 
 	private void OnScaveging()
 	{
+
 		var token = Cancel.Token;
 
 		while (!token.IsCancellationRequested)
@@ -319,8 +321,11 @@ internal sealed class CacheScope : ICache, IDisposable
 				{
 					_cancel.Cancel();
 
-					if (_scavenger.IsCompleted)
+					try
+					{
 						_scavenger.Dispose();
+					}
+					catch { }
 				}
 			}
 

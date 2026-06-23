@@ -107,7 +107,7 @@ public abstract class Service : IService, IDisposable
 	{
 		var result = ServiceLocator.GetService<TOperation>();
 
-		return result is null ? throw new NullReferenceException($"Service operation not found ({typeof(TOperation)})") : result;
+		return result ?? throw new NullReferenceException($"Service operation not found ({typeof(TOperation)})");
 	}
 
 	private async Task Calibrate<TDto>(ICallerContext ctx, TDto dto)

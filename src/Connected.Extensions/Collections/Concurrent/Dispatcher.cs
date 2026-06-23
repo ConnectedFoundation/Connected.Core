@@ -10,6 +10,7 @@ public abstract class Dispatcher<TDto, TJob> : IDispatcher<TDto, TJob>
 	where TJob : class, IDispatcherJob<TDto>
 {
 	private CancellationTokenSource? _tokenSource;
+	private int _running;
 
 	protected Dispatcher()
 	{
@@ -34,7 +35,7 @@ public abstract class Dispatcher<TDto, TJob> : IDispatcher<TDto, TJob>
 		}
 	}
 
-	public int Available => Math.Max(0, WorkerSize - Queue.Count);
+	public int Available => Math.Max(0, WorkerSize - Queue.Count - _running);
 	public void Cancel()
 	{
 		_tokenSource?.Cancel();
@@ -81,6 +82,8 @@ public abstract class Dispatcher<TDto, TJob> : IDispatcher<TDto, TJob>
 
 	private async Task ExecuteJob(TDto item, AsyncServiceScope scope, DispatcherJob<TDto> job)
 	{
+		Interlocked.Increment(ref _running);
+
 		try
 		{
 			await job.Invoke(item, CancellationToken);
@@ -88,6 +91,8 @@ public abstract class Dispatcher<TDto, TJob> : IDispatcher<TDto, TJob>
 		}
 		finally
 		{
+			Interlocked.Decrement(ref _running);
+
 			await scope.DisposeAsync();
 
 			if (job.Scope.HasValue)

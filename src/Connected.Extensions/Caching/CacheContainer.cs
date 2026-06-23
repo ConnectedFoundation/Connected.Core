@@ -1,4 +1,5 @@
 using Connected.Reflection;
+using Microsoft.AspNetCore.OutputCaching;
 using System.Collections;
 using System.Collections.Immutable;
 using System.Linq.Expressions;
@@ -16,6 +17,8 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 		Key = key;
 
 		Context = cachingService.CreateContext();
+
+		_provider = new EnumerableQueryProvider(this, Context, Key);
 	}
 
 	private ICacheContext Context { get; }
@@ -143,7 +146,7 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 
 	public virtual IEnumerator<TEntry> GetEnumerator()
 	{
-		var enumerator = Context?.GetEnumerator<TEntry>(Key);
+		var enumerator = Provider.Execute<IEnumerable<TEntry>>(Expression).GetEnumerator();
 
 		if (enumerator is not null)
 			return enumerator;
@@ -158,7 +161,7 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 
 	public async IAsyncEnumerator<TEntry> GetAsyncEnumerator(CancellationToken cancellationToken = default)
 	{
-		foreach (var item in this)
+		foreach (var item in this.Provider.Execute<IEnumerable<TEntry>>(Expression))
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 
@@ -167,16 +170,51 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 			await Task.CompletedTask;
 		}
 	}
-	/*
-	 * Here is potential performance penalty, as this will create a new IQueryable on each call. 
-	 * However, since the underlying data source is likely in-memory, the performance impact may be negligible. 
-	 * If performance becomes an issue, consider caching the IQueryable or implementing a more efficient way to handle LINQ queries.
-	 * But the current problem is the All method combines entities from two caches, the scoped one and shared one.
-	 * The problem is with the shared one because we are unaware of the changes so we can't make a snapshot and safely
-	 * share it inside the scope.
-	 */
-	protected virtual IQueryable<TEntry> AsQueryable() => Context.All<TEntry>(Key).AsQueryable();
 	public Type ElementType => typeof(TEntry);
-	public Expression Expression => AsQueryable().Expression;
-	public IQueryProvider Provider => AsQueryable().Provider;
+	public Expression Expression => Expression.Constant(this);
+	public IQueryProvider Provider => _provider;
+
+	private EnumerableQueryProvider _provider;
+
+	private sealed class EnumerableQueryProvider(ICacheContainer<TEntry, TKey> cache, ICacheContext context, string key) : IQueryProvider
+	{
+		public IQueryable CreateQuery(Expression expression)
+			=> CreateQuery<TEntry>(expression);
+
+		public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
+			=> new EnumerableQueryable<TElement>(expression, this);
+
+		public object? Execute(Expression expression)
+		{
+			if (cache is ICachingDataProvider provider)
+				provider.Initialize().Wait();
+			var snapshot = context.All<TEntry>(key).AsQueryable();
+			var rewritten = new StaleSourceReplacer(snapshot).Visit(expression);
+			return snapshot.Provider.Execute(rewritten);
+		}
+
+		public TResult Execute<TResult>(Expression expression)
+		{
+			if (cache is ICachingDataProvider provider)
+				provider.Initialize().Wait();
+			var snapshot = context.All<TEntry>(key).AsQueryable();
+			var rewritten = new StaleSourceReplacer(snapshot).Visit(expression);
+			return snapshot.Provider.Execute<TResult>(rewritten);
+		}
+
+		private sealed class StaleSourceReplacer(IQueryable<TEntry> snapshot) : ExpressionVisitor
+		{
+			protected override Expression VisitConstant(ConstantExpression node)
+				=> node.Value is IQueryable<TEntry> ? snapshot.Expression : base.VisitConstant(node);
+		}
+	}
+
+	private sealed class EnumerableQueryable<T>(Expression expression, IQueryProvider provider) : IQueryable<T>
+	{
+		public Type ElementType => typeof(T);
+		public Expression Expression => expression;
+		public IQueryProvider Provider => provider;
+		public IEnumerator<T> GetEnumerator() => provider.Execute<IEnumerable<T>>(expression).GetEnumerator();
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+	}
 }

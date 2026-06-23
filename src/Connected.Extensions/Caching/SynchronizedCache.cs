@@ -1,6 +1,7 @@
-using Connected.Reflection;
+﻿using Connected.Reflection;
 using Connected.Threading;
 using System.Collections.Immutable;
+using System.Linq;
 
 namespace Connected.Caching;
 
@@ -157,12 +158,5 @@ public abstract class SynchronizedCache<TEntry, TKey>(ICachingService cachingSer
 		{
 			return Initializers.Contains(key);
 		}
-	}
-
-	protected override IQueryable<TEntry> AsQueryable()
-	{
-		((ICachingDataProvider)this).Initialize().Wait();
-
-		return base.AsQueryable();
 	}
 }

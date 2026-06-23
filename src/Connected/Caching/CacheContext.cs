@@ -203,12 +203,24 @@ internal class CacheContext : ICacheContext
 
 	public async Task<IImmutableList<string>> Remove<T>(string key, Func<T, bool> predicate)
 	{
-		var items = await _scope.Remove(key, predicate);
+		var keys = new HashSet<string>();
+		var items = Where(key, predicate);
+
+		await _scope.Remove(key, predicate);
 
 		foreach (var item in items)
-			AddToRemoveList(key, item);
+		{
+			var id = ResolveId(item)?.ToString();
 
-		return items;
+			if (id is null)
+				continue;
+
+			keys.Add(id);
+
+			AddToRemoveList(key, id);
+		}
+
+		return keys.ToImmutableList();
 	}
 
 	public void Flush()
@@ -235,34 +247,39 @@ internal class CacheContext : ICacheContext
 		if (shared is null)
 			return scope;
 
-		var result = new List<T>(scope);
-		var scopeIndex = new Dictionary<object, T>();
-		var sharedIndex = new Dictionary<object, T>();
+		if (scope is null || scope.Count == 0)
+		{
+			if (_removeList.Count == 0)
+				return shared ?? [];   // ← zero allocation on every read-only All() call
+
+			if (shared is null || shared.Count == 0)
+				return [];
+
+			return [.. shared.Where(item => !IsItemRemoved(key, item))];
+		}
+
+		var result = new List<T>(scope.Count);
+		var scopeIds = new HashSet<object>(scope.Count);
 
 		foreach (var item in scope)
 		{
+			result.Add(item);
+
 			var id = ResolveId(item);
 
-			if (id is null)
-				continue;
-
-			scopeIndex[id] = item;
+			if (id is not null)
+				scopeIds.Add(id);
 		}
 
 		foreach (var item in shared)
 		{
 			var id = ResolveId(item);
 
-			if (id is null || IsItemRemoved(key, item))
+			if (id is null || IsItemRemoved(key, item) || scopeIds.Contains(id))
 				continue;
 
-			sharedIndex[id] = item;
+			result.Add(item);
 		}
-
-		foreach (var sharedItem in sharedIndex)
-
-			if (!scopeIndex.ContainsKey(sharedItem.Key))
-				result.Add(sharedItem.Value);
 
 		return [.. result];
 	}
