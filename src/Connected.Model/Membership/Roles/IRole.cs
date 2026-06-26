@@ -1,8 +1,10 @@
+using Connected.Annotations.Entities;
 using Connected.Entities;
 using Connected.Identities;
 
 namespace Connected.Membership.Roles;
 
+[EntityKey(MembershipMetaData.RoleKey)]
 public interface IRole : IEntity<int>, IIdentity
 {
 	string Name { get; init; }

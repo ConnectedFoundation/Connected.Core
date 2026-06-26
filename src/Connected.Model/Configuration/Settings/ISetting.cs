@@ -1,3 +1,4 @@
+using Connected.Annotations.Entities;
 using Connected.Entities;
 
 namespace Connected.Configuration.Settings;
@@ -10,6 +11,7 @@ namespace Connected.Configuration.Settings;
 /// unique setting name and an optional string value; consumers typically cache or query these
 /// settings to drive runtime behavior.
 /// </remarks>
+[EntityKey(ConfigurationMetaData.SettingKey)]
 public interface ISetting
 	: IEntity<int>
 {

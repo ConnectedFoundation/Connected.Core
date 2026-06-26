@@ -1,3 +1,4 @@
+using Connected.Annotations.Entities;
 using Connected.Entities;
 
 namespace Connected.Identities;
@@ -37,6 +38,7 @@ public enum UserStatus
 /// init-only properties to ensure immutability after construction. Users are identified
 /// by a long-typed primary key and include an operational status to control access.
 /// </remarks>
+[EntityKey(IdentitiesMetaData.UserKey)]
 public interface IUser
 	: IEntity<long>, IIdentity
 {

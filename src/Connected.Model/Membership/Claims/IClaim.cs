@@ -1,3 +1,4 @@
+using Connected.Annotations.Entities;
 using Connected.Entities;
 
 namespace Connected.Membership.Claims;
@@ -9,6 +10,7 @@ public enum ClaimStatus
 	Denied = 3
 }
 
+[EntityKey(MembershipMetaData.ClaimKey)]
 public interface IClaim : IEntity<long>
 {
 	const string UndefinedEntity = "*";

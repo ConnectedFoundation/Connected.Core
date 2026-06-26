@@ -14,7 +14,7 @@ internal sealed record User : ConsistentEntity<long>, IUser
 	[Ordinal(1), Length(64)]
 	public string? LastName { get; init; }
 
-	[Ordinal(2), Length(1024)]
+	[Ordinal(2), Length(256)]
 	public string? Email { get; init; }
 
 	[Ordinal(3)]
