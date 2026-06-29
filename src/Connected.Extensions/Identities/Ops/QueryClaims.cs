@@ -22,7 +22,7 @@ internal sealed class QueryClaims(
 	{
 		var identity = await authentication.SelectIdentity();
 
-		var identities = await MembershipUtils.ResolveIdentityTokens(identity!.Token, membership, roles);
+		var identities = await MembershipUtils.ResolveIdentityRoles(identity!.Token, membership, roles);
 
 		return await claims.Query(DtoFactory.Create<IQueryClaimDto>(f =>
 		{

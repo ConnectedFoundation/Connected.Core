@@ -10,7 +10,7 @@ internal class Request(IClaimCache cache, IMembershipService membership, IRoleSe
 {
 	protected override async Task<bool> OnInvoke()
 	{
-		var identities = await MembershipUtils.ResolveIdentityTokens(Dto.Identity, membership, roles);
+		var identities = await MembershipUtils.ResolveIdentityRoles(Dto.Identity, membership, roles);
 		var values = Dto.Values.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 		var targets = await cache.AsEntities(f =>
 					values.Any(g => string.Equals(g, f.Value, StringComparison.OrdinalIgnoreCase))

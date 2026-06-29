@@ -15,13 +15,22 @@ public static class MembershipUtils
 		if (string.Equals(identity, membershipIdentity, StringComparison.OrdinalIgnoreCase))
 			return true;
 
-		var identityTokens = await ResolveIdentityTokens(identity, membership, roles);
-		var membershipTokens = await ResolveIdentityTokens(membershipIdentity, membership, roles);
+		var membershipRole = await roles.Select(DtoFactory.Create<IValueDto<string>>(f => f.Value = membershipIdentity));
 
-		return identityTokens.Any(token => membershipTokens.Any(target => string.Equals(token, target, StringComparison.OrdinalIgnoreCase)));
+		if (membershipRole == null)
+			return false;
+
+		var identityTokens = await ResolveIdentityRoles(identity, membership, roles);
+
+		var references = new List<int>();
+		var roleList = new List<string>();
+
+		await ProcessRole(roles, membershipRole.Id, roleList, references);
+		
+		return identityTokens.Any(token => roleList.Any(target => string.Equals(token, target, StringComparison.OrdinalIgnoreCase)));
 	}
 
-	public static async Task<ImmutableList<string>> ResolveIdentityTokens(string? identity, IMembershipService membership, IRoleService roles)
+	public static async Task<ImmutableList<string>> ResolveIdentityRoles(string? identity, IMembershipService membership, IRoleService roles)
 	{
 		var result = new List<string>();
 
