@@ -63,7 +63,7 @@ public abstract class EntityCache<TEntity, TEntityImplementation, TPrimaryKey>(I
 	{
 		if (instance is IConcurrentEntity<TPrimaryKey> concurrent)
 		{
-			if (Get(id) is TEntity existing && existing is IConcurrentEntity<TPrimaryKey> existingConcurrent)
+			if (Get(id).Result is TEntity existing && existing is IConcurrentEntity<TPrimaryKey> existingConcurrent)
 			{
 				lock (existingConcurrent)
 				{
@@ -72,7 +72,7 @@ public abstract class EntityCache<TEntity, TEntityImplementation, TPrimaryKey>(I
 
 					concurrent.GetType().GetProperty(nameof(IConcurrentEntity<TPrimaryKey>.Sync))?.SetValue(concurrent, concurrent.Sync + 1);
 
-					Set(id, instance, duration);
+					base.Set(id, instance, duration);
 
 					return;
 				}
