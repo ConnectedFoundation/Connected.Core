@@ -17,6 +17,7 @@ namespace Connected.Collections.Queues;
 /// Actions should implement idempotent logic since messages may be processed multiple times due to transient failures or timeouts.
 /// </remarks>
 public interface IQueueAction<TDto>
+	: IDisposable
 	where TDto : IDto
 {
 	/// <summary>
