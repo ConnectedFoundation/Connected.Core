@@ -24,6 +24,8 @@ public abstract class QueueAction<TDto>
 	: IQueueAction<TDto>
 	where TDto : IDto
 {
+	private bool _isDisposed;
+
 	/// <summary>
 	/// Gets the queue message currently being processed.
 	/// </summary>
@@ -125,5 +127,34 @@ public abstract class QueueAction<TDto>
 		 */
 		if (PingCallback is not null)
 			await PingCallback();
+	}
+
+	private void Dispose(bool disposing)
+	{
+		if (!_isDisposed)
+		{
+			if (disposing)
+			{
+				try
+				{
+					OnDisposing();
+				}
+				catch { }
+			}
+
+			_isDisposed = true;
+		}
+	}
+
+	protected virtual void OnDisposing()
+	{
+
+	}
+
+	public void Dispose()
+	{
+		Dispose(true);
+
+		GC.SuppressFinalize(this);
 	}
 }
