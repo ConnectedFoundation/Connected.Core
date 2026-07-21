@@ -36,17 +36,17 @@ internal class MiddlewareService : IMiddlewareService
 	private IServiceProvider Services { get; }
 	private IRuntimeService Runtime { get; }
 
-	public async Task<IImmutableList<TEndpoint>> Query<TEndpoint>() where TEndpoint : IMiddleware
+	public async Task<IImmutableList<TEndpoint>> Query<TEndpoint>(CancellationToken? cancellationToken = null) where TEndpoint : IMiddleware
 	{
-		return await Query<TEndpoint>(null);
+		return await Query<TEndpoint>(null, cancellationToken);
 	}
 
-	public async Task<IImmutableList<IMiddleware>> Query(Type type)
+	public async Task<IImmutableList<IMiddleware>> Query(Type type, CancellationToken? cancellationToken = null)
 	{
-		return await Query(type, null);
+		return await Query(type, null, cancellationToken);
 	}
 
-	public async Task<IImmutableList<TEndpoint>> Query<TEndpoint>(ICallerContext? context) where TEndpoint : IMiddleware
+	public async Task<IImmutableList<TEndpoint>> Query<TEndpoint>(ICallerContext? context, CancellationToken? cancellationToken = null) where TEndpoint : IMiddleware
 	{
 		var key = typeof(TEndpoint).FullName;
 
@@ -72,14 +72,14 @@ internal class MiddlewareService : IMiddlewareService
 		var tasks = new List<Task>();
 
 		foreach (var r in result)
-			tasks.Add(r.Initialize());
+			tasks.Add(r.Initialize(cancellationToken));
 
 		Task.WaitAll([.. tasks]);
 
 		return await Task.FromResult(result.ToImmutableList());
 	}
 
-	public async Task<IImmutableList<IMiddleware>> Query(Type type, ICallerContext? context)
+	public async Task<IImmutableList<IMiddleware>> Query(Type type, ICallerContext? context, CancellationToken? cancellationToken = null)
 	{
 		var key = type.FullName;
 
@@ -103,17 +103,17 @@ internal class MiddlewareService : IMiddlewareService
 		result.SortByPriority();
 
 		foreach (var r in result)
-			await r.Initialize();
+			await r.Initialize(cancellationToken);
 
 		return [.. result];
 	}
-	public async Task<TEndpoint?> First<TEndpoint>()
+	public async Task<TEndpoint?> First<TEndpoint>(CancellationToken? cancellationToken = null)
 		where TEndpoint : IMiddleware
 	{
-		return await First<TEndpoint>(null);
+		return await First<TEndpoint>(null, cancellationToken);
 	}
 
-	public async Task<TEndpoint?> First<TEndpoint>(string? id)
+	public async Task<TEndpoint?> First<TEndpoint>(string? id, CancellationToken? cancellationToken = null)
 		where TEndpoint : IMiddleware
 	{
 		var types = Resolve(typeof(TEndpoint), id);
@@ -126,7 +126,7 @@ internal class MiddlewareService : IMiddlewareService
 			if (Services.GetService(type) is object service)
 			{
 				var r = (TEndpoint)service;
-				await r.Initialize();
+				await r.Initialize(cancellationToken);
 
 				return r;
 			}
@@ -135,12 +135,12 @@ internal class MiddlewareService : IMiddlewareService
 		return default;
 	}
 
-	public async Task<IMiddleware?> First(Type type)
+	public async Task<IMiddleware?> First(Type type, CancellationToken? cancellationToken = null)
 	{
-		return await First(type, null);
+		return await First(type, null, cancellationToken);
 	}
 
-	public async Task<IMiddleware?> First(Type type, string? id)
+	public async Task<IMiddleware?> First(Type type, string? id, CancellationToken? cancellationToken = null)
 	{
 		var types = Resolve(type, id);
 
@@ -151,7 +151,7 @@ internal class MiddlewareService : IMiddlewareService
 
 			if (Services.GetService(t) is IMiddleware service)
 			{
-				await service.Initialize();
+				await service.Initialize(cancellationToken);
 
 				return service;
 			}

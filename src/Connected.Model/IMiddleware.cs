@@ -15,6 +15,7 @@ public interface IMiddleware
 	/// <summary>
 	/// Asynchronously initializes the middleware component.
 	/// </summary>
+	/// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
 	/// <returns>A task that represents the asynchronous initialization operation.</returns>
-	Task Initialize();
+	Task Initialize(CancellationToken? cancellationToken = null);
 }
