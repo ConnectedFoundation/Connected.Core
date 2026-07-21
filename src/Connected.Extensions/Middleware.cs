@@ -1,11 +1,14 @@
 namespace Connected;
 
-public abstract class Middleware : IMiddleware
+public abstract class Middleware
+	: IMiddleware
 {
 	protected bool IsDisposed { get; private set; }
-
-	public async Task Initialize()
+	protected CancellationToken CancellationToken { get; private set; } = default;
+	public async Task Initialize(CancellationToken? cancellationToken = null)
 	{
+		CancellationToken = cancellationToken ?? CancellationToken.None;
+
 		await OnInitialize();
 	}
 
