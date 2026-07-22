@@ -279,19 +279,10 @@ internal sealed class QueueJob<TEntity, TCache>(IStorageProvider storage, TCache
 		/*
 		 * Retrieve the message from cache using the pop receipt assigned during dequeue.
 		 */
-		var item = await cache.Select(Dto.PopReceipt.GetValueOrDefault());
+		var item = await Select();
 
 		if (item is null)
-		{
-			/*
-			 * Message not found in cache. Log a warning and return without throwing.
-			 * This can occur if the message was already deleted by another process.
-			 */
-			logger.LogWarning("{message} ({popReceipt})", SR.ErrQueueMessageNull, Dto.PopReceipt);
-
 			return;
-		}
-
 		/*
 		 * Create a new entity instance configured for deletion.
 		 * Set the Id to match the message being deleted.
@@ -327,7 +318,11 @@ internal sealed class QueueJob<TEntity, TCache>(IStorageProvider storage, TCache
 		/*
 		 * Retrieve the current message state from cache using the pop receipt.
 		 */
-		var existing = (await cache.Select(Dto.PopReceipt.GetValueOrDefault())).Required<TEntity>();
+		var existing = await Select();
+
+		if (existing == null)
+			return;
+
 		var modified = existing.Clone();
 
 		/*
@@ -363,7 +358,7 @@ internal sealed class QueueJob<TEntity, TCache>(IStorageProvider storage, TCache
 		 * Synchronize the cache with the updated message state.
 		 */
 		if (modified is not null)
-			await cache.Update(modified);
+			await cache.Refresh(modified.Id);
 	}
 
 	/// <summary>
@@ -381,7 +376,11 @@ internal sealed class QueueJob<TEntity, TCache>(IStorageProvider storage, TCache
 		/*
 		 * Retrieve the current message state from cache using the pop receipt.
 		 */
-		var existing = (await cache.Select(Dto.PopReceipt.GetValueOrDefault())).Required<TEntity>();
+		var existing = await Select();
+
+		if (existing == null)
+			return;
+
 		var modified = existing.Clone();
 
 		/*
@@ -418,6 +417,22 @@ internal sealed class QueueJob<TEntity, TCache>(IStorageProvider storage, TCache
 		 * Synchronize the cache with the updated message state.
 		 */
 		if (modified is not null)
-			await cache.Update(modified);
+			await cache.Refresh(modified.Id);
+	}
+
+	private async Task<TEntity?> Select()
+	{
+		var result = await cache.Select(Dto.PopReceipt.GetValueOrDefault());
+
+		if (result is TEntity entity)
+			return entity;
+
+		/*
+		 * Message not found in cache. Log a warning and return without throwing.
+		 * This can occur if the message was already deleted by another process.
+		 */
+		logger.LogWarning("{message} ({popReceipt})", SR.ErrQueueMessageNull, Dto.PopReceipt);
+
+		return default;
 	}
 }
