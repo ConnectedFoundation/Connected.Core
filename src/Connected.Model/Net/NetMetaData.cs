@@ -16,16 +16,32 @@ namespace Connected.Net;
 public static class NetMetaData
 {
 	/// <summary>
-	/// Gets the metadata key for route entities.
+	/// Gets the metadata key for client-side route entities.
 	/// </summary>
 	/// <value>
-	/// A string containing the fully qualified metadata key in the format "schema.entityType".
+	/// A string containing the fully qualified metadata key in the format "schema.entityType.Client".
 	/// </value>
 	/// <remarks>
-	/// This key is constructed using the core schema prefix combined with the route
-	/// interface name, providing a unique identifier for route metadata operations.
-	/// The key follows the pattern: "{CoreSchema}.{IRoute}" and is used for route
-	/// entity identification, configuration, and persistence operations.
+	/// Client and server route caches store distinct, incompatible entity types
+	/// (<c>Connected.Net.Routing.Client.Route</c> vs <c>Connected.Net.Routing.Server.Route</c>) and
+	/// must never share a cache key - a shared key would make both caches read and write the same
+	/// underlying bucket, causing <see cref="InvalidCastException"/>s when one side reads entries
+	/// written by the other.
 	/// </remarks>
-	public const string RouteKey = $"{SchemaAttribute.CoreSchema}.{nameof(IRoute)}";
+	public const string ClientRouteKey = $"{SchemaAttribute.CoreSchema}.{nameof(IRoute)}.Client";
+
+	/// <summary>
+	/// Gets the metadata key for server-side route entities.
+	/// </summary>
+	/// <value>
+	/// A string containing the fully qualified metadata key in the format "schema.entityType.Server".
+	/// </value>
+	/// <remarks>
+	/// Client and server route caches store distinct, incompatible entity types
+	/// (<c>Connected.Net.Routing.Client.Route</c> vs <c>Connected.Net.Routing.Server.Route</c>) and
+	/// must never share a cache key - a shared key would make both caches read and write the same
+	/// underlying bucket, causing <see cref="InvalidCastException"/>s when one side reads entries
+	/// written by the other.
+	/// </remarks>
+	public const string ServerRouteKey = $"{SchemaAttribute.CoreSchema}.{nameof(IRoute)}.Server";
 }
