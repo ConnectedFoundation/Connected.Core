@@ -1,5 +1,6 @@
 ﻿using Connected.Reflection;
 using Connected.Threading;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Linq;
 
@@ -11,11 +12,19 @@ public abstract class SynchronizedCache<TEntry, TKey>(ICachingService cachingSer
 	static SynchronizedCache()
 	{
 		Initializers = [];
+		Lockers = [];
 	}
 
 	private static Lock Lock { get; } = new();
 	private static HashSet<string> Initializers { get; }
-	private AsyncLockerSlim? Locker { get; set; } = new();
+	/*
+	 * Containers are resolved per scope but both the initialization state and the entries they guard
+	 * are shared, so the locker must be shared as well. A per instance locker would let an Initialize
+	 * running in one scope hydrate on top of a Reset performed in another, leaving the container
+	 * marked as initialized while holding entries the reset was meant to discard.
+	 */
+	private static ConcurrentDictionary<string, AsyncLockerSlim> Lockers { get; }
+	private AsyncLockerSlim Locker => Lockers.GetOrAdd(Key, _ => new AsyncLockerSlim());
 
 	protected bool Initialized
 	{
@@ -32,23 +41,36 @@ public abstract class SynchronizedCache<TEntry, TKey>(ICachingService cachingSer
 		}
 	}
 
+	/// <summary>
+	/// Drops all entries and marks the container as not initialized so the next access hydrates
+	/// it again from the storage.
+	/// </summary>
+	/// <remarks>
+	/// Runs under the same locker as initialization, so a concurrent <c>Initialize</c> either
+	/// completes before the container is cleared or hydrates after it, never in between.
+	/// </remarks>
 	protected async Task Reset()
 	{
-		if (!IsInitialized(Key))
+		if (IsDisposed)
 			return;
 
-		foreach (var key in Keys)
+		await Locker.LockAsync(async () =>
 		{
-			var converted = Types.Convert<TKey>(key);
+			if (IsDisposed)
+				return;
 
-			if (converted is not null)
-				await Remove(converted);
-		}
+			/*
+			 * Entries first, initialization flag second. Readers which don't take the locker because
+			 * they see an initialized container get a transient miss at worst, whereas the opposite
+			 * order would leave the container permanently marked as initialized but empty.
+			 */
+			await Clear();
 
-		lock (Lock)
-		{
-			Initializers.Remove(Key);
-		}
+			lock (Lock)
+			{
+				Initializers.Remove(Key);
+			}
+		});
 	}
 
 	protected virtual async Task OnInvalidate(TKey id)
@@ -77,9 +99,14 @@ public abstract class SynchronizedCache<TEntry, TKey>(ICachingService cachingSer
 		}
 	}
 
+	async Task ICachingDataProvider.Reset()
+	{
+		await Reset();
+	}
+
 	async Task ICachingDataProvider.Initialize()
 	{
-		if (Initialized || IsDisposed || Locker is null)
+		if (Initialized || IsDisposed)
 			return;
 
 		await Locker.LockAsync(async () =>
@@ -134,15 +161,6 @@ public abstract class SynchronizedCache<TEntry, TKey>(ICachingService cachingSer
 		await ((ICachingDataProvider)this).Initialize();
 
 		return await base.Get(id, retrieve);
-	}
-
-	protected override void OnDisposing()
-	{
-		if (Locker is not null)
-		{
-			Locker?.Dispose();
-			Locker = null;
-		}
 	}
 
 	public override IEnumerator<TEntry> GetEnumerator()

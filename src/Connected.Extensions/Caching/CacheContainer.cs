@@ -59,6 +59,16 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 		await Task.CompletedTask;
 	}
 
+	/*
+	 * Drops the whole compartment at once. The context clears its own entries and the shared ones
+	 * immediately, which is what callers replacing the entire container need, as opposed to Remove
+	 * where the shared cache is only purged once the scope flushes.
+	 */
+	protected async Task Clear()
+	{
+		await Context.Clear(Key);
+	}
+
 	public virtual Task<IImmutableList<TEntry>> All()
 	{
 		return Task.FromResult(Context.All<TEntry>(Key));
