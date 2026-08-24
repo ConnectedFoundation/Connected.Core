@@ -87,7 +87,14 @@ internal class RequestAuthentication(RequestDelegate next)
 			Token = token
 		};
 
+		var authentication = scope.ServiceProvider.GetRequiredService<IAuthenticationService>();
+
 		foreach (var provider in providers)
+		{
+			if (await authentication.SelectIdentity() is not SystemIdentity)
+				break;
+
 			await provider.Invoke(dto);
+		}
 	}
 }
