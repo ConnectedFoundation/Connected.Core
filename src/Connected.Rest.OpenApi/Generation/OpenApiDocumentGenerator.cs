@@ -1,6 +1,7 @@
 using Connected.Annotations;
 using Connected.Configuration;
 using Connected.Net.Rest.OpenApi.Configuration;
+using Connected.Net.Rest.OpenApi.Documentation;
 using Connected.Net.Rest.OpenApi.Reflection;
 using Connected.Reflection;
 using Connected.Runtime;
@@ -98,6 +99,8 @@ internal sealed class OpenApiDocumentGenerator(IRuntimeService runtimeService, I
 			 */
 			OperationId = $"{OperationIdSegment(descriptor.Url)}_{verb}",
 			Tags = [new OpenApiTag { Name = ServiceTagName(descriptor.Service) }],
+			Summary = XmlDocumentationProvider.GetSummary(descriptor.Method),
+			Description = XmlDocumentationProvider.GetRemarks(descriptor.Method),
 			Responses = new OpenApiResponses()
 		};
 
@@ -116,6 +119,9 @@ internal sealed class OpenApiDocumentGenerator(IRuntimeService runtimeService, I
 
 				foreach (var field in fields)
 				{
+					if (field.Schema.Reference is null)
+						field.Schema.Description = field.Description;
+
 					bodySchema.Properties[field.Name] = field.Schema;
 
 					if (field.Required)
@@ -140,18 +146,20 @@ internal sealed class OpenApiDocumentGenerator(IRuntimeService runtimeService, I
 					Name = field.Name,
 					In = ParameterLocation.Query,
 					Required = field.Required,
+					Description = field.Description,
 					Schema = field.Schema
 				});
 			}
 		}
 
 		var responseType = UnwrapResponseType(descriptor.Method.ReturnType);
+		var responseDescription = XmlDocumentationProvider.GetReturns(descriptor.Method) ?? "Success";
 
 		operation.Responses["200"] = responseType is null
-			? new OpenApiResponse { Description = "Success" }
+			? new OpenApiResponse { Description = responseDescription }
 			: new OpenApiResponse
 			{
-				Description = "Success",
+				Description = responseDescription,
 				Content = new Dictionary<string, OpenApiMediaType>
 				{
 					["application/json"] = new OpenApiMediaType { Schema = schemaBuilder.Build(responseType) }
@@ -184,9 +192,9 @@ internal sealed class OpenApiDocumentGenerator(IRuntimeService runtimeService, I
 		return returnType;
 	}
 
-	private static List<(string Name, OpenApiSchema Schema, bool Required)> FlattenFields(MethodInfo method, OpenApiSchemaBuilder schemaBuilder)
+	private static List<(string Name, OpenApiSchema Schema, bool Required, string? Description)> FlattenFields(MethodInfo method, OpenApiSchemaBuilder schemaBuilder)
 	{
-		var result = new List<(string Name, OpenApiSchema Schema, bool Required)>();
+		var result = new List<(string Name, OpenApiSchema Schema, bool Required, string? Description)>();
 
 		foreach (var parameter in method.GetParameters())
 		{
@@ -197,11 +205,15 @@ internal sealed class OpenApiDocumentGenerator(IRuntimeService runtimeService, I
 					if (property.GetIndexParameters().Length > 0)
 						continue;
 
-					result.Add((property.Name.ToCamelCase(), schemaBuilder.Build(property.PropertyType), property.FindAttribute<RequiredAttribute>() is not null));
+					result.Add((property.Name.ToCamelCase(), schemaBuilder.Build(property.PropertyType),
+						property.FindAttribute<RequiredAttribute>() is not null, XmlDocumentationProvider.GetSummary(property)));
 				}
 			}
 			else if (parameter.ParameterType.IsTypePrimitive() && parameter.Name is not null)
-				result.Add((parameter.Name, schemaBuilder.Build(parameter.ParameterType), !parameter.IsOptional && !parameter.IsNullable()));
+			{
+				result.Add((parameter.Name, schemaBuilder.Build(parameter.ParameterType),
+					!parameter.IsOptional && !parameter.IsNullable(), XmlDocumentationProvider.GetParameterSummary(parameter)));
+			}
 		}
 
 		return [.. result.DistinctBy(f => f.Name)];

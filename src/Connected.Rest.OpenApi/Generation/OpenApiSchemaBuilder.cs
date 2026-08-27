@@ -1,3 +1,4 @@
+using Connected.Net.Rest.OpenApi.Documentation;
 using Connected.Reflection;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
@@ -148,7 +149,12 @@ internal sealed class OpenApiSchemaBuilder(IDictionary<string, OpenApiSchema> co
 		 */
 		_references[type] = reference;
 
-		var schema = new OpenApiSchema { Type = "object", Properties = new Dictionary<string, OpenApiSchema>() };
+		var schema = new OpenApiSchema
+		{
+			Type = "object",
+			Properties = new Dictionary<string, OpenApiSchema>(),
+			Description = XmlDocumentationProvider.GetSummary(type)
+		};
 
 		components[id] = schema;
 
@@ -176,6 +182,7 @@ internal sealed class OpenApiSchemaBuilder(IDictionary<string, OpenApiSchema> co
 		if (propertySchema.Reference is null)
 		{
 			propertySchema.Nullable = property.IsNullable();
+			propertySchema.Description = XmlDocumentationProvider.GetSummary(property);
 
 			if (property.FindAttribute<MaxLengthAttribute>() is MaxLengthAttribute maxLength && maxLength.Length > 0)
 				propertySchema.MaxLength = maxLength.Length;
