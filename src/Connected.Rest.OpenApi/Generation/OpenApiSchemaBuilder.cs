@@ -12,7 +12,7 @@ namespace Connected.Net.Rest.OpenApi.Generation;
 /// Builds <see cref="OpenApiSchema"/> instances from CLR types via reflection, registering
 /// complex (Dto) types as reusable components keyed by type so recursive graphs terminate.
 /// </summary>
-internal sealed class OpenApiSchemaBuilder(IDictionary<string, OpenApiSchema> components)
+internal sealed class OpenApiSchemaBuilder(IDictionary<string, OpenApiSchema> components, XmlDocumentationProvider documentation)
 {
 	private readonly Dictionary<Type, OpenApiSchema> _references = [];
 
@@ -153,7 +153,7 @@ internal sealed class OpenApiSchemaBuilder(IDictionary<string, OpenApiSchema> co
 		{
 			Type = "object",
 			Properties = new Dictionary<string, OpenApiSchema>(),
-			Description = XmlDocumentationProvider.GetSummary(type)
+			Description = documentation.GetSummary(type)
 		};
 
 		components[id] = schema;
@@ -173,7 +173,7 @@ internal sealed class OpenApiSchemaBuilder(IDictionary<string, OpenApiSchema> co
 		return reference;
 	}
 
-	private static void ApplyPropertyConstraints(PropertyInfo property, OpenApiSchema propertySchema, OpenApiSchema owner)
+	private void ApplyPropertyConstraints(PropertyInfo property, OpenApiSchema propertySchema, OpenApiSchema owner)
 	{
 		/*
 		 * OpenAPI 3.0 treats $ref as an exclusive keyword, so constraints only apply to
@@ -182,7 +182,9 @@ internal sealed class OpenApiSchemaBuilder(IDictionary<string, OpenApiSchema> co
 		if (propertySchema.Reference is null)
 		{
 			propertySchema.Nullable = property.IsNullable();
-			propertySchema.Description = XmlDocumentationProvider.GetSummary(property);
+ 
+			if (documentation.GetSummary(property) is string summary)
+				propertySchema.Description = summary;
 
 			if (property.FindAttribute<MaxLengthAttribute>() is MaxLengthAttribute maxLength && maxLength.Length > 0)
 				propertySchema.MaxLength = maxLength.Length;

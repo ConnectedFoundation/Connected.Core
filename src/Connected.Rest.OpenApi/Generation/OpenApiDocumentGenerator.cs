@@ -17,7 +17,7 @@ namespace Connected.Net.Rest.OpenApi.Generation;
 /// Generates an <see cref="OpenApiDocument"/> describing every Http-accessible service operation
 /// discovered by <see cref="ApiSurfaceScanner"/>.
 /// </summary>
-internal sealed class OpenApiDocumentGenerator(IRuntimeService runtimeService, IConfigurationService configuration, IOptionsMonitor<OpenApiOptions> options)
+internal sealed class OpenApiDocumentGenerator(IRuntimeService runtimeService, IConfigurationService configuration, IOptionsMonitor<OpenApiOptions> options, XmlDocumentationProvider documentation)
 {
 	/// <summary>
 	/// Id of the Bearer security scheme declared on the generated document. Every Connected.Core
@@ -56,7 +56,7 @@ internal sealed class OpenApiDocumentGenerator(IRuntimeService runtimeService, I
 		if (!string.IsNullOrWhiteSpace(serverUrl))
 			document.Servers.Add(new OpenApiServer { Url = serverUrl });
 
-		var schemaBuilder = new OpenApiSchemaBuilder(document.Components.Schemas);
+		var schemaBuilder = new OpenApiSchemaBuilder(document.Components.Schemas, documentation);
 
 		foreach (var group in descriptors.GroupBy(f => f.Url, StringComparer.OrdinalIgnoreCase))
 		{
@@ -85,7 +85,7 @@ internal sealed class OpenApiDocumentGenerator(IRuntimeService runtimeService, I
 		if (verbs.HasFlag(ServiceOperationVerbs.Trace)) yield return OperationType.Trace;
 	}
 
-	private static OpenApiOperation BuildOperation(ApiOperationDescriptor descriptor, OperationType verb, OpenApiSchemaBuilder schemaBuilder)
+	private OpenApiOperation BuildOperation(ApiOperationDescriptor descriptor, OperationType verb, OpenApiSchemaBuilder schemaBuilder)
 	{
 		var operation = new OpenApiOperation
 		{
@@ -99,8 +99,8 @@ internal sealed class OpenApiDocumentGenerator(IRuntimeService runtimeService, I
 			 */
 			OperationId = $"{OperationIdSegment(descriptor.Url)}_{verb}",
 			Tags = [new OpenApiTag { Name = ServiceTagName(descriptor.Service) }],
-			Summary = XmlDocumentationProvider.GetSummary(descriptor.Method),
-			Description = XmlDocumentationProvider.GetRemarks(descriptor.Method),
+			Summary = documentation.GetSummary(descriptor.Method),
+			Description = documentation.GetRemarks(descriptor.Method),
 			Responses = new OpenApiResponses()
 		};
 
@@ -153,7 +153,7 @@ internal sealed class OpenApiDocumentGenerator(IRuntimeService runtimeService, I
 		}
 
 		var responseType = UnwrapResponseType(descriptor.Method.ReturnType);
-		var responseDescription = XmlDocumentationProvider.GetReturns(descriptor.Method) ?? "Success";
+		var responseDescription = documentation.GetReturns(descriptor.Method) ?? "Success";
 
 		operation.Responses["200"] = responseType is null
 			? new OpenApiResponse { Description = responseDescription }
@@ -192,7 +192,7 @@ internal sealed class OpenApiDocumentGenerator(IRuntimeService runtimeService, I
 		return returnType;
 	}
 
-	private static List<(string Name, OpenApiSchema Schema, bool Required, string? Description)> FlattenFields(MethodInfo method, OpenApiSchemaBuilder schemaBuilder)
+	private List<(string Name, OpenApiSchema Schema, bool Required, string? Description)> FlattenFields(MethodInfo method, OpenApiSchemaBuilder schemaBuilder)
 	{
 		var result = new List<(string Name, OpenApiSchema Schema, bool Required, string? Description)>();
 
@@ -206,13 +206,13 @@ internal sealed class OpenApiDocumentGenerator(IRuntimeService runtimeService, I
 						continue;
 
 					result.Add((property.Name.ToCamelCase(), schemaBuilder.Build(property.PropertyType),
-						property.FindAttribute<RequiredAttribute>() is not null, XmlDocumentationProvider.GetSummary(property)));
+						property.FindAttribute<RequiredAttribute>() is not null, documentation.GetSummary(property)));
 				}
 			}
 			else if (parameter.ParameterType.IsTypePrimitive() && parameter.Name is not null)
 			{
 				result.Add((parameter.Name, schemaBuilder.Build(parameter.ParameterType),
-					!parameter.IsOptional && !parameter.IsNullable(), XmlDocumentationProvider.GetParameterSummary(parameter)));
+					!parameter.IsOptional && !parameter.IsNullable(), documentation.GetParameterSummary(parameter)));
 			}
 		}
 

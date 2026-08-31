@@ -50,7 +50,11 @@ internal static class MemberDocumentationId
 			? string.Empty
 			: $"({string.Join(',', parameters.Select(f => ParameterTypeId(f.ParameterType)))})";
 
-		return $"M:{TypeId(declaringType)}.{method.Name}{signature}";
+		var arity = method.IsGenericMethod
+			? $"``{method.GetGenericArguments().Length}"
+			: string.Empty;
+
+		return $"M:{TypeId(declaringType)}.{method.Name}{arity}{signature}";
 	}
 
 	/// <summary>
@@ -61,10 +65,10 @@ internal static class MemberDocumentationId
 		if (type.IsGenericParameter)
 			return $"`{type.GenericParameterPosition}";
 
-		// Nested types use '+' in reflection but '.' in doc-comment ids.
-		var name = (type.FullName ?? $"{type.Namespace}.{type.Name}").Replace('+', '.');
+		if (type.IsGenericType && !type.IsGenericTypeDefinition)
+			return TypeId(type.GetGenericTypeDefinition());
 
-		return type.IsGenericType ? StripArity(name) : name;
+		return (type.FullName ?? $"{type.Namespace}.{type.Name}").Replace('+', '.');
 	}
 
 	/// <summary>
@@ -86,7 +90,7 @@ internal static class MemberDocumentationId
 			var definition = type.GetGenericTypeDefinition();
 			var arguments = string.Join(',', type.GetGenericArguments().Select(ParameterTypeId));
 
-			return $"{TypeId(definition)}{{{arguments}}}";
+			return $"{StripArity(TypeId(definition))}{{{arguments}}}";
 		}
 
 		return TypeId(type);
