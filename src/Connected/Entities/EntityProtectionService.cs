@@ -16,26 +16,5 @@ internal class EntityProtectionService(IMiddlewareService middlewares) : IEntity
 
 		foreach (var middleware in items)
 			await middleware.Invoke(dto);
-
-		if (!typeof(TEntity).IsInterface)
-		{
-			var implementedEntity = typeof(TEntity).ResolveImplementedEntity();
-
-			if (implementedEntity is null)
-				return;
-
-			var type = typeof(IEntityProtector<>).MakeGenericType(implementedEntity);
-			var typedItems = await middlewares.Query(type);
-
-			foreach (var typedItem in typedItems)
-			{
-				var method = type.GetMethod(nameof(IEntityProtector<TEntity>.Invoke));
-
-				if (method is null)
-					continue;
-
-				await method.InvokeAsync(typedItem, [dto]);
-			}
-		}
 	}
 }
