@@ -16,7 +16,11 @@ public class AsyncLocker<T> : IDisposable
 	public async Task LockAsync(T semaphore, Func<Task> worker)
 	{
 		if (Items.TryGetValue(semaphore, out AsyncLockerSlim? locker))
+		{
 			await locker.LockAsync(worker);
+			
+			return;
+		}
 
 		var newLocker = new AsyncLockerSlim();
 
