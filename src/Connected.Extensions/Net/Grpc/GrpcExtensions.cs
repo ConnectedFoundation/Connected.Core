@@ -14,7 +14,7 @@ public static class GrpcExtensions
 		where TService : notnull
 		where TDto : IDto
 	{
-		using var scope = await Scope.Create().WithRequestIdentity();
+		await using var scope = await Scope.Create().WithRequestIdentity();
 
 		var dto = Serializer.Merge(DtoFactory.Create<TDto>(), request);
 		var service = scope.ServiceProvider.GetRequiredService<TService>();

@@ -74,9 +74,9 @@ internal class MiddlewareService : IMiddlewareService
 		foreach (var r in result)
 			tasks.Add(r.Initialize(cancellationToken));
 
-		Task.WaitAll([.. tasks]);
+		await Task.WhenAll(tasks);
 
-		return await Task.FromResult(result.ToImmutableList());
+		return [..result];
 	}
 
 	public async Task<IImmutableList<IMiddleware>> Query(Type type, ICallerContext? context, CancellationToken? cancellationToken = null)

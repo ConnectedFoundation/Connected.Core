@@ -201,7 +201,7 @@ public static class HttpExtensions
 		if (context.User.Identity is not IIdentityAccessor accessor || accessor.Identity?.Token is null)
 			return null;
 
-		using var scope = await Scope.Create().WithSystemIdentity();
+		await using var scope = await Scope.Create().WithSystemIdentity();
 
 		try
 		{
