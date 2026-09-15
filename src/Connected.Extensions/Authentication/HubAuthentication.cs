@@ -28,7 +28,7 @@ public static class HubAuthentication
 		 * authentication (e.g. registered providers). Using system identity ensures
 		 * sufficient privileges for querying provider registrations.
 		 */
-		using var scope = await Scope.Create().WithSystemIdentity();
+		await using var scope = await Scope.Create().WithSystemIdentity();
 		var middlewares = scope.ServiceProvider.GetRequiredService<IMiddlewareService>();
 
 		/*

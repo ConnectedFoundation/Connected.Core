@@ -11,7 +11,7 @@ internal sealed class DefaultSettingsCultureProvider : CultureProviderBase, IReq
 {
 	public override async Task<ProviderCultureResult?> DetermineProviderCultureResult(HttpContext httpContext)
 	{
-		using var scope = await Scope.Create().WithSystemIdentity();
+		await using var scope = await Scope.Create().WithSystemIdentity();
 
 		var settings = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 		var value = settings.GetSection("globalization:defaultCulture");
