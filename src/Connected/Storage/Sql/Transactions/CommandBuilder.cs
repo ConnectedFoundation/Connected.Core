@@ -3,6 +3,7 @@ using Connected.Entities;
 using Connected.Reflection;
 using System.Data;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Connected.Storage.Sql.Transactions;
@@ -248,5 +249,13 @@ internal abstract class CommandBuilder<TEntity>(IStorage<TEntity> storage)
 		var typeName = Entity.GetType().FullName;
 
 		return typeName is null ? throw new NullReferenceException($"{Strings.ErrCannotResolveTypeName} ('{Entity.GetType()}')") : typeName;
+	}
+
+	protected string CreateCacheKey()
+	{
+		var value = $"{ResolveEntityTypeName()}:{(UpdatedProperties is null ? string.Empty : string.Join(',', UpdatedProperties))}";
+		var hash = SHA256.HashData(Encoding.UTF8.GetBytes(value));
+
+		return Convert.ToHexString(hash);
 	}
 }

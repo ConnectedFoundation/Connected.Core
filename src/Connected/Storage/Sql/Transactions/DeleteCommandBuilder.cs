@@ -31,7 +31,7 @@ internal class DeleteCommandBuilder<TEntity>(IStorage<TEntity> storage)
 		foreach (var parameter in Parameters)
 			result.Parameters.Add(parameter);
 
-		Cache.TryAdd(ResolveEntityTypeName(), result);
+		Cache.TryAdd(CreateCacheKey(), result);
 
 		return result;
 	}
@@ -57,6 +57,6 @@ internal class DeleteCommandBuilder<TEntity>(IStorage<TEntity> storage)
 
 	protected override bool TryGetExisting(out SqlStorageOperation? result)
 	{
-		return Cache.TryGetValue(ResolveEntityTypeName(), out result);
+		return Cache.TryGetValue(CreateCacheKey(), out result);
 	}
 }

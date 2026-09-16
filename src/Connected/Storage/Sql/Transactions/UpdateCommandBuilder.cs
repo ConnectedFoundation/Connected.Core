@@ -19,7 +19,7 @@ internal sealed class UpdateCommandBuilder<TEntity>(IStorage<TEntity> storage)
 
 	protected override bool TryGetExisting(out SqlStorageOperation? result)
 	{
-		return Cache.TryGetValue(ResolveEntityTypeName(), out result);
+		return Cache.TryGetValue(CreateCacheKey(), out result);
 	}
 
 	protected override async Task<SqlStorageOperation> OnBuild(CancellationToken cancel)
@@ -45,7 +45,7 @@ internal sealed class UpdateCommandBuilder<TEntity>(IStorage<TEntity> storage)
 			result.Parameters.Add(parameter);
 
 		if (UpdatedProperties is not null && UpdatedProperties.Any())
-			Cache.TryAdd(ResolveEntityTypeName(), result);
+			Cache.TryAdd(CreateCacheKey(), result);
 
 		return result;
 	}
