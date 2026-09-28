@@ -18,9 +18,16 @@ internal class CacheContext : ICacheContext
 
 	private ICachingService Cache { get; }
 	private ITransactionContext Transactions { get; }
+	/*
+	 * A rollback ends in Completed just as a commit does, passing through Reverting first. The scope's entries reach
+	 * the shared cache only when the transaction committed; a reverted scope's entries are dropped with the scope.
+	 */
+	private bool _reverted;
 	private void OnTransactionContextStateChanged(object? sender, EventArgs e)
 	{
-		if (Transactions.State == MiddlewareTransactionState.Completed)
+		if (Transactions.State == MiddlewareTransactionState.Reverting)
+			_reverted = true;
+		else if (Transactions.State == MiddlewareTransactionState.Completed && !_reverted)
 			Flush();
 	}
 
