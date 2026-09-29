@@ -1,4 +1,5 @@
 using Connected.Annotations.Entities;
+using Connected.Data;
 using Connected.Entities;
 using Connected.Reflection;
 using System.Data;
@@ -163,7 +164,24 @@ internal abstract class CommandBuilder<TEntity>(IStorage<TEntity> storage)
 		if (IsVersion(property))
 			return Task.FromResult<object?>((byte[])EntityVersion.Parse(property.GetValue(Entity)));
 
-		return GetValue(Entity, property, property.GetValue(Entity), cancel);
+		return GetValue(Entity, property, Utc(property, property.GetValue(Entity)), cancel);
+	}
+
+	/// <summary>
+	/// Hands a moment to a column that keeps no offset as the UTC instant it is.
+	/// </summary>
+	/// <remarks>
+	/// Dates are stored in UTC and read back as UTC (see <c>FieldMappings</c>). The column a <see cref="DateTimeOffset"/>
+	/// property gets is <c>datetime2</c> unless it asks for an offset (<see cref="DateKind.Offset"/>), and SQL Server turns a
+	/// <c>datetimeoffset</c> into a <c>datetime2</c> by keeping its clock and dropping its offset - so 06:00+02:00 was stored
+	/// as 06:00 and read back two hours late. The column's own type decides, as the schema declares it; only a column that
+	/// stores the offset itself receives the value unchanged.
+	/// </remarks>
+	private static object? Utc(PropertyInfo property, object? value)
+	{
+		return value is DateTimeOffset offset && property.ToDbType() != DbType.DateTimeOffset
+			? DateTime.SpecifyKind(offset.UtcDateTime, DateTimeKind.Utc)
+			: value;
 	}
 
 	private static Task<object?> GetValue(IEntity entity, PropertyInfo property, object? value, CancellationToken cancel)
