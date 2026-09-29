@@ -194,9 +194,14 @@ internal sealed class ServiceRequestDelegate : RestRequest
 					try
 					{
 						/*
-						 * Merge request properties into argument instance.
+						 * Merge request properties into argument instance, unless the resolved DTO declares a binder of
+						 * its own - a DTO that cannot be bound directly says so on its implementation, whatever
+						 * interface the operation takes it as.
 						 */
-						Serializer.Merge(argument, requestArgs);
+						if (argument is not null && ResolveBinder(argument) is IDtoBinder binder)
+							binder.Invoke(argument, requestArgs);
+						else
+							Serializer.Merge(argument, requestArgs);
 
 						arguments.Add(argument);
 					}
