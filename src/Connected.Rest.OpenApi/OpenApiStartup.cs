@@ -1,5 +1,6 @@
 using Connected.Configuration;
 using Connected.Net.Rest.OpenApi.Configuration;
+using Connected.Net.Rest.OpenApi.Documentation;
 using Connected.Net.Rest.OpenApi.Generation;
 using Connected.Runtime;
 using Microsoft.AspNetCore.Builder;
@@ -24,6 +25,9 @@ public sealed class OpenApiStartup : Connected.Runtime.Startup
 	protected override void OnConfigureServices(IServiceCollection services)
 	{
 		services.Configure<OpenApiOptions>(Configuration.GetSection(OpenApiOptions.Path));
+
+		// Caches parsed XML doc files per assembly for the life of the process.
+		services.AddSingleton<XmlDocumentationProvider>();
 	}
 
 	protected override void OnConfigure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -35,7 +39,8 @@ public sealed class OpenApiStartup : Connected.Runtime.Startup
 				var runtimeService = context.RequestServices.GetRequiredService<IRuntimeService>();
 				var configuration = context.RequestServices.GetRequiredService<IConfigurationService>();
 				var options = context.RequestServices.GetRequiredService<IOptionsMonitor<OpenApiOptions>>();
-				var document = await new OpenApiDocumentGenerator(runtimeService, configuration, options).Generate();
+				var documentation = context.RequestServices.GetRequiredService<XmlDocumentationProvider>();
+				var document = await new OpenApiDocumentGenerator(runtimeService, configuration, options, documentation).Generate();
 
 				context.Response.ContentType = "application/json";
 
