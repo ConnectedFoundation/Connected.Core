@@ -1,6 +1,7 @@
 using Connected.Annotations.Entities;
 using Connected.Reflection;
 using Connected.Services;
+using Connected.Services.Validation;
 using Connected.Storage;
 using System.Collections.Immutable;
 using System.Linq.Expressions;
@@ -389,7 +390,7 @@ public static class EntitiesExtensions
 		where TEntity : IEntity
 	{
 		if (entity is null)
-			throw new NullReferenceException($"{Strings.ErrEntityExpected} ({typeof(TEntity).ShortName()})");
+			throw new EntityExpectedException(typeof(TEntity), $"{Strings.ErrEntityExpected} ({typeof(TEntity).ShortName()})");
 
 		return entity;
 	}
@@ -398,7 +399,7 @@ public static class EntitiesExtensions
 		where TEntity : IEntity
 	{
 		if (entity is null)
-			throw new NullReferenceException($"{Strings.ErrEntityExpected} ({typeof(TEntity).ShortName()})");
+			throw new EntityExpectedException(typeof(TEntity), $"{Strings.ErrEntityExpected} ({typeof(TEntity).ShortName()})");
 
 		return (TEntity)entity;
 	}
