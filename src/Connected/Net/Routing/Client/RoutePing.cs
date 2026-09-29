@@ -14,7 +14,7 @@ internal sealed class RoutePing : ScheduledWorker
 
 	protected override async Task OnInvoke(CancellationToken cancellationToken)
 	{
-		using var scope = await Scope.Create().WithSystemIdentity();
+		await using var scope = await Scope.Create().WithSystemIdentity();
 
 		var cache = scope.ServiceProvider.GetRequiredService<IRouteCache>();
 		var service = scope.ServiceProvider.GetRequiredService<IRoutingService>();

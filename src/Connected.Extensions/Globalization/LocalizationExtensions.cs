@@ -19,7 +19,7 @@ public static class LocalizationExtensions
 		builder.Services.AddOptions<RequestLocalizationOptions>()
 			.Configure(async (o) =>
 			{
-				using var scope = await Scope.Create().WithSystemIdentity();
+				await using var scope = await Scope.Create().WithSystemIdentity();
 
 				o.DefaultRequestCulture = new RequestCulture(CultureInfo.InvariantCulture);
 				o.FallBackToParentCultures = true;

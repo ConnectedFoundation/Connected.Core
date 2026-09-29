@@ -67,7 +67,7 @@ public abstract class QueueHost<TEntity, TCache>
 		if (Dispatcher.Available <= 0)
 			return;
 
-		using var scope = await Scope.Create().WithSystemIdentity();
+		await using var scope = await Scope.Create().WithSystemIdentity();
 		Logger = scope.ServiceProvider.GetRequiredService<ILogger<QueueHost<TEntity, TCache>>>();
 		var cache = scope.ServiceProvider.GetRequiredService<TCache>();
 		var storage = scope.ServiceProvider.GetRequiredService<IStorageProvider>();

@@ -18,7 +18,7 @@ internal sealed class DomainCultureProvider : CultureProviderBase, IRequestCultu
 		if (string.IsNullOrWhiteSpace(domain) || (domain.Length == 1 && char.IsNumber(domain[0])))
 			return await Unresolved;
 
-		using var scope = await Scope.Create().WithSystemIdentity();
+		await using var scope = await Scope.Create().WithSystemIdentity();
 
 		try
 		{

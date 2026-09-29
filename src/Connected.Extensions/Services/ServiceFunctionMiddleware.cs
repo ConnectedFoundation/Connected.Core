@@ -14,7 +14,7 @@ public abstract class ServiceFunctionMiddleware<TDto, TReturnValue> : ServiceOpe
 
 		await OnInvoke();
 
-		return result;
+		return Result;
 	}
 
 	protected virtual async Task OnInvoke()

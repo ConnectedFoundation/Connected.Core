@@ -1,6 +1,7 @@
 using Connected.Data.Expressions.Evaluation;
 using Connected.Entities;
 using Connected.Entities.Protection;
+using Connected.Reflection;
 using Connected.Services;
 using Connected.Storage.Transactions;
 using System.Collections;
@@ -143,12 +144,7 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 		if (entity is null)
 			return entity;
 
-		var dto = Dto.Factory.Create<IEntityProtectionDto<TEntity>>();
-
-		dto.Entity = entity;
-		dto.State = entity.State;
-
-		await EntityProtection.Invoke(dto);
+		await ExecuteProtectors(entity);
 
 		var operation = await CreateOperation(entity, updatingProperties) ?? throw new NullReferenceException($"Could not create Storage operation for entity '{entity}'.");
 		var storageDto = Dto.Factory.Create<IStorageContextDto>();
@@ -601,5 +597,27 @@ internal class EntityStorage<TEntity> : IAsyncEnumerable<TEntity>, IStorage<TEnt
 	{
 		if (_variables.FirstOrDefault(f => string.Equals(f.Name, name, StringComparison.OrdinalIgnoreCase)) is IStorageVariable existing)
 			_variables.Remove(existing);
+	}
+
+	private async Task ExecuteProtectors(TEntity entity)
+	{
+		var contract = typeof(TEntity).ResolveImplementedEntity() ?? typeof(TEntity);
+		var dtoDefinition = typeof(IEntityProtectionDto<>).MakeGenericType(contract);
+
+		if (dtoDefinition == null)
+			return;
+
+		var dto = Dto.Factory.Create(dtoDefinition);
+
+		if (dto == null)
+			return;
+
+		dto.GetType().GetProperty(nameof(IEntityProtectionDto<TEntity>.Entity))?.SetValue(dto, entity);
+		dto.GetType().GetProperty(nameof(IEntityProtectionDto<TEntity>.State))?.SetValue(dto, entity.State);
+
+		var target = EntityProtection.GetType().ResolveMethod(nameof(IEntityProtectionService.Invoke), [contract], [dtoDefinition]);
+
+		if (target != null)
+			await target.InvokeAsync(EntityProtection, [dto]);
 	}
 }

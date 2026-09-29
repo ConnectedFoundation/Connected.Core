@@ -150,7 +150,7 @@ public static class Application
 
 	private static async Task RegisterGrpcRoutes()
 	{
-		using var scope = await Scope.Create().WithSystemIdentity();
+		await using var scope = await Scope.Create().WithSystemIdentity();
 		var routing = scope.ServiceProvider.GetService<IRoutingService>();
 		var configuration = scope.ServiceProvider.GetService<IConfigurationService>();
 		var baseUrl = configuration?.Routing.BaseUrl;

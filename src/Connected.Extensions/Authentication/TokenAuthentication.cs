@@ -30,7 +30,7 @@ internal sealed class TokenAuthentication(IHttpContextAccessor http)
 		 * Create a system-elevated scope so privileged services (token store, identity extensions,
 		 * authentication) can be accessed securely.
 		 */
-		using var scope = await Scope.Create().WithSystemIdentity();
+		await using var scope = await Scope.Create().WithSystemIdentity();
 
 		/*
 		 * Resolve required services for authentication: the service that applies identity updates,

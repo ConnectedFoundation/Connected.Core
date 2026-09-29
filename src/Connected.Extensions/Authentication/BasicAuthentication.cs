@@ -37,7 +37,7 @@ internal sealed class BasicAuthentication(IHttpContextAccessor http)
 		 * Create a new service scope elevated to the system identity so we can perform
 		 * secure user lookups and identity updates with the necessary privileges.
 		 */
-		using var scope = await Scope.Create().WithSystemIdentity();
+		await using var scope = await Scope.Create().WithSystemIdentity();
 
 		/*
 		 * Resolve the authentication service (to apply identity changes), the user service

@@ -15,7 +15,7 @@ public static class IdentityAuthenticationTokenExtensions
 
 	public static async Task<string?> AuthenticationToken(this IIdentity identity)
 	{
-		using var scope = await Scope.Create().WithSystemIdentity();
+		await using var scope = await Scope.Create().WithSystemIdentity();
 
 		var tokenService = scope.ServiceProvider.GetRequiredService<IIdentityAuthenticationTokenService>();
 		var dto = scope.ServiceProvider.GetRequiredService<IQueryIdentityAuthenticationTokensDto>();

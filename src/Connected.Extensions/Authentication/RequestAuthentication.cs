@@ -40,7 +40,7 @@ internal class RequestAuthentication(RequestDelegate next)
 		 * Create a system-elevated scope to access middleware services, then resolve the
 		 * middleware registry to discover registered authentication providers.
 		 */
-		using var scope = await Scope.Create().WithSystemIdentity();
+		await using var scope = await Scope.Create().WithSystemIdentity();
 		var middlewares = scope.ServiceProvider.GetRequiredService<IMiddlewareService>();
 		/*
 		 * If the middleware registry could not be resolved, abort authentication.
