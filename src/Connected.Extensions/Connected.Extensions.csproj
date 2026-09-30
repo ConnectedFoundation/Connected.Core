@@ -22,6 +22,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<InternalsVisibleTo Include="Connected.Caching.Tests" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="Grpc.AspNetCore" Version="2.67.0" />
 		<PackageReference Include="Grpc.Tools" Version="2.69.0">
 			<PrivateAssets>all</PrivateAssets>
