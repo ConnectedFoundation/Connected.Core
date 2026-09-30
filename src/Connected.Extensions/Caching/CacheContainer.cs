@@ -207,7 +207,14 @@ public abstract class CacheContainer<TEntry, TKey> : ICacheContainer<TEntry, TKe
 		{
 			if (cache is ICachingDataProvider provider)
 				provider.Initialize().Wait();
-			var snapshot = context.All<TEntry>(key).AsQueryable();
+			var entries = context.All<TEntry>(key);
+			/*
+			 * The same query over the same snapshot, through a delegate compiled once for its shape instead of on every
+			 * call. Whatever the compiled path does not handle runs the way it always has.
+			 */
+			if (CacheQueryCompiler.TryExecute<TEntry, TResult>(expression, entries, out var result))
+				return result;
+			var snapshot = entries.AsQueryable();
 			var rewritten = new StaleSourceReplacer(snapshot).Visit(expression);
 			return snapshot.Provider.Execute<TResult>(rewritten);
 		}
