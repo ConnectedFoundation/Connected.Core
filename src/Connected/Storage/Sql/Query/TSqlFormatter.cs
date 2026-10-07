@@ -1326,9 +1326,28 @@ internal sealed class TSqlFormatter(ExpressionCompilationContext context, QueryL
 		if (value.GetType().IsEnum)
 			return Convert.ChangeType(value, Enum.GetUnderlyingType(value.GetType()))?.ToString();
 
+		if (value is string text)
+			return Literal(text);
+
 		if (NeedsEscaping(value))
 			return $"'{value}'";
 
 		return value.ToString();
+	}
+
+	/// <summary>
+	/// Writes a string as a literal of an inline list.
+	/// </summary>
+	/// <remarks>
+	/// An apostrophe is doubled: undoubled it ends the literal, and the rest of the value is read as SQL. A string
+	/// that holds a character outside ASCII is written as a Unicode literal: a plain one is converted to the
+	/// database's code page first, so a character that page lacks no longer equals the stored one. A string of
+	/// ASCII alone is written exactly as before.
+	/// </remarks>
+	internal static string Literal(string value)
+	{
+		var escaped = value.Replace("'", "''");
+
+		return value.Any(f => f > 127) ? $"N'{escaped}'" : $"'{escaped}'";
 	}
 }
