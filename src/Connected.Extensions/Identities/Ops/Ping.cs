@@ -16,6 +16,10 @@ internal sealed class Ping(IIdentityAuthenticationTokenService identityAuthentic
 		if (!token.IsValid())
 			throw new NullReferenceException(SR.ErrInvalidToken);
 
+		// No expiry means "remember me" - pinging it must not give it one
+		if (token.Expire is null)
+			return;
+
 		await authentication.WithSystemIdentity();
 
 		await identityAuthenticationTokenService.Update(DtoFactory.Create<IUpdateIdentityAuthenticationTokenDto>(f =>
