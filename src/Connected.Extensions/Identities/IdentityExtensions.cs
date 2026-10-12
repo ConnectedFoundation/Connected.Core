@@ -1,3 +1,4 @@
+using Connected.Identities.Authentication;
 using Connected.Identities.Ops;
 using Connected.Membership.Claims;
 using Connected.Services;
@@ -17,4 +18,8 @@ internal sealed class IdentityExtensions(IServiceProvider services)
 	public async Task<IIdentityDescriptor?> Select(IValueDto<string> dto) => await Invoke(GetOperation<SelectIdentityDescriptor>(), dto);
 
 	public async Task<IImmutableList<IClaim>> QueryClaims() => await Invoke(GetOperation<QueryClaims>(), Dto.Empty);
+
+	public async Task<IIdentityAuthenticationToken?> TokenInfo(IValueDto<string> dto) => await Invoke(GetOperation<TokenInfo>(), dto);
+
+	public async Task SignOut(IValueDto<string> dto) => await Invoke(GetOperation<SignOut>(), dto);
 }
