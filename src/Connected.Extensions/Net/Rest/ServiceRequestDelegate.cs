@@ -331,6 +331,27 @@ internal sealed class ServiceRequestDelegate : RestRequest
 
 	protected override async Task OnRenderException(Exception ex)
 	{
+		/*
+		 * A middleware may render the exception instead of the formatter. The first one that does ends it; with
+		 * none, or none that renders it, the formatter's own rendering is the answer.
+		 */
+		var middlewares = HttpContext.RequestServices.GetService<IMiddlewareService>();
+
+		if (middlewares is not null)
+		{
+			var context = new ExceptionRenderContext(ex, HttpContext);
+
+			foreach (var middleware in await middlewares.Query<IExceptionRenderMiddleware>())
+			{
+				if (await middleware.Render(context))
+				{
+					await HttpContext.Response.CompleteAsync();
+
+					return;
+				}
+			}
+		}
+
 		await Formatter.RenderException(ex);
 	}
 }
