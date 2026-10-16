@@ -55,6 +55,7 @@ public interface IExceptionRenderContext
 	/// </summary>
 	/// <param name="statusCode">The HTTP status code.</param>
 	/// <param name="body">Anything the JSON serializer can write: an anonymous object, a dictionary, a record.
-	/// Property names are written in camel case.</param>
+	/// The properties of an object are written in camel case; the keys of a dictionary are written as they are
+	/// given.</param>
 	Task Write(int statusCode, object body);
 }

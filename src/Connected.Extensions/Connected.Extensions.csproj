@@ -23,6 +23,7 @@
 
 	<ItemGroup>
 		<InternalsVisibleTo Include="Connected.Caching.Tests" />
+		<InternalsVisibleTo Include="Connected.Net.Tests" />
 	</ItemGroup>
 
 	<ItemGroup>
