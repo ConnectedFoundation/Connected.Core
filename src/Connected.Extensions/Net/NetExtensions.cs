@@ -19,7 +19,7 @@ public static class NetExtensions
 
 	public static void AddCors(this IHostApplicationBuilder builder)
 	{
-		var provider = builder.Services.BuildServiceProvider(true);
+		using var provider = builder.Services.BuildServiceProvider(true);
 
 		using var scope = provider.CreateAsyncScope();
 		var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();

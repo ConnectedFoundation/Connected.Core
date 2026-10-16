@@ -7,6 +7,15 @@ internal abstract class Cache
 {
 	private static readonly CacheScope _scope = new(true);
 
+	/// <summary>
+	/// Stops the shared cache's scavenger and clears it, once the application has stopped. Without this the scavenger
+	/// thread runs for the life of the process, which also keeps a nested application's load context from unloading.
+	/// </summary>
+	internal static void Shutdown()
+	{
+		_scope.Dispose();
+	}
+
 	public virtual bool IsEmpty(string key)
 	{
 		return _scope.IsEmpty(key);

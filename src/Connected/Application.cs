@@ -32,13 +32,35 @@ public static class Application
 	private static bool IsErrorServerStarted { get; set; }
 	public static bool HasStarted { get; private set; }
 
+	/*
+	 * The options of the running application. Statics are per load context, so a nested application loaded into
+	 * its own context has its own copy.
+	 */
+	private static ApplicationOptions Options { get; set; } = new();
+
+	/*
+	 * Assemblies load into the context Connected itself was loaded into: the default context for a standalone
+	 * application, the nested host's own context otherwise, so nothing a nested application loads leaks into
+	 * the hosting application.
+	 */
+	private static AssemblyLoadContext LoadContext => AssemblyLoadContext.GetLoadContext(typeof(Application).Assembly) ?? AssemblyLoadContext.Default;
+
+	private static string BaseDirectory => Options.BaseDirectory ?? AppDomain.CurrentDomain.BaseDirectory;
+
 	public static async Task Start(string[] args)
 	{
+		await Start(args, new ApplicationOptions());
+	}
+
+	public static async Task Start(string[] args, ApplicationOptions options)
+	{
+		Options = options;
+
 		try
 		{
 			var builder = WebApplication.CreateBuilder(args);
 
-			var entryAssembly = Assembly.GetEntryAssembly();
+			var entryAssembly = Options.EntryAssembly ?? Assembly.GetEntryAssembly();
 
 			if (entryAssembly is not null)
 				builder.Configuration.AddUserSecrets(entryAssembly, true);
@@ -54,8 +76,14 @@ public static class Application
 			foreach (var startup in Dependencies.Startups)
 				startup.Prepare(builder.Configuration);
 
-			AddOutOfMemoryExceptionHandler();
-			AddAutoRestart();
+			/*
+			 * Both handlers act on the whole process; a nested application must never exit or take over its host.
+			 */
+			if (!Options.Nested)
+			{
+				AddOutOfMemoryExceptionHandler();
+				AddAutoRestart();
+			}
 
 			services.AddLogging(builder => builder.AddConsole());
 
@@ -97,7 +125,12 @@ public static class Application
 
 			HasStarted = true;
 
-			await webApp.RunAsync();
+			if (Options.Stopping.CanBeCanceled)
+				await HostingAbstractionsHostExtensions.RunAsync(webApp, Options.Stopping);
+			else
+				await webApp.RunAsync();
+
+			Caching.Cache.Shutdown();
 		}
 		finally
 		{
@@ -267,14 +300,14 @@ public static class Application
 
 	private static void RegisterDependency(string assemblyName)
 	{
-		var fileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, assemblyName);
+		var fileName = Path.Combine(BaseDirectory, assemblyName);
 
-		Dependencies.Register(AssemblyLoadContext.Default.LoadFromAssemblyPath(fileName));
+		Dependencies.Register(LoadContext.LoadFromAssemblyPath(fileName));
 	}
 
 	private static void RegisterCoreDependencies()
 	{
-		var entry = Assembly.GetEntryAssembly();
+		var entry = Options.EntryAssembly ?? Assembly.GetEntryAssembly();
 
 		if (entry is not null)
 			RegisterDependency(entry);
@@ -310,9 +343,9 @@ public static class Application
 			if (string.IsNullOrWhiteSpace(value))
 				continue;
 
-			var fileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, value);
+			var fileName = Path.Combine(BaseDirectory, value);
 			var name = AssemblyName.GetAssemblyName(fileName);
-			var assembly = AppDomain.CurrentDomain.Load(name);
+			var assembly = LoadContext.LoadFromAssemblyName(name);
 			var types = assembly.GetTypes();
 
 			Dependencies.Register(assembly);

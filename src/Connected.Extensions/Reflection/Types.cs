@@ -278,7 +278,13 @@ public static class Types
 		if (!File.Exists(file))
 			return null;
 
-		return AssemblyLoadContext.Default.LoadFromAssemblyName(AssemblyName.GetAssemblyName(file));
+		/*
+		 * Resolve into the context this assembly lives in, so a nested application never pulls types into the
+		 * hosting application's context.
+		 */
+		var context = AssemblyLoadContext.GetLoadContext(typeof(Types).Assembly) ?? AssemblyLoadContext.Default;
+
+		return context.LoadFromAssemblyName(AssemblyName.GetAssemblyName(file));
 	}
 
 	public static T? FindAttribute<T>(this Type type) where T : Attribute

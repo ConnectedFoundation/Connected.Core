@@ -25,7 +25,7 @@ public class Dto<TDto> : Dto
 	{
 		if (ServiceExtensionsStartup.Services is null)
 		{
-			var provider = ServiceExtensionsStartup.ServicesCollection.BuildServiceProvider(false);
+			var provider = ServiceExtensionsStartup.BuildBootstrapProvider();
 
 			Value = provider.GetRequiredService<TDto>();
 		}
