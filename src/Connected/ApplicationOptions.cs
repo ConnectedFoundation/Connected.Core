@@ -34,6 +34,13 @@ public sealed class ApplicationOptions
 	public bool Nested { get; set; }
 
 	/// <summary>
+	/// Gets configuration values applied after every other source, environment variables included. A nested
+	/// application shares its host's environment, so this is how it gets settings of its own, such as its own
+	/// <c>storage:databases:defaultConnectionString</c>.
+	/// </summary>
+	public IDictionary<string, string?> Configuration { get; } = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+
+	/// <summary>
 	/// Gets or sets a token that stops the application. When it is cancelled the host shuts down gracefully and
 	/// <see cref="Application.Start(string[], ApplicationOptions)"/> returns.
 	/// </summary>

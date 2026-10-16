@@ -67,6 +67,9 @@ public static class Application
 
 			builder.Configuration.AddEnvironmentVariables();
 
+			if (Options.Configuration.Count > 0)
+				builder.Configuration.AddInMemoryCollection(Options.Configuration);
+
 			var services = builder.Services;
 
 			RegisterConfiguredDependencies(builder.Configuration);

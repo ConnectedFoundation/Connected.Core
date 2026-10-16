@@ -73,6 +73,28 @@ public sealed class NestedApplicationTests
 	}
 
 	[TestMethod]
+	[Timeout(300_000)]
+	public async Task ConfigurationOverridesWinOverTheHostEnvironment()
+	{
+		Environment.SetEnvironmentVariable("hosting__test__value", "from-environment");
+
+		var host = NestedHost.Create();
+
+		try
+		{
+			host.Overrides["hosting:test:value"] = "from-options";
+
+			Assert.IsTrue(await host.Start(), "The nested application did not start.");
+			Assert.AreEqual("from-options", host.Read("hosting:test:value"));
+		}
+		finally
+		{
+			Environment.SetEnvironmentVariable("hosting__test__value", null);
+			await host.Stop();
+		}
+	}
+
+	[TestMethod]
 	[Timeout(120_000)]
 	public async Task DefaultOptionsKeepStandaloneBehaviour()
 	{
@@ -163,7 +185,19 @@ public sealed class NestedApplicationTests
 
 		public WeakReference Context { get; }
 
+		public Dictionary<string, string?> Overrides { get; } = [];
+
 		public static NestedHost Create() => new(new ApplicationContext(ApplicationPath));
+
+		/// <summary>Reads a configuration value as the running nested application sees it.</summary>
+		public string? Read(string key)
+		{
+			var startup = _context.LoadFromAssemblyName(new AssemblyName("Connected.Extensions")).GetType("Connected.Services.ServiceExtensionsStartup", true)!;
+			var services = (IServiceProvider)startup.GetProperty("Services")!.GetValue(null)!;
+			var configuration = (Microsoft.Extensions.Configuration.IConfiguration)services.GetService(typeof(Microsoft.Extensions.Configuration.IConfiguration))!;
+
+			return configuration[key];
+		}
 
 		public async Task<bool> Start()
 		{
@@ -177,6 +211,11 @@ public sealed class NestedApplicationTests
 			optionsType.GetProperty("BaseDirectory")!.SetValue(options, Path.GetDirectoryName(ApplicationPath));
 			optionsType.GetProperty("Nested")!.SetValue(options, true);
 			optionsType.GetProperty("Stopping")!.SetValue(options, _stopping.Token);
+
+			var configuration = (IDictionary<string, string?>)optionsType.GetProperty("Configuration")!.GetValue(options)!;
+
+			foreach (var (key, value) in Overrides)
+				configuration[key] = value;
 
 			_hasStarted = application.GetProperty("HasStarted");
 
