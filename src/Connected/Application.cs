@@ -47,6 +47,9 @@ public static class Application
 
 	private static string BaseDirectory => Options.BaseDirectory ?? AppDomain.CurrentDomain.BaseDirectory;
 
+	/// <summary>Gets whether background workers are registered; see <see cref="ApplicationOptions.Workers"/>.</summary>
+	internal static bool WorkersEnabled => Options.Workers;
+
 	public static async Task Start(string[] args)
 	{
 		await Start(args, new ApplicationOptions());

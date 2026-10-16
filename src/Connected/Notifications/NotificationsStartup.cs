@@ -11,7 +11,8 @@ public sealed class NotificationsStartup : Runtime.Startup
 	protected override void OnConfigureServices(IServiceCollection services)
 	{
 		services.AddSingleton<EventServer>();
-		services.AddHostedService<EventWorker>();
+		if (Application.WorkersEnabled)
+			services.AddHostedService<EventWorker>();
 	}
 
 	protected override void OnConfigure(IApplicationBuilder app, IWebHostEnvironment env)

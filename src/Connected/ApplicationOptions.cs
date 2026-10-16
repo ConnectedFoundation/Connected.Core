@@ -34,6 +34,12 @@ public sealed class ApplicationOptions
 	public bool Nested { get; set; }
 
 	/// <summary>
+	/// Gets or sets whether background workers run: queues, schedules, event broadcasting and route pings. A host that
+	/// only serves requests, such as an isolated sandbox, turns them off so nothing acts on its own.
+	/// </summary>
+	public bool Workers { get; set; } = true;
+
+	/// <summary>
 	/// Gets configuration values applied after every other source, environment variables included. A nested
 	/// application shares its host's environment, so this is how it gets settings of its own, such as its own
 	/// <c>storage:databases:defaultConnectionString</c>.

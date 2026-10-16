@@ -95,6 +95,32 @@ public sealed class NestedApplicationTests
 	}
 
 	[TestMethod]
+	[Timeout(300_000)]
+	public async Task WorkersCanBeTurnedOff()
+	{
+		Assert.IsTrue(await HostedServices(workers: true) > 0, "With workers on, Connected registers its background workers.");
+		Assert.AreEqual(0, await HostedServices(workers: false), "With workers off, no Connected background worker is registered.");
+	}
+
+	private static async Task<int> HostedServices(bool workers)
+	{
+		var host = NestedHost.Create();
+
+		try
+		{
+			host.Workers = workers;
+
+			Assert.IsTrue(await host.Start(), "The nested application did not start.");
+
+			return host.ConnectedHostedServices();
+		}
+		finally
+		{
+			await host.Stop();
+		}
+	}
+
+	[TestMethod]
 	[Timeout(120_000)]
 	public async Task DefaultOptionsKeepStandaloneBehaviour()
 	{
@@ -110,6 +136,7 @@ public sealed class NestedApplicationTests
 			Assert.IsNull(type.GetProperty("BaseDirectory")!.GetValue(options));
 			Assert.IsFalse((bool)type.GetProperty("Nested")!.GetValue(options)!);
 			Assert.IsFalse(((CancellationToken)type.GetProperty("Stopping")!.GetValue(options)!).CanBeCanceled);
+			Assert.IsTrue((bool)type.GetProperty("Workers")!.GetValue(options)!);
 		}
 		finally
 		{
@@ -187,6 +214,18 @@ public sealed class NestedApplicationTests
 
 		public Dictionary<string, string?> Overrides { get; } = [];
 
+		public bool Workers { get; set; } = true;
+
+		/// <summary>Counts the hosted services of the running nested application that come from Connected.</summary>
+		public int ConnectedHostedServices()
+		{
+			var startup = _context.LoadFromAssemblyName(new AssemblyName("Connected.Extensions")).GetType("Connected.Services.ServiceExtensionsStartup", true)!;
+			var services = (IServiceProvider)startup.GetProperty("Services")!.GetValue(null)!;
+			var hosted = (IEnumerable<object>)services.GetService(typeof(IEnumerable<Microsoft.Extensions.Hosting.IHostedService>))!;
+
+			return hosted.Count(f => f.GetType().Assembly.GetName().Name?.StartsWith("Connected", StringComparison.Ordinal) == true);
+		}
+
 		public static NestedHost Create() => new(new ApplicationContext(ApplicationPath));
 
 		/// <summary>Reads a configuration value as the running nested application sees it.</summary>
@@ -211,6 +250,7 @@ public sealed class NestedApplicationTests
 			optionsType.GetProperty("BaseDirectory")!.SetValue(options, Path.GetDirectoryName(ApplicationPath));
 			optionsType.GetProperty("Nested")!.SetValue(options, true);
 			optionsType.GetProperty("Stopping")!.SetValue(options, _stopping.Token);
+			optionsType.GetProperty("Workers")!.SetValue(options, Workers);
 
 			var configuration = (IDictionary<string, string?>)optionsType.GetProperty("Configuration")!.GetValue(options)!;
 
