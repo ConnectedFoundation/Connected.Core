@@ -18,6 +18,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<InternalsVisibleTo Include="Connected.Storage.Tests" />
+	</ItemGroup>
+
+	<ItemGroup>
 	  <Compile Update="Caching\CacheStrings.Designer.cs">
 	    <DependentUpon>CacheStrings.resx</DependentUpon>
 	    <DesignTime>True</DesignTime>
