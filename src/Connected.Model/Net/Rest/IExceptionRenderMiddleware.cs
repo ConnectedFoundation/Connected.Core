@@ -13,6 +13,15 @@ namespace Connected.Net.Rest;
 /// applies, so an application that registers no middleware sees no difference.
 /// </para>
 /// <para>
+/// The middlewares are asked in the order of their <see cref="Connected.Annotations.PriorityAttribute"/>, the highest
+/// first; one without the attribute counts as 0. Two with the same priority are asked in no defined order, so a
+/// middleware that has to be asked before another needs a higher priority.
+/// </para>
+/// <para>
+/// A middleware that throws does not change the outcome for the others: the failure is logged and the next middleware
+/// is asked.
+/// </para>
+/// <para>
 /// The middleware owns the whole answer. It may change the status code and write any body, so what a client
 /// receives is not limited to what the framework knows about.
 /// </para>

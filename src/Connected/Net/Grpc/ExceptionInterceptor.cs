@@ -1,12 +1,13 @@
 using Grpc.Core;
 using Grpc.Core.Interceptors;
+using Microsoft.Extensions.Logging;
 
 namespace Connected.Net.Grpc;
 
 /// <summary>
 /// Lets the <see cref="IGrpcExceptionMiddleware"/> instances decide what a call fails with when its handler throws.
 /// </summary>
-internal sealed class ExceptionInterceptor(IMiddlewareService middlewares)
+internal sealed class ExceptionInterceptor(IMiddlewareService middlewares, ILogger<ExceptionInterceptor> logger)
 	: Interceptor
 {
 	private sealed class Context(Exception exception, ServerCallContext callContext)
@@ -88,14 +89,43 @@ internal sealed class ExceptionInterceptor(IMiddlewareService middlewares)
 		}
 	}
 
+	/// <summary>
+	/// Asks the middlewares, in the order they are given, what the call fails with.
+	/// </summary>
+	/// <remarks>
+	/// A middleware that fails is not allowed to replace the exception the handler threw: the failure is logged,
+	/// together with that exception, and the next middleware is asked. When none translates it, the caller throws the
+	/// original exception.
+	/// </remarks>
 	private async Task<RpcException?> Translate(Exception exception, ServerCallContext callContext)
 	{
 		var context = new Context(exception, callContext);
+		IEnumerable<IGrpcExceptionMiddleware> candidates;
 
-		foreach (var middleware in await middlewares.Query<IGrpcExceptionMiddleware>())
+		try
 		{
-			if (await middleware.Translate(context) is { } translated)
-				return translated;
+			candidates = await middlewares.Query<IGrpcExceptionMiddleware>();
+		}
+		catch (Exception failure)
+		{
+			logger.LogError(failure, "The gRPC exception middlewares could not be resolved. The exception is left as it is.");
+			logger.LogError(exception, "The call failed with this exception.");
+
+			return null;
+		}
+
+		foreach (var middleware in candidates)
+		{
+			try
+			{
+				if (await middleware.Translate(context) is { } translated)
+					return translated;
+			}
+			catch (Exception failure)
+			{
+				logger.LogError(failure, "The gRPC exception middleware {Middleware} failed. The next one is asked.", middleware.GetType().Name);
+				logger.LogError(exception, "The call failed with this exception.");
+			}
 		}
 
 		return null;

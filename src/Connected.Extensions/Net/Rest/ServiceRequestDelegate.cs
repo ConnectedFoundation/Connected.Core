@@ -5,6 +5,7 @@ using Connected.Reflection;
 using Connected.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 
@@ -335,23 +336,67 @@ internal sealed class ServiceRequestDelegate : RestRequest
 		 * A middleware may render the exception instead of the formatter. The first one that does ends it; with
 		 * none, or none that renders it, the formatter's own rendering is the answer.
 		 */
+		if (await RenderWithMiddleware(ex))
+			return;
+
+		await Formatter.RenderException(ex);
+	}
+
+	/// <summary>
+	/// Asks the render middlewares, in the order they are given, to render the exception.
+	/// </summary>
+	/// <remarks>
+	/// A middleware that fails is not allowed to replace the exception the request failed with: the failure is logged,
+	/// together with the exception it was handed, and the next middleware is asked. When all are asked and none renders
+	/// it, the caller falls back to the formatter's own rendering, which renders the original exception.
+	/// </remarks>
+	/// <returns><c>true</c> when a middleware rendered the exception.</returns>
+	private async Task<bool> RenderWithMiddleware(Exception ex)
+	{
 		var middlewares = HttpContext.RequestServices.GetService<IMiddlewareService>();
 
-		if (middlewares is not null)
-		{
-			var context = new ExceptionRenderContext(ex, HttpContext);
+		if (middlewares is null)
+			return false;
 
-			foreach (var middleware in await middlewares.Query<IExceptionRenderMiddleware>())
+		var logger = HttpContext.RequestServices.GetService<ILogger<ServiceRequestDelegate>>();
+
+		/*
+		 * A method that throws before it returns its task reaches here wrapped by reflection. The middlewares are
+		 * handed what was thrown, so that one that checks for its own exception type finds it.
+		 */
+		var context = new ExceptionRenderContext(ex is TargetInvocationException { InnerException: { } inner } ? inner : ex, HttpContext);
+		IEnumerable<IExceptionRenderMiddleware> candidates;
+
+		try
+		{
+			candidates = await middlewares.Query<IExceptionRenderMiddleware>();
+		}
+		catch (Exception failure)
+		{
+			logger?.LogError(failure, "The exception render middlewares could not be resolved. The exception is rendered by default.");
+			logger?.LogError(context.Exception, "The request failed with this exception.");
+
+			return false;
+		}
+
+		foreach (var middleware in candidates)
+		{
+			try
 			{
 				if (await middleware.Render(context))
 				{
 					await HttpContext.Response.CompleteAsync();
 
-					return;
+					return true;
 				}
+			}
+			catch (Exception failure)
+			{
+				logger?.LogError(failure, "The exception render middleware {Middleware} failed. The next one is asked.", middleware.GetType().Name);
+				logger?.LogError(context.Exception, "The request failed with this exception.");
 			}
 		}
 
-		await Formatter.RenderException(ex);
+		return false;
 	}
 }

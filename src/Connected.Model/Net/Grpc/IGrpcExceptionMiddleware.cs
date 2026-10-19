@@ -13,9 +13,18 @@ namespace Connected.Net.Grpc;
 /// the framework knows about.
 /// </para>
 /// <para>
-/// The middlewares are asked in order and the first one that returns an exception wins. When none does, the exception
-/// propagates as before, so an application that registers no middleware sees no difference. An exception that is
-/// already an <see cref="RpcException"/> is not offered to the middlewares: it was meant to be sent as it is.
+/// The middlewares are asked in the order of their <see cref="Connected.Annotations.PriorityAttribute"/>, the highest
+/// first; one without the attribute counts as 0. Two with the same priority are asked in no defined order, so a
+/// middleware that has to be asked before another needs a higher priority.
+/// </para>
+/// <para>
+/// A middleware that throws does not change the outcome for the others: the failure is logged and the next middleware
+/// is asked.
+/// </para>
+/// <para>
+/// The first one that returns an exception wins. When none does, the exception propagates as before, so an
+/// application that registers no middleware sees no difference. An exception that is already an
+/// <see cref="RpcException"/> is not offered to the middlewares: it was meant to be sent as it is.
 /// </para>
 /// </remarks>
 public interface IGrpcExceptionMiddleware

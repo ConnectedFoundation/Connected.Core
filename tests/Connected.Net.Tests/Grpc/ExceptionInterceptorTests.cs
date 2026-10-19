@@ -1,12 +1,12 @@
+using Connected.Net.Tests;
 using Grpc.Core;
-using System.Collections.Immutable;
-using System.Reflection;
+using Microsoft.Extensions.Logging;
 
 namespace Connected.Net.Grpc.Tests;
 
 /// <summary>
 /// Holds what the interceptor does with an exception a gRPC handler throws: which exceptions the middlewares are asked
-/// about, which middleware wins, and what is thrown when none translates.
+/// about, which middleware wins, what is thrown when none translates, and that a failing middleware changes none of it.
 /// </summary>
 [TestClass]
 public sealed class ExceptionInterceptorTests
@@ -30,35 +30,16 @@ public sealed class ExceptionInterceptorTests
 		}
 	}
 
-	/// <summary>
-	/// The middleware service, answering the one query the interceptor makes.
-	/// </summary>
-	public class MiddlewareServiceProxy
-		: DispatchProxy
+	private static (ExceptionInterceptor Interceptor, CapturingLogger<ExceptionInterceptor> Logger, MiddlewareServiceProxy Service) Build(params IGrpcExceptionMiddleware[] middlewares)
 	{
-		internal IReadOnlyList<IGrpcExceptionMiddleware> Middlewares { get; set; } = [];
+		var (service, proxy) = MiddlewareServiceProxy.Create(middlewares);
+		var logger = new CapturingLogger<ExceptionInterceptor>();
 
-		protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
-		{
-			if (targetMethod is { Name: "Query", IsGenericMethod: true }
-				&& targetMethod.GetGenericArguments()[0] == typeof(IGrpcExceptionMiddleware))
-				return Task.FromResult<IImmutableList<IGrpcExceptionMiddleware>>(Middlewares.ToImmutableList());
-
-			throw new NotSupportedException(targetMethod?.Name);
-		}
+		return (new ExceptionInterceptor(service, logger), logger, proxy);
 	}
 
-	private static ExceptionInterceptor Interceptor(params IGrpcExceptionMiddleware[] middlewares)
-	{
-		var service = DispatchProxy.Create<IMiddlewareService, MiddlewareServiceProxy>();
-
-		((MiddlewareServiceProxy)(object)service).Middlewares = middlewares;
-
-		return new ExceptionInterceptor(service);
-	}
-
-	private static Task<string> Throws(Exception exception) =>
-		Interceptor().UnaryServerHandler<string, string>("request", new CallContext(), (_, _) => throw exception);
+	private static Task<string> Handle(ExceptionInterceptor interceptor, Exception exception) =>
+		interceptor.UnaryServerHandler<string, string>("request", new CallContext(), (_, _) => throw exception);
 
 	private static RpcException Failed(StatusCode code) => new(new Status(code, "translated"));
 
@@ -66,8 +47,9 @@ public sealed class ExceptionInterceptorTests
 	public async Task A_handler_that_succeeds_answers_as_it_did()
 	{
 		var middleware = new Middleware(_ => Failed(StatusCode.Internal));
+		var (interceptor, _, _) = Build(middleware);
 
-		var result = await Interceptor(middleware).UnaryServerHandler<string, string>("request", new CallContext(), (request, _) => Task.FromResult($"{request}!"));
+		var result = await interceptor.UnaryServerHandler<string, string>("request", new CallContext(), (request, _) => Task.FromResult($"{request}!"));
 
 		Assert.AreEqual("request!", result);
 		Assert.AreEqual(0, middleware.Asked);
@@ -77,9 +59,9 @@ public sealed class ExceptionInterceptorTests
 	public async Task The_exception_a_middleware_translates_to_is_what_the_call_fails_with()
 	{
 		var middleware = new Middleware(_ => Failed(StatusCode.PermissionDenied));
+		var (interceptor, _, _) = Build(middleware);
 
-		var error = await Assert.ThrowsExceptionAsync<RpcException>(() =>
-			Interceptor(middleware).UnaryServerHandler<string, string>("request", new CallContext(), (_, _) => throw new InvalidOperationException("boom")));
+		var error = await Assert.ThrowsExceptionAsync<RpcException>(() => Handle(interceptor, new InvalidOperationException("boom")));
 
 		Assert.AreEqual(StatusCode.PermissionDenied, error.StatusCode);
 		Assert.AreEqual(1, middleware.Asked);
@@ -91,9 +73,9 @@ public sealed class ExceptionInterceptorTests
 		var declines = new Middleware(_ => null);
 		var first = new Middleware(_ => Failed(StatusCode.NotFound));
 		var second = new Middleware(_ => Failed(StatusCode.Internal));
+		var (interceptor, _, _) = Build(declines, first, second);
 
-		var error = await Assert.ThrowsExceptionAsync<RpcException>(() =>
-			Interceptor(declines, first, second).UnaryServerHandler<string, string>("request", new CallContext(), (_, _) => throw new InvalidOperationException()));
+		var error = await Assert.ThrowsExceptionAsync<RpcException>(() => Handle(interceptor, new InvalidOperationException()));
 
 		Assert.AreEqual(StatusCode.NotFound, error.StatusCode);
 		Assert.AreEqual(1, declines.Asked);
@@ -106,9 +88,9 @@ public sealed class ExceptionInterceptorTests
 	{
 		var original = new InvalidOperationException("boom");
 		var middleware = new Middleware(_ => null);
+		var (interceptor, _, _) = Build(middleware);
 
-		var error = await Assert.ThrowsExceptionAsync<InvalidOperationException>(() =>
-			Interceptor(middleware).UnaryServerHandler<string, string>("request", new CallContext(), (_, _) => throw original));
+		var error = await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => Handle(interceptor, original));
 
 		Assert.AreSame(original, error);
 		Assert.AreEqual(1, middleware.Asked);
@@ -118,8 +100,9 @@ public sealed class ExceptionInterceptorTests
 	public async Task With_no_middleware_at_all_the_original_exception_is_thrown()
 	{
 		var original = new InvalidOperationException("boom");
+		var (interceptor, _, _) = Build();
 
-		var error = await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => Throws(original));
+		var error = await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => Handle(interceptor, original));
 
 		Assert.AreSame(original, error);
 	}
@@ -129,9 +112,9 @@ public sealed class ExceptionInterceptorTests
 	{
 		var middleware = new Middleware(_ => Failed(StatusCode.Internal));
 		var original = Failed(StatusCode.PermissionDenied);
+		var (interceptor, _, _) = Build(middleware);
 
-		var error = await Assert.ThrowsExceptionAsync<RpcException>(() =>
-			Interceptor(middleware).UnaryServerHandler<string, string>("request", new CallContext(), (_, _) => throw original));
+		var error = await Assert.ThrowsExceptionAsync<RpcException>(() => Handle(interceptor, original));
 
 		Assert.AreSame(original, error);
 		Assert.AreEqual(0, middleware.Asked);
@@ -141,7 +124,7 @@ public sealed class ExceptionInterceptorTests
 	public async Task The_other_kinds_of_call_are_translated_too()
 	{
 		var middleware = new Middleware(_ => Failed(StatusCode.FailedPrecondition));
-		var interceptor = Interceptor(middleware);
+		var (interceptor, _, _) = Build(middleware);
 
 		var client = await Assert.ThrowsExceptionAsync<RpcException>(() =>
 			interceptor.ClientStreamingServerHandler<string, string>(null!, new CallContext(), (_, _) => throw new InvalidOperationException()));
@@ -154,6 +137,48 @@ public sealed class ExceptionInterceptorTests
 		Assert.AreEqual(StatusCode.FailedPrecondition, server.StatusCode);
 		Assert.AreEqual(StatusCode.FailedPrecondition, duplex.StatusCode);
 		Assert.AreEqual(3, middleware.Asked);
+	}
+
+	[TestMethod]
+	public async Task A_middleware_that_throws_is_skipped_and_the_next_one_translates()
+	{
+		var failing = new Middleware(_ => throw new FormatException("middleware broke"));
+		var next = new Middleware(_ => Failed(StatusCode.NotFound));
+		var (interceptor, logger, _) = Build(failing, next);
+
+		var error = await Assert.ThrowsExceptionAsync<RpcException>(() => Handle(interceptor, new InvalidOperationException("boom")));
+
+		Assert.AreEqual(StatusCode.NotFound, error.StatusCode);
+		Assert.AreEqual(1, next.Asked);
+		Assert.IsTrue(logger.Entries.Any(f => f.Level == LogLevel.Error && f.Exception is FormatException));
+	}
+
+	[TestMethod]
+	public async Task When_every_middleware_throws_the_original_exception_is_what_is_thrown_and_both_are_logged()
+	{
+		var original = new InvalidOperationException("boom");
+		var (interceptor, logger, _) = Build(new Middleware(_ => throw new FormatException("middleware broke")));
+
+		var error = await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => Handle(interceptor, original));
+
+		Assert.AreSame(original, error);
+		Assert.IsTrue(logger.Entries.Any(f => f.Exception is FormatException));
+		Assert.IsTrue(logger.Entries.Any(f => ReferenceEquals(f.Exception, original)));
+	}
+
+	[TestMethod]
+	public async Task When_the_middlewares_cannot_be_resolved_the_original_exception_is_thrown_and_logged()
+	{
+		var original = new InvalidOperationException("boom");
+		var (interceptor, logger, proxy) = Build();
+
+		proxy.QueryFails = new TimeoutException("middleware store");
+
+		var error = await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => Handle(interceptor, original));
+
+		Assert.AreSame(original, error);
+		Assert.IsTrue(logger.Entries.Any(f => f.Exception is TimeoutException));
+		Assert.IsTrue(logger.Entries.Any(f => ReferenceEquals(f.Exception, original)));
 	}
 
 	/// <summary>
