@@ -21,6 +21,7 @@ public interface IStorageContainerService
 	/// </summary>
 	/// <param name="dto">The DTO naming the container.</param>
 	/// <returns>The connection string an application stores its entities in the container with.</returns>
+	/// <exception cref="InvalidOperationException">Storage that is not a container exists under the name.</exception>
 	/// <exception cref="NotSupportedException">No container provider serves the active storage connection type.</exception>
 	Task<string> Create(IStorageContainerDto dto);
 
@@ -29,6 +30,6 @@ public interface IStorageContainerService
 	/// </summary>
 	/// <param name="dto">The DTO naming the container.</param>
 	/// <exception cref="NotSupportedException">No container provider serves the active storage connection type.</exception>
-	/// <exception cref="InvalidOperationException">The container is the default storage.</exception>
+	/// <exception cref="InvalidOperationException">The container is the default storage, or storage that is not a container exists under the name.</exception>
 	Task Drop(IStorageContainerDto dto);
 }

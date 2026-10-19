@@ -71,6 +71,37 @@ public sealed class PostgreSqlStorageContainerProviderTests
 		Assert.IsTrue(await Exists(name));
 	}
 
+	[TestMethod]
+	public async Task StorageThatIsNotAContainerIsNeitherAdoptedNorDropped()
+	{
+		var provider = new PostgreSqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
+		var name = $"connected_test_{Guid.NewGuid():N}";
+
+		await Run($"CREATE DATABASE \"{name}\"");
+
+		try
+		{
+			await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => provider.Create(TestConfiguration.Container(name)));
+			await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => provider.Drop(TestConfiguration.Container(name)));
+			Assert.IsTrue(await Exists(name));
+		}
+		finally
+		{
+			await Run($"DROP DATABASE \"{name}\"");
+		}
+	}
+
+	private static async Task Run(string text)
+	{
+		await using var connection = new NpgsqlConnection(TestConfiguration.From(Variable));
+
+		await connection.OpenAsync();
+
+		await using var command = new NpgsqlCommand(text, connection);
+
+		await command.ExecuteNonQueryAsync();
+	}
+
 	private static async Task<bool> Exists(string name)
 	{
 		await using var connection = new NpgsqlConnection(TestConfiguration.From(Variable));

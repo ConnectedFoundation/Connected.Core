@@ -1,3 +1,4 @@
+using Connected.Data.Expressions.Evaluation;
 using Connected.Services;
 
 namespace Connected.Storage.Containers;
@@ -14,32 +15,18 @@ internal static class ContainerProviderExtensions
 	/// <returns>The container provider.</returns>
 	/// <exception cref="NotSupportedException">No storage connection provider proposes a connection, or no container provider serves its type.</exception>
 	/// <remarks>
-	/// The connection type is chosen with the rule <c>ConnectionProvider</c> applies to every storage operation: the
-	/// first storage connection provider, in priority order, that proposes a connection decides it. The proposed
-	/// connection is only inspected for its type and is never opened.
+	/// The connection type is chosen by <c>ConnectionProvider</c>, with the rule it applies to every storage operation.
 	/// </remarks>
 	public static async Task<IStorageContainerProvider> ResolveContainerProvider(this IMiddlewareService middleware)
 	{
-		var context = DtoFactory.Create<IStorageContextDto>(f => f.ConnectionMode = StorageConnectionMode.Shared);
-		Type? connectionType = null;
-
-		foreach (var provider in await middleware.Query<IStorageConnectionProvider>())
+		var context = DtoFactory.Create<IStorageContextDto>(f =>
 		{
-			var proposed = await provider.Invoke<ContainerEntity>(context);
+			f.ConnectionMode = StorageConnectionMode.Shared;
+			f.Operation = new StorageOperation { Concurrency = DataConcurrencyMode.Disabled };
+		});
 
-			if (proposed.Count == 0)
-				continue;
-
-			connectionType = proposed[0].GetType();
-
-			foreach (var connection in proposed)
-				await connection.DisposeAsync();
-
-			break;
-		}
-
-		if (connectionType is null)
-			throw new NotSupportedException("No storage connection provider is registered.");
+		var connectionType = await ConnectionProvider.ResolveConnectionType<ContainerEntity>(middleware, context)
+			?? throw new NotSupportedException("No storage connection provider is registered.");
 
 		return (await middleware.Query<IStorageContainerProvider>()).FirstOrDefault(f => f.ConnectionType == connectionType)
 			?? throw new NotSupportedException($"No storage container provider serves the storage connection type '{connectionType.Name}'.");

@@ -5,7 +5,8 @@ using Npgsql;
 namespace Connected.Storage.PostgreSql.Containers;
 
 /// <summary>
-/// Manages PostgreSQL storage containers: each container is a database on the default database's server.
+/// Manages PostgreSQL storage containers: each container is a database on the default database's server, marked with
+/// a database comment.
 /// </summary>
 /// <remarks>
 /// Database commands run on the server's <c>postgres</c> maintenance database. Dropping forces other sessions off,
@@ -18,24 +19,37 @@ internal sealed class PostgreSqlStorageContainerProvider(IConfigurationService c
 	public override Type ConnectionType => typeof(PostgreSqlDataConnection);
 
 	/// <inheritdoc/>
-	protected override string DefaultName() => new NpgsqlConnectionStringBuilder(DefaultConnectionString).Database ?? "";
+	protected override async Task<string?> DefaultName()
+	{
+		await using var connection = new NpgsqlConnection(DefaultConnectionString);
+
+		await connection.OpenAsync(CancellationToken);
+
+		await using var command = new NpgsqlCommand("SELECT current_database()", connection);
+
+		return await command.ExecuteScalarAsync(CancellationToken) as string;
+	}
 
 	/// <inheritdoc/>
 	protected override async Task<string> OnCreate(string name)
 	{
 		await using var connection = await Open();
-		await using var exists = new NpgsqlCommand("SELECT 1 FROM pg_database WHERE datname = @name", connection);
-
-		exists.Parameters.AddWithValue("name", name);
 
 		/*
 		 * PostgreSQL has no conditional CREATE DATABASE, and the statement cannot run inside a transaction block.
 		 */
-		if (await exists.ExecuteScalarAsync(CancellationToken) is null)
+		switch (await Probe(name, connection))
 		{
-			await using var create = new NpgsqlCommand($"CREATE DATABASE {Quote(name)}", connection);
+			case null:
+				await using (var create = new NpgsqlCommand($"CREATE DATABASE {Quote(name)}", connection))
+					await create.ExecuteNonQueryAsync(CancellationToken);
 
-			await create.ExecuteNonQueryAsync(CancellationToken);
+				await using (var mark = new NpgsqlCommand($"COMMENT ON DATABASE {Quote(name)} IS '{ContainerMarker}'", connection))
+					await mark.ExecuteNonQueryAsync(CancellationToken);
+
+				break;
+			case false:
+				throw NotAContainer(name);
 		}
 
 		return new NpgsqlConnectionStringBuilder(DefaultConnectionString) { Database = name }.ConnectionString;
@@ -44,15 +58,34 @@ internal sealed class PostgreSqlStorageContainerProvider(IConfigurationService c
 	/// <inheritdoc/>
 	protected override async Task OnDrop(string name)
 	{
+		await using var connection = await Open();
+
+		switch (await Probe(name, connection))
+		{
+			case null:
+				return;
+			case false:
+				throw NotAContainer(name);
+		}
+
 		/*
 		 * Pooled connections would keep the database in use.
 		 */
 		NpgsqlConnection.ClearPool(new NpgsqlConnection(new NpgsqlConnectionStringBuilder(DefaultConnectionString) { Database = name }.ConnectionString));
 
-		await using var connection = await Open();
 		await using var drop = new NpgsqlCommand($"DROP DATABASE IF EXISTS {Quote(name)} WITH (FORCE)", connection);
 
 		await drop.ExecuteNonQueryAsync(CancellationToken);
+	}
+
+	/// <returns><c>null</c> if no database has the name, otherwise whether it is a container.</returns>
+	private async Task<bool?> Probe(string name, NpgsqlConnection connection)
+	{
+		await using var command = new NpgsqlCommand("SELECT coalesce(shobj_description(oid, 'pg_database'), '') FROM pg_database WHERE datname = @name", connection);
+
+		command.Parameters.AddWithValue("name", name);
+
+		return await command.ExecuteScalarAsync(CancellationToken) is string comment ? comment == ContainerMarker : null;
 	}
 
 	private async Task<NpgsqlConnection> Open()
