@@ -59,6 +59,8 @@ public static class Application
 	{
 		Options = options;
 
+		WebApplication? webApp = null;
+
 		try
 		{
 			var builder = WebApplication.CreateBuilder(args);
@@ -98,8 +100,17 @@ public static class Application
 			builder.AddHttpServices();
 			builder.AddCors();
 			builder.Services.AddRouting();
+			/*
+			 * Hosted services the framework registered so far are part of the host itself (Kestrel among them);
+			 * everything registered from here on belongs to the application and its dependencies.
+			 */
+			var hostServices = services.Where(f => f.ServiceType == typeof(IHostedService)).ToHashSet();
+
 			builder.ConfigureDependenciesServices();
 			builder.AddDependencies();
+
+			if (!Options.Workers)
+				RemoveWorkers(services, hostServices);
 
 			services.AddSignalR(o =>
 			{
@@ -107,7 +118,7 @@ public static class Application
 				o.DisableImplicitFromServicesParameters = true;
 			});
 
-			var webApp = builder.Build();
+			webApp = builder.Build();
 
 			await OnConfigureStaticFiles(webApp);
 
@@ -135,11 +146,15 @@ public static class Application
 				await HostingAbstractionsHostExtensions.RunAsync(webApp, Options.Stopping);
 			else
 				await webApp.RunAsync();
-
-			Caching.Cache.Shutdown();
 		}
 		finally
 		{
+			/*
+			 * Runs on a failed start as well; otherwise the cache scavenger, the bootstrap providers and the web
+			 * application stay alive, and a nested application's load context can never unload.
+			 */
+			await Shutdown(webApp);
+
 			if (IsErrorServerStarted)
 			{
 				while (true)
@@ -147,6 +162,42 @@ public static class Application
 			}
 		}
 	}
+	private static async Task Shutdown(WebApplication? webApp)
+	{
+		Caching.Cache.Shutdown();
+
+		if (webApp is not null)
+		{
+			try
+			{
+				await webApp.DisposeAsync();
+			}
+			catch
+			{
+				/*
+				 * A failed dispose must not hide the exception that stopped the application.
+				 */
+			}
+		}
+
+		ServiceExtensionsStartup.DisposeBootstrapProviders();
+	}
+
+	/*
+	 * The single place background workers are turned off, so a hosted service registered any way at all, by
+	 * discovery or directly by a startup, never runs.
+	 */
+	private static void RemoveWorkers(IServiceCollection services, HashSet<ServiceDescriptor> hostServices)
+	{
+		for (var i = services.Count - 1; i >= 0; i--)
+		{
+			var descriptor = services[i];
+
+			if (descriptor.ServiceType == typeof(IHostedService) && !hostServices.Contains(descriptor))
+				services.RemoveAt(i);
+		}
+	}
+
 	private static void AddOutOfMemoryExceptionHandler()
 	{
 		AppDomain.CurrentDomain.FirstChanceException += OnFirstChanceException;
@@ -350,8 +401,7 @@ public static class Application
 				continue;
 
 			var fileName = Path.Combine(BaseDirectory, value);
-			var name = AssemblyName.GetAssemblyName(fileName);
-			var assembly = LoadContext.LoadFromAssemblyName(name);
+			var assembly = LoadContext.LoadFromAssemblyPath(fileName);
 			var types = assembly.GetTypes();
 
 			Dependencies.Register(assembly);

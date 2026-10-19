@@ -13,7 +13,7 @@ public static class DtoExtensions
 
 		if (ServiceExtensionsStartup.Services is null)
 		{
-			var provider = ServiceExtensionsStartup.BuildBootstrapProvider();
+			using var provider = ServiceExtensionsStartup.ServicesCollection.BuildServiceProvider(false);
 
 			return provider.GetRequiredService(type) as IDto;
 		}
@@ -29,7 +29,7 @@ public static class DtoExtensions
 
 		if (ServiceExtensionsStartup.Services is null)
 		{
-			var provider = ServiceExtensionsStartup.BuildBootstrapProvider();
+			using var provider = ServiceExtensionsStartup.ServicesCollection.BuildServiceProvider(false);
 
 			return provider.GetRequiredService<TDto>();
 		}

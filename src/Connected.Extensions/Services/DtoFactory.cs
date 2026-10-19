@@ -9,7 +9,7 @@ public static class DtoFactory
 	{
 		if (ServiceExtensionsStartup.Services is null)
 		{
-			var provider = ServiceExtensionsStartup.BuildBootstrapProvider();
+			using var provider = ServiceExtensionsStartup.ServicesCollection.BuildServiceProvider(false);
 
 			return provider.GetRequiredService<T>();
 		}

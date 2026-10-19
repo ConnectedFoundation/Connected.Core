@@ -107,9 +107,7 @@ public static class RuntimeExtensions
 			AddAmbientValue(type, services, false, typeRef);
 			AddMiddleware(type, services, false, typeRef);
 			AddDto(type, services, false);
-			if (Application.WorkersEnabled)
-				AddHostedService(type, services, false);
-
+			AddHostedService(type, services, false);
 			AddEntityTopic(type, services, false);
 
 			if (CanRegister(type, false))
