@@ -59,7 +59,7 @@ public static class Application
 
 			services.AddLogging(builder => builder.AddConsole());
 
-			builder.Services.AddGrpc();
+			builder.Services.AddGrpc(options => options.Interceptors.Add<Net.Grpc.ExceptionInterceptor>());
 			builder.AddLocalization();
 			builder.AddHttpServices();
 			builder.AddCors();
