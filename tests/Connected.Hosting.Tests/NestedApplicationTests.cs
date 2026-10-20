@@ -121,6 +121,42 @@ public sealed class NestedApplicationTests
 	}
 
 	[TestMethod]
+	[Timeout(300_000)]
+	public async Task ContentRootIsTheApplicationDirectory()
+	{
+		var host = NestedHost.Create();
+
+		try
+		{
+			Assert.IsTrue(await host.Start(), "The nested application did not start.");
+			Assert.AreEqual(Path.TrimEndingDirectorySeparator(Path.GetDirectoryName(NestedHost.ApplicationPath)!), Path.TrimEndingDirectorySeparator(host.ContentRoot()!));
+		}
+		finally
+		{
+			await host.Stop();
+		}
+	}
+
+	[TestMethod]
+	[Timeout(300_000)]
+	public async Task StoppingBeforeStartIsANormalStop()
+	{
+		var host = NestedHost.Create();
+
+		try
+		{
+			host.StopEarly = true;
+
+			Assert.IsFalse(await host.Start(), "The application reported a start after it was stopped.");
+			await host.Running!;
+		}
+		finally
+		{
+			await host.Stop();
+		}
+	}
+
+	[TestMethod]
 	[Timeout(120_000)]
 	public async Task DefaultOptionsKeepStandaloneBehaviour()
 	{
@@ -216,6 +252,21 @@ public sealed class NestedApplicationTests
 
 		public bool Workers { get; set; } = true;
 
+		/// <summary>Cancels stopping before the application is started.</summary>
+		public bool StopEarly { get; set; }
+
+		public Task? Running => _running;
+
+		/// <summary>Reads the content root of the running nested application.</summary>
+		public string? ContentRoot()
+		{
+			var startup = _context.LoadFromAssemblyName(new AssemblyName("Connected.Extensions")).GetType("Connected.Services.ServiceExtensionsStartup", true)!;
+			var services = (IServiceProvider)startup.GetProperty("Services")!.GetValue(null)!;
+			var environment = (Microsoft.Extensions.Hosting.IHostEnvironment)services.GetService(typeof(Microsoft.Extensions.Hosting.IHostEnvironment))!;
+
+			return environment.ContentRootPath;
+		}
+
 		/// <summary>Counts the hosted services of the running nested application that come from Connected.</summary>
 		public int ConnectedHostedServices()
 		{
@@ -260,6 +311,9 @@ public sealed class NestedApplicationTests
 			_hasStarted = application.GetProperty("HasStarted");
 
 			var start = application.GetMethod("Start", [typeof(string[]), optionsType])!;
+
+			if (StopEarly)
+				await _stopping.CancelAsync();
 			var args = new[] { "--urls", $"http://127.0.0.1:{FreePort()}" };
 
 			using (_context.EnterContextualReflection())

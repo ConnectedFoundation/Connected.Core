@@ -22,6 +22,7 @@ internal sealed class CacheScope : ICache, IDisposable
 
 	public ConcurrentDictionary<string, Entries> Items => _items;
 	public CancellationTokenSource Cancel => _cancel;
+	public bool IsDisposed => _disposedValue;
 
 	private void OnScaveging()
 	{

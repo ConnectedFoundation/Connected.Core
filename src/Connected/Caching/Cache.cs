@@ -5,7 +5,17 @@ namespace Connected.Caching;
 internal abstract class Cache
 	: ICache
 {
-	private static readonly CacheScope _scope = new(true);
+	private static CacheScope _scope = new(true);
+
+	/// <summary>
+	/// Replaces the shared cache if a previous run of the application shut it down, so an application started again
+	/// in the same process has a working cache and scavenger.
+	/// </summary>
+	internal static void Start()
+	{
+		if (_scope.IsDisposed)
+			_scope = new(true);
+	}
 
 	/// <summary>
 	/// Stops the shared cache's scavenger and clears it, once the application has stopped. Without this the scavenger

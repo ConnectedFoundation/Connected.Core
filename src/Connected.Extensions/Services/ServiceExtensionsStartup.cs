@@ -11,8 +11,9 @@ public sealed class ServiceExtensionsStartup : Startup
 	/*
 	 * Providers built from the service collection before the application's own provider exists whose results outlive
 	 * the call (scopes, singletons). They used to be left undisposed, so any singleton they created (a console logger
-	 * thread, for one) lived forever; they are now disposed when the application stops, which also lets a nested
-	 * application's load context unload. Providers that only resolve a transient DTO are disposed straight away.
+	 * thread, for one) lived forever; they are now disposed as soon as the application's own provider is in place,
+	 * since nothing builds one after that, or when a start fails before it. Providers that only resolve a transient
+	 * DTO are disposed straight away.
 	 */
 	private static readonly ConcurrentBag<ServiceProvider> _bootstrapProviders = [];
 
@@ -21,7 +22,7 @@ public sealed class ServiceExtensionsStartup : Startup
 
 	/// <summary>
 	/// Builds a provider from the service collection for use before the application's own provider exists. It is
-	/// disposed when the application stops.
+	/// disposed once the application's own provider is in place.
 	/// </summary>
 	/// <returns>The provider.</returns>
 	public static ServiceProvider BuildBootstrapProvider()
@@ -43,14 +44,18 @@ public sealed class ServiceExtensionsStartup : Startup
 	protected override async Task OnInitialize()
 	{
 		if (ServiceProvider is not null)
+		{
 			Services = ServiceProvider;
+
+			DisposeBootstrapProviders();
+		}
 
 		await base.OnInitialize();
 	}
 
 	/// <summary>
-	/// Disposes every provider built by <see cref="BuildBootstrapProvider"/>. Called once the application has stopped,
-	/// or failed to start.
+	/// Disposes every provider built by <see cref="BuildBootstrapProvider"/>. Called once the application's own provider
+	/// is in place, and again once the application has stopped or failed to start.
 	/// </summary>
 	public static void DisposeBootstrapProviders()
 	{
