@@ -91,6 +91,27 @@ public sealed class PostgreSqlStorageContainerProviderTests
 		}
 	}
 
+	[TestMethod]
+	public async Task ConcurrentCreatesYieldOneContainer()
+	{
+		var provider = new PostgreSqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
+		var name = $"connected_test_{Guid.NewGuid():N}";
+
+		try
+		{
+			var connectionStrings = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => provider.Create(TestConfiguration.Container(name))));
+
+			Assert.AreEqual(1, connectionStrings.Distinct().Count());
+			Assert.IsTrue(await Exists(name));
+		}
+		finally
+		{
+			await provider.Drop(TestConfiguration.Container(name));
+		}
+
+		Assert.IsFalse(await Exists(name));
+	}
+
 	private static async Task Run(string text)
 	{
 		await using var connection = new NpgsqlConnection(TestConfiguration.From(Variable));

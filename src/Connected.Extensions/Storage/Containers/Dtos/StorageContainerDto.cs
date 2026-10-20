@@ -13,6 +13,6 @@ internal sealed class StorageContainerDto
 	/// Restricted to characters every provider accepts in a container name without quoting, so a name can never
 	/// reach a provider's commands as anything but a name.
 	/// </remarks>
-	[NonDefault, MaxLength(63), RegularExpression("^[A-Za-z][A-Za-z0-9_]*$")]
+	[NonDefault, MaxLength(StorageContainerProvider.NameMaxLength), RegularExpression(StorageContainerProvider.NamePattern)]
 	public required string Name { get; set; }
 }

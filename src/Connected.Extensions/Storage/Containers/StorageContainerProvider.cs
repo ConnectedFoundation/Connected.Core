@@ -1,4 +1,6 @@
 using Connected.Configuration;
+using System.ComponentModel.DataAnnotations;
+using System.Text.RegularExpressions;
 
 namespace Connected.Storage.Containers;
 
@@ -24,6 +26,16 @@ public abstract class StorageContainerProvider(IConfigurationService configurati
 	protected const string ContainerMarker = "connected:storage-container";
 
 	/// <summary>
+	/// The pattern a container's name matches: characters every provider accepts in a name without quoting.
+	/// </summary>
+	internal const string NamePattern = "^[A-Za-z][A-Za-z0-9_]*$";
+
+	/// <summary>
+	/// The longest name a container can have, the shortest identifier limit among the providers.
+	/// </summary>
+	internal const int NameMaxLength = 63;
+
+	/// <summary>
 	/// Gets the default connection string.
 	/// </summary>
 	/// <exception cref="InvalidOperationException">No default connection string is configured.</exception>
@@ -33,12 +45,16 @@ public abstract class StorageContainerProvider(IConfigurationService configurati
 	/// <inheritdoc/>
 	public async Task<string> Create(IStorageContainerDto dto)
 	{
+		Validate(dto.Name);
+
 		return await OnCreate(dto.Name);
 	}
 
 	/// <inheritdoc/>
 	public async Task Drop(IStorageContainerDto dto)
 	{
+		Validate(dto.Name);
+
 		var defaultName = await DefaultName();
 
 		if (string.IsNullOrEmpty(defaultName))
@@ -48,6 +64,17 @@ public abstract class StorageContainerProvider(IConfigurationService configurati
 			throw new InvalidOperationException("The default storage cannot be dropped.");
 
 		await OnDrop(dto.Name);
+	}
+
+	/// <summary>
+	/// Validates a container's name here rather than only on the DTO, so a caller passing its own DTO, or calling a
+	/// provider directly, cannot reach a provider's commands with a name the server would truncate or misread.
+	/// </summary>
+	/// <exception cref="ValidationException">The name is not a valid container name.</exception>
+	private static void Validate(string? name)
+	{
+		if (string.IsNullOrEmpty(name) || name.Length > NameMaxLength || !Regex.IsMatch(name, NamePattern))
+			throw new ValidationException($"'{name}' is not a valid storage container name: it must start with a letter, contain only letters, digits and underscores, and be at most {NameMaxLength} characters long.");
 	}
 
 	/// <summary>

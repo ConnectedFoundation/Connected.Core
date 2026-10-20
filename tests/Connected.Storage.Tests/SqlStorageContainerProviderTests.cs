@@ -91,6 +91,74 @@ public sealed class SqlStorageContainerProviderTests
 		}
 	}
 
+	[TestMethod]
+	public async Task ConcurrentCreatesYieldOneContainer()
+	{
+		var provider = new SqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
+		var name = $"connected_test_{Guid.NewGuid():N}";
+
+		try
+		{
+			var connectionStrings = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => provider.Create(TestConfiguration.Container(name))));
+
+			Assert.AreEqual(1, connectionStrings.Distinct().Count());
+			Assert.IsTrue(await Exists(name));
+		}
+		finally
+		{
+			await provider.Drop(TestConfiguration.Container(name));
+		}
+
+		Assert.IsFalse(await Exists(name));
+	}
+
+	[TestMethod]
+	public async Task AContainerLeftOfflineByAnInterruptedDropIsDropped()
+	{
+		var provider = new SqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
+		var name = $"connected_test_{Guid.NewGuid():N}";
+
+		await provider.Create(TestConfiguration.Container(name));
+		await Run($"ALTER DATABASE [{name}] SET OFFLINE");
+		await provider.Drop(TestConfiguration.Container(name));
+
+		Assert.IsFalse(await Exists(name));
+	}
+
+	[TestMethod]
+	public async Task OfflineStorageThatIsNotAContainerIsLeftOffline()
+	{
+		var provider = new SqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
+		var name = $"connected_test_{Guid.NewGuid():N}";
+
+		await Run($"CREATE DATABASE [{name}]");
+		await Run($"ALTER DATABASE [{name}] SET OFFLINE");
+
+		try
+		{
+			await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => provider.Drop(TestConfiguration.Container(name)));
+			Assert.IsTrue(await Exists(name));
+			Assert.AreEqual("OFFLINE", await State(name));
+		}
+		finally
+		{
+			await Run($"ALTER DATABASE [{name}] SET ONLINE; DROP DATABASE [{name}]");
+		}
+	}
+
+	private static async Task<string?> State(string name)
+	{
+		await using var connection = new SqlConnection(TestConfiguration.From(Variable));
+
+		await connection.OpenAsync();
+
+		await using var command = new SqlCommand("SELECT state_desc FROM sys.databases WHERE name = @name", connection);
+
+		command.Parameters.AddWithValue("@name", name);
+
+		return await command.ExecuteScalarAsync() as string;
+	}
+
 	private static async Task Run(string text)
 	{
 		await using var connection = new SqlConnection(TestConfiguration.From(Variable));
