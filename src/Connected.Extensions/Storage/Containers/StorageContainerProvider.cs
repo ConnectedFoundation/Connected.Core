@@ -26,9 +26,10 @@ public abstract class StorageContainerProvider(IConfigurationService configurati
 	protected const string ContainerMarker = "connected:storage-container";
 
 	/// <summary>
-	/// The pattern a container's name matches: characters every provider accepts in a name without quoting.
+	/// The pattern a container's name matches: characters every provider accepts in a name without quoting. It ends in
+	/// <c>\z</c>, because <c>$</c> also matches before a trailing newline.
 	/// </summary>
-	internal const string NamePattern = "^[A-Za-z][A-Za-z0-9_]*$";
+	internal const string NamePattern = @"^[A-Za-z][A-Za-z0-9_]*\z";
 
 	/// <summary>
 	/// The longest name a container can have, the shortest identifier limit among the providers.

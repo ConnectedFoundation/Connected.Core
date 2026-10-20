@@ -113,16 +113,67 @@ public sealed class SqlStorageContainerProviderTests
 	}
 
 	[TestMethod]
-	public async Task AContainerLeftOfflineByAnInterruptedDropIsDropped()
+	public async Task ADatabaseLeftByAnInterruptedDropIsRemovedByTheNextDrop()
+	{
+		var provider = new SqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
+		var name = $"connected_test_{Guid.NewGuid():N}";
+		var dropping = $"connected_dropping_{Guid.NewGuid():N}";
+
+		/*
+		 * A drop interrupted after the rename, with the database taken offline.
+		 */
+		await provider.Create(TestConfiguration.Container(name));
+		await Run($"ALTER DATABASE [{name}] MODIFY NAME = [{dropping}]; ALTER DATABASE [{dropping}] SET OFFLINE");
+
+		Assert.IsFalse(await Exists(name));
+
+		await provider.Drop(TestConfiguration.Container($"connected_test_{Guid.NewGuid():N}"));
+
+		Assert.IsFalse(await Exists(dropping));
+	}
+
+	[TestMethod]
+	public async Task AContainerLeftRestrictedByAnInterruptedDropIsOpenedAgainOnCreate()
+	{
+		var provider = new SqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
+		var name = $"connected_test_{Guid.NewGuid():N}";
+
+		await provider.Create(TestConfiguration.Container(name));
+
+		try
+		{
+			await Run($"ALTER DATABASE [{name}] SET RESTRICTED_USER");
+			await provider.Create(TestConfiguration.Container(name));
+
+			Assert.AreEqual("MULTI_USER", await Access(name));
+		}
+		finally
+		{
+			await provider.Drop(TestConfiguration.Container(name));
+		}
+	}
+
+	[TestMethod]
+	public async Task AnOfflineContainerUnderItsOwnNameIsLeftAsItIs()
 	{
 		var provider = new SqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
 		var name = $"connected_test_{Guid.NewGuid():N}";
 
 		await provider.Create(TestConfiguration.Container(name));
 		await Run($"ALTER DATABASE [{name}] SET OFFLINE");
-		await provider.Drop(TestConfiguration.Container(name));
 
-		Assert.IsFalse(await Exists(name));
+		try
+		{
+			var ex = await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => provider.Drop(TestConfiguration.Container(name)));
+
+			StringAssert.Contains(ex.Message, "OFFLINE");
+			await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => provider.Create(TestConfiguration.Container(name)));
+			Assert.AreEqual("OFFLINE", await State(name));
+		}
+		finally
+		{
+			await Run($"ALTER DATABASE [{name}] SET ONLINE; DROP DATABASE [{name}]");
+		}
 	}
 
 	[TestMethod]
@@ -144,6 +195,19 @@ public sealed class SqlStorageContainerProviderTests
 		{
 			await Run($"ALTER DATABASE [{name}] SET ONLINE; DROP DATABASE [{name}]");
 		}
+	}
+
+	private static async Task<string?> Access(string name)
+	{
+		await using var connection = new SqlConnection(TestConfiguration.From(Variable));
+
+		await connection.OpenAsync();
+
+		await using var command = new SqlCommand("SELECT user_access_desc FROM sys.databases WHERE name = @name", connection);
+
+		command.Parameters.AddWithValue("@name", name);
+
+		return await command.ExecuteScalarAsync() as string;
 	}
 
 	private static async Task<string?> State(string name)

@@ -68,9 +68,7 @@ internal sealed class PostgreSqlStorageContainerProvider(IConfigurationService c
 		 */
 		NpgsqlConnection.ClearPool(new NpgsqlConnection(new NpgsqlConnectionStringBuilder(DefaultConnectionString) { Database = name }.ConnectionString));
 
-		await using var drop = new NpgsqlCommand($"DROP DATABASE IF EXISTS {Quote(name)} WITH (FORCE)", connection);
-
-		await drop.ExecuteNonQueryAsync(CancellationToken);
+		await Execute($"DROP DATABASE IF EXISTS {Quote(name)} WITH (FORCE)", connection, CancellationToken);
 	}
 
 	/// <summary>
@@ -82,40 +80,49 @@ internal sealed class PostgreSqlStorageContainerProvider(IConfigurationService c
 	{
 		var staging = $"connected_staging_{Guid.NewGuid():N}";
 
-		await using (var create = new NpgsqlCommand($"CREATE DATABASE {Quote(staging)}", connection))
-			await create.ExecuteNonQueryAsync(CancellationToken.None);
+		await Execute($"CREATE DATABASE {Quote(staging)}", connection, CancellationToken.None);
 
 		try
 		{
-			await using (var mark = new NpgsqlCommand($"COMMENT ON DATABASE {Quote(staging)} IS '{ContainerMarker}'", connection))
-				await mark.ExecuteNonQueryAsync(CancellationToken.None);
-
-			await using var rename = new NpgsqlCommand($"ALTER DATABASE {Quote(staging)} RENAME TO {Quote(name)}", connection);
-
-			await rename.ExecuteNonQueryAsync(CancellationToken.None);
+			await Execute($"COMMENT ON DATABASE {Quote(staging)} IS '{ContainerMarker}'", connection, CancellationToken.None);
+			await Execute($"ALTER DATABASE {Quote(staging)} RENAME TO {Quote(name)}", connection, CancellationToken.None);
 		}
-		catch (PostgresException ex)
+		catch (NpgsqlException ex)
 		{
+			/*
+			 * On a fresh connection, because the failure may have been the connection's own.
+			 */
 			try
 			{
-				await using var drop = new NpgsqlCommand($"DROP DATABASE IF EXISTS {Quote(staging)}", connection);
+				await using var cleanup = await Open(CancellationToken.None);
 
-				await drop.ExecuteNonQueryAsync(CancellationToken.None);
+				await Execute($"DROP DATABASE IF EXISTS {Quote(staging)}", cleanup, CancellationToken.None);
 			}
-			catch (PostgresException)
+			catch (NpgsqlException)
 			{
 				/*
-				 * The original failure is the one worth reporting; a staging database left behind is marked and
-				 * holds no name an application uses.
+				 * The original failure is the one worth reporting; a staging database left behind holds no name an
+				 * application uses.
 				 */
 			}
 
-			if (ex.SqlState != PostgresErrorCodes.DuplicateDatabase)
+			if (ex is not PostgresException { SqlState: PostgresErrorCodes.DuplicateDatabase })
 				throw;
 
 			if (await Probe(name, connection) != true)
 				throw NotAContainer(name);
 		}
+	}
+
+	/// <summary>
+	/// Runs a database command without a timeout: creating from a large template or dropping a large database can take
+	/// longer than the default.
+	/// </summary>
+	private static async Task Execute(string text, NpgsqlConnection connection, CancellationToken cancel)
+	{
+		await using var command = new NpgsqlCommand(text, connection) { CommandTimeout = 0 };
+
+		await command.ExecuteNonQueryAsync(cancel);
 	}
 
 	/// <returns><c>null</c> if no database has the name, otherwise whether it is a container.</returns>
@@ -128,11 +135,13 @@ internal sealed class PostgreSqlStorageContainerProvider(IConfigurationService c
 		return await command.ExecuteScalarAsync(CancellationToken) is string comment ? comment == ContainerMarker : null;
 	}
 
-	private async Task<NpgsqlConnection> Open()
+	private Task<NpgsqlConnection> Open() => Open(CancellationToken);
+
+	private async Task<NpgsqlConnection> Open(CancellationToken cancel)
 	{
 		var connection = new NpgsqlConnection(DefaultConnectionString);
 
-		await connection.OpenAsync(CancellationToken);
+		await connection.OpenAsync(cancel);
 
 		return connection;
 	}

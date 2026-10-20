@@ -22,7 +22,8 @@ public sealed class StorageContainerNameTests
 		["has-a-dash"],
 		["has space"],
 		["quote\"d"],
-		["bracket]d"]
+		["bracket]d"],
+		["trailing_newline\n"]
 	];
 
 	[TestMethod]
