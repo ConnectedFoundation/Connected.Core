@@ -225,6 +225,70 @@ public sealed class NestedApplicationTests
 
 	[TestMethod]
 	[Timeout(120_000)]
+	public async Task FrameworkIsToldFromTheTrustedPlatformAssemblies()
+	{
+		var context = new ApplicationContext(NestedHost.ApplicationPath);
+
+		try
+		{
+			var application = context.LoadFromAssemblyName(new AssemblyName("Connected")).GetType("Connected.Application", true)!;
+			var classify = application.GetMethod("ClassifyTrustedPlatformAssemblies", BindingFlags.NonPublic | BindingFlags.Static)!;
+			var isFramework = application.GetMethods(BindingFlags.NonPublic | BindingFlags.Static).Single(f => f.Name == "IsFramework" && f.GetParameters().Length == 3);
+			var root = Path.Combine(Path.GetTempPath(), "framework-classification");
+			var app = Path.Combine(root, "app");
+			var shared = Path.Combine(root, "dotnet", "shared", "Microsoft.NETCore.App", "9.0.0");
+
+			bool Framework(string name, params string[] trusted)
+			{
+				var sets = classify.Invoke(null, [trusted, app])!;
+				var type = sets.GetType();
+
+				return (bool)isFramework.Invoke(null, [name, type.GetField("Item1")!.GetValue(sets), type.GetField("Item2")!.GetValue(sets)])!;
+			}
+			/*
+			 * Framework-dependent: the framework comes from outside the application's directory, and nothing inside it,
+			 * runtime-specific subdirectories included, is framework.
+			 */
+			string[] dependent =
+			[
+				Path.Combine(shared, "System.Private.CoreLib.dll"),
+				Path.Combine(shared, "System.Runtime.dll"),
+				Path.Combine(app, "System.IdentityModel.Tokens.Jwt.dll"),
+				Path.Combine(app, "runtimes", "unix", "lib", "net9.0", "Microsoft.Data.SqlClient.dll")
+			];
+
+			Assert.IsTrue(Framework("System.Runtime", dependent));
+			Assert.IsFalse(Framework("System.IdentityModel.Tokens.Jwt", dependent));
+			Assert.IsFalse(Framework("Microsoft.Data.SqlClient", dependent));
+			Assert.IsFalse(Framework("System.Reactive", dependent));
+			/*
+			 * Self-contained: the framework is in the application's directory, so it is a trusted assembly with a
+			 * framework name; a package only a plugin ships is never trusted, whatever its name.
+			 */
+			string[] contained =
+			[
+				Path.Combine(app, "System.Private.CoreLib.dll"),
+				Path.Combine(app, "System.Runtime.dll"),
+				Path.Combine(app, "Microsoft.Extensions.Logging.dll"),
+				Path.Combine(app, "Npgsql.dll")
+			];
+
+			Assert.IsTrue(Framework("System.Runtime", contained));
+			Assert.IsTrue(Framework("Microsoft.Extensions.Logging", contained));
+			Assert.IsFalse(Framework("Npgsql", contained));
+			Assert.IsFalse(Framework("System.Reactive", contained));
+			Assert.IsFalse(Framework("Microsoft.Extensions.Http.Polly", contained));
+		}
+		finally
+		{
+			context.Unload();
+		}
+
+		await Task.CompletedTask;
+	}
+
+	[TestMethod]
+	[Timeout(120_000)]
 	public async Task DefaultOptionsKeepStandaloneBehaviour()
 	{
 		var context = new ApplicationContext(NestedHost.ApplicationPath);

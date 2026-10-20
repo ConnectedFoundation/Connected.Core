@@ -510,48 +510,69 @@ public static class Application
 		}
 	}
 
-	/*
-	 * The shared framework's assemblies: those the runtime lists as trusted platform assemblies from outside the
-	 * application's own directory. The application's directory is never framework, since that is where its own and its
-	 * plugins' assemblies are.
-	 */
-	private static readonly HashSet<string> SharedFramework = ResolveSharedFramework();
-	/*
-	 * A self-contained or single-file host carries the framework in its own directory (or its bundle), so the list above
-	 * holds no core library; the framework is then told by name.
-	 */
-	private static readonly bool FrameworkIsLocal = !SharedFramework.Contains("System.Private.CoreLib");
 	private static readonly string[] FrameworkPrefixes = ["System.", "Microsoft.AspNetCore.", "Microsoft.Extensions.", "Microsoft.NETCore.",
 		"Microsoft.Win32.", "Microsoft.CSharp", "Microsoft.VisualBasic", "Microsoft.JSInterop", "mscorlib", "netstandard", "WindowsBase"];
+	private static readonly (HashSet<string> Shared, HashSet<string> Local) TrustedPlatformAssemblies =
+		ClassifyTrustedPlatformAssemblies(ResolveTrustedPlatformAssemblies(), AppContext.BaseDirectory);
 
-	private static bool IsFramework(string name)
+	private static bool IsFramework(string name) => IsFramework(name, TrustedPlatformAssemblies.Shared, TrustedPlatformAssemblies.Local);
+
+	/// <summary>
+	/// Splits the trusted platform assemblies into those from outside the application's directory and those from
+	/// inside it, its runtime-specific subdirectories included.
+	/// </summary>
+	internal static (HashSet<string> Shared, HashSet<string> Local) ClassifyTrustedPlatformAssemblies(IEnumerable<string> paths, string applicationDirectory)
 	{
-		if (SharedFramework.Contains(name))
-			return true;
+		var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(applicationDirectory)) + Path.DirectorySeparatorChar;
+		var shared = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		var local = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-		return FrameworkIsLocal && (name == "System" || FrameworkPrefixes.Any(f => name.StartsWith(f, StringComparison.OrdinalIgnoreCase)));
-	}
-
-	private static HashSet<string> ResolveSharedFramework()
-	{
-		var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-		/*
-		 * Anything under the application's directory, its runtime-specific subdirectories included, is the application's.
-		 */
-		var applicationDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(AppContext.BaseDirectory)) + Path.DirectorySeparatorChar;
-
-		if (AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") is not string trusted)
-			return result;
-
-		foreach (var path in trusted.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+		foreach (var path in paths)
 		{
-			if (Path.GetFullPath(path).StartsWith(applicationDirectory, StringComparison.OrdinalIgnoreCase))
-				continue;
+			var assembly = Path.GetFileNameWithoutExtension(path);
 
-			result.Add(Path.GetFileNameWithoutExtension(path));
+			if (Path.GetFullPath(path).StartsWith(root, StringComparison.OrdinalIgnoreCase))
+				local.Add(assembly);
+			else
+				shared.Add(assembly);
 		}
 
-		return result;
+		return (shared, local);
+	}
+
+	/// <summary>
+	/// Decides whether a referenced assembly belongs to the shared framework, from the trusted platform assemblies as
+	/// <see cref="ClassifyTrustedPlatformAssemblies"/> splits them.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A trusted platform assembly from outside the application's directory (its runtime-specific subdirectories
+	/// included) is framework; the application's directory is never framework, since that is where its own and its
+	/// plugins' assemblies are.
+	/// </para>
+	/// <para>
+	/// A self-contained or single-file host carries the framework in its own directory, so no core library comes from
+	/// outside it. Framework is then a trusted platform assembly with a framework name: the runtime pack is always
+	/// trusted, while a package only a plugin ships never is, whatever its name.
+	/// </para>
+	/// </remarks>
+	internal static bool IsFramework(string name, HashSet<string> shared, HashSet<string> local)
+	{
+		if (shared.Contains(name))
+			return true;
+
+		if (shared.Contains("System.Private.CoreLib") || !local.Contains(name))
+			return false;
+
+		return name == "System" || FrameworkPrefixes.Any(f => name.StartsWith(f, StringComparison.OrdinalIgnoreCase));
+	}
+
+	private static string[] ResolveTrustedPlatformAssemblies()
+	{
+		if (AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") is not string trusted)
+			return [];
+
+		return trusted.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
 	}
 
 	private static AssemblyDependencyResolver? Resolver(string fileName)
