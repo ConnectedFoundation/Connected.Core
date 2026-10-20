@@ -47,6 +47,11 @@ public static class Application
 	private static AssemblyLoadContext LoadContext => AssemblyLoadContext.GetLoadContext(typeof(Application).Assembly) ?? AssemblyLoadContext.Default;
 
 	private static string BaseDirectory => Options.BaseDirectory ?? AppDomain.CurrentDomain.BaseDirectory;
+	/*
+	 * Configured dependencies and images come from the hosting application's configuration, so they resolve against
+	 * its directory: a nested application loads the same plugins as its host, as its own copies in its own context.
+	 */
+	private static string PluginDirectory => AppDomain.CurrentDomain.BaseDirectory;
 
 	/// <summary>Gets whether background workers are registered; see <see cref="ApplicationOptions.Workers"/>.</summary>
 	internal static bool WorkersEnabled => Options.Workers;
@@ -68,17 +73,13 @@ public static class Application
 
 		try
 		{
-			var entryAssembly = Options.EntryAssembly ?? Assembly.GetEntryAssembly();
 			/*
-			 * A nested application has its own content root (appsettings.json, wwwroot) and name; without them it would
-			 * read its host's. A standalone application keeps the defaults.
+			 * A nested application shares its host's content root and so its configuration, plugins included; settings of
+			 * its own come from Options.Configuration.
 			 */
-			var builder = WebApplication.CreateBuilder(new WebApplicationOptions
-			{
-				Args = args,
-				ContentRootPath = Options.BaseDirectory,
-				ApplicationName = entryAssembly?.GetName().Name
-			});
+			var builder = WebApplication.CreateBuilder(args);
+
+			var entryAssembly = Options.EntryAssembly ?? Assembly.GetEntryAssembly();
 
 			if (entryAssembly is not null)
 				builder.Configuration.AddUserSecrets(entryAssembly, true);
@@ -383,7 +384,12 @@ public static class Application
 
 	private static void RegisterDependency(string assemblyName)
 	{
-		var fileName = Path.Combine(BaseDirectory, assemblyName);
+		RegisterDependency(BaseDirectory, assemblyName);
+	}
+
+	private static void RegisterDependency(string directory, string assemblyName)
+	{
+		var fileName = Path.Combine(directory, assemblyName);
 
 		Dependencies.Register(LoadContext.LoadFromAssemblyPath(fileName));
 	}
@@ -411,7 +417,7 @@ public static class Application
 			var value = child.Value;
 
 			if (!string.IsNullOrWhiteSpace(value))
-				RegisterDependency(value);
+				RegisterDependency(PluginDirectory, value);
 		}
 	}
 
@@ -426,7 +432,7 @@ public static class Application
 			if (string.IsNullOrWhiteSpace(value))
 				continue;
 
-			var fileName = Path.Combine(BaseDirectory, value);
+			var fileName = Path.Combine(PluginDirectory, value);
 			var assembly = LoadContext.LoadFromAssemblyPath(fileName);
 			var types = assembly.GetTypes();
 
@@ -442,7 +448,7 @@ public static class Application
 					instance.Register();
 
 					foreach (var dependency in instance.Dependencies)
-						RegisterDependency(dependency);
+						RegisterDependency(PluginDirectory, dependency);
 				}
 			}
 		}

@@ -21,8 +21,9 @@ public sealed class ApplicationOptions
 	public Assembly? EntryAssembly { get; set; }
 
 	/// <summary>
-	/// Gets or sets the directory configured dependencies and images are loaded from, or <see langword="null"/> for the
-	/// process's base directory.
+	/// Gets or sets the directory the application's own Connected assemblies are loaded from, or <see langword="null"/>
+	/// for the process's base directory. Configured dependencies and images always resolve against the process's base
+	/// directory, so a nested application loads the same plugins as its host, into its own context.
 	/// </summary>
 	public string? BaseDirectory { get; set; }
 

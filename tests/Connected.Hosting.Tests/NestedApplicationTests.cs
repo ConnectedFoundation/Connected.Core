@@ -122,14 +122,14 @@ public sealed class NestedApplicationTests
 
 	[TestMethod]
 	[Timeout(300_000)]
-	public async Task ContentRootIsTheApplicationDirectory()
+	public async Task ContentRootIsTheHosts()
 	{
 		var host = NestedHost.Create();
 
 		try
 		{
 			Assert.IsTrue(await host.Start(), "The nested application did not start.");
-			Assert.AreEqual(Path.TrimEndingDirectorySeparator(Path.GetDirectoryName(NestedHost.ApplicationPath)!), Path.TrimEndingDirectorySeparator(host.ContentRoot()!));
+			Assert.AreEqual(Path.TrimEndingDirectorySeparator(Directory.GetCurrentDirectory()), Path.TrimEndingDirectorySeparator(host.ContentRoot()!));
 		}
 		finally
 		{
