@@ -153,6 +153,7 @@ public sealed class NestedApplicationTests
 
 		var grpcServices = first.GrpcServices();
 
+		Assert.IsTrue(grpcServices > 0, "The application mapped no gRPC services, so the restart check below would prove nothing.");
 		await first.Stop();
 		Assert.AreEqual(0, first.GrpcServices(), "The gRPC services of the first run were kept after it stopped.");
 		Assert.IsFalse(first.HasStarted(), "HasStarted stayed true after the application stopped.");

@@ -36,6 +36,8 @@ public sealed class ApplicationOptions
 	/// <remarks>
 	/// The console lifetime is kept on purpose: Ctrl+C or SIGTERM sent to the process stops every application in it,
 	/// nested ones included, just as <see cref="Stopping"/> does. Its registration lasts until the application stops.
+	/// That lifetime also cancels the signal's default termination (it sets <c>Cancel = true</c>), so a host with no
+	/// lifetime of its own does not exit on Ctrl+C or SIGTERM by itself; it exits once its own code returns.
 	/// </remarks>
 	public bool Nested { get; set; }
 

@@ -19,7 +19,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Net.Mime;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Text;
 
@@ -499,7 +498,7 @@ public static class Application
 			 * Shared framework assemblies always come from the default context; a copy beside the plugin would give the
 			 * plugin types of its own that nothing else in the application can use.
 			 */
-			if (FrameworkDirectories.Any(f => File.Exists(Path.Combine(f, $"{reference.Name}.dll"))))
+			if (IsFramework(reference.Name))
 				continue;
 
 			var path = resolver?.ResolveAssemblyToPath(reference) ?? Path.Combine(directory, $"{reference.Name}.dll");
@@ -512,18 +511,48 @@ public static class Application
 	}
 
 	/*
-	 * Where the shared frameworks are. An assembly bundled into a single-file host has no location; the runtime's own
-	 * directory still names the core framework, and a bundled ASP.NET Core is then simply not probed.
+	 * The shared framework's assemblies: those the runtime lists as trusted platform assemblies from outside the
+	 * application's own directory. The application's directory is never framework, since that is where its own and its
+	 * plugins' assemblies are.
 	 */
-	private static readonly string[] FrameworkDirectories =
-	[
-		.. new[]
+	private static readonly HashSet<string> SharedFramework = ResolveSharedFramework();
+	/*
+	 * A self-contained or single-file host carries the framework in its own directory (or its bundle), so the list above
+	 * holds no core library; the framework is then told by name.
+	 */
+	private static readonly bool FrameworkIsLocal = !SharedFramework.Contains("System.Private.CoreLib");
+	private static readonly string[] FrameworkPrefixes = ["System.", "Microsoft.AspNetCore.", "Microsoft.Extensions.", "Microsoft.NETCore.",
+		"Microsoft.Win32.", "Microsoft.CSharp", "Microsoft.VisualBasic", "Microsoft.JSInterop", "mscorlib", "netstandard", "WindowsBase"];
+
+	private static bool IsFramework(string name)
+	{
+		if (SharedFramework.Contains(name))
+			return true;
+
+		return FrameworkIsLocal && (name == "System" || FrameworkPrefixes.Any(f => name.StartsWith(f, StringComparison.OrdinalIgnoreCase)));
+	}
+
+	private static HashSet<string> ResolveSharedFramework()
+	{
+		var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		/*
+		 * Anything under the application's directory, its runtime-specific subdirectories included, is the application's.
+		 */
+		var applicationDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(AppContext.BaseDirectory)) + Path.DirectorySeparatorChar;
+
+		if (AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") is not string trusted)
+			return result;
+
+		foreach (var path in trusted.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
 		{
-			Path.GetDirectoryName(typeof(object).Assembly.Location),
-			Path.GetDirectoryName(typeof(WebApplication).Assembly.Location),
-			RuntimeEnvironment.GetRuntimeDirectory()
-		}.Where(f => !string.IsNullOrEmpty(f)).Cast<string>().Distinct(StringComparer.OrdinalIgnoreCase)
-	];
+			if (Path.GetFullPath(path).StartsWith(applicationDirectory, StringComparison.OrdinalIgnoreCase))
+				continue;
+
+			result.Add(Path.GetFileNameWithoutExtension(path));
+		}
+
+		return result;
+	}
 
 	private static AssemblyDependencyResolver? Resolver(string fileName)
 	{

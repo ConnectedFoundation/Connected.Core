@@ -1,6 +1,7 @@
 using Connected.Annotations;
 using Connected.Runtime;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Connected.Services;
 
@@ -9,42 +10,62 @@ public sealed class ServiceExtensionsStartup : Startup
 {
 	/*
 	 * One provider serves everything resolved before the application's own provider exists. It is rebuilt only when the
-	 * service collection has changed since it was built, so it always sees what is registered so far: a registration
-	 * adds at the end and a replacement removes and adds, so the count and the last registration together tell. A
-	 * replaced provider is kept rather than disposed, since a scope or a singleton taken from it may still be in use;
-	 * all of them are disposed once the application's own provider is in place, or when the run ends.
+	 * service collection differs from the one it was built from, registration by registration, so it always sees what
+	 * is registered so far. A replaced provider is kept rather than disposed, since a scope or a singleton taken from it
+	 * may still be in use; all of them are disposed once the application has started, or when the run ends.
 	 */
 	private static readonly Lock _bootstrapLock = new();
 	private static readonly List<ServiceProvider> _bootstrapProviders = [];
 	private static ServiceProvider? _bootstrapProvider;
-	private static int _bootstrapCount = -1;
-	private static ServiceDescriptor? _bootstrapLast;
+	private static ServiceDescriptor[] _bootstrapSnapshot = [];
+	private static volatile IServiceProvider? _services;
+	private static Task? _disposing;
 
-	public static IServiceProvider Services { get; private set; } = default!;
+	public static IServiceProvider Services
+	{
+		get => _services!;
+		private set => _services = value;
+	}
+
 	public static IServiceCollection ServicesCollection { get; private set; } = default!;
 
 	/// <summary>
 	/// Gets the provider for use before the application's own provider exists, built from the service collection as it
-	/// is now. It is disposed once the application's own provider is in place; callers never dispose it.
+	/// is now, or the application's own provider once it does. Callers never dispose it.
 	/// </summary>
 	/// <returns>The provider.</returns>
-	public static ServiceProvider BootstrapProvider()
+	public static IServiceProvider BootstrapProvider()
 	{
 		lock (_bootstrapLock)
 		{
-			var services = ServicesCollection;
-			var last = services.Count > 0 ? services[^1] : null;
+			if (_services is { } services)
+				return services;
 
-			if (_bootstrapProvider is null || _bootstrapCount != services.Count || !ReferenceEquals(_bootstrapLast, last))
+			var collection = ServicesCollection ?? throw new InvalidOperationException("The application's services are not configured.");
+
+			if (_bootstrapProvider is null || !Unchanged(collection))
 			{
-				_bootstrapProvider = services.BuildServiceProvider(false);
-				_bootstrapCount = services.Count;
-				_bootstrapLast = last;
+				_bootstrapProvider = collection.BuildServiceProvider(false);
+				_bootstrapSnapshot = [.. collection];
 				_bootstrapProviders.Add(_bootstrapProvider);
 			}
 
 			return _bootstrapProvider;
 		}
+	}
+
+	private static bool Unchanged(IServiceCollection collection)
+	{
+		if (collection.Count != _bootstrapSnapshot.Length)
+			return false;
+
+		for (var i = 0; i < _bootstrapSnapshot.Length; i++)
+		{
+			if (!ReferenceEquals(collection[i], _bootstrapSnapshot[i]))
+				return false;
+		}
+
+		return true;
 	}
 
 	protected override void OnConfigureServices(IServiceCollection services)
@@ -58,9 +79,17 @@ public sealed class ServiceExtensionsStartup : Startup
 	{
 		if (ServiceProvider is not null)
 		{
-			Services = ServiceProvider;
+			/*
+			 * From here on no bootstrap provider is handed out. One a caller took just before may still be resolving,
+			 * so they are disposed once the application has started rather than now.
+			 */
+			lock (_bootstrapLock)
+				Services = ServiceProvider;
 
-			await DisposeBootstrapProviders();
+			if (ServiceProvider.GetService<IHostApplicationLifetime>() is { } lifetime)
+				lifetime.ApplicationStarted.Register(() => _disposing = DisposeBootstrapProviders());
+			else
+				await DisposeBootstrapProviders();
 		}
 
 		await base.OnInitialize();
@@ -73,10 +102,19 @@ public sealed class ServiceExtensionsStartup : Startup
 	/// </summary>
 	public static async Task Reset()
 	{
-		await DisposeBootstrapProviders();
+		/*
+		 * Both unset together, so nothing can build another bootstrap provider while these are disposed.
+		 */
+		lock (_bootstrapLock)
+		{
+			Services = null!;
+			ServicesCollection = null!;
+		}
 
-		Services = null!;
-		ServicesCollection = null!;
+		if (Interlocked.Exchange(ref _disposing, null) is { } disposing)
+			await disposing;
+
+		await DisposeBootstrapProviders();
 	}
 
 	private static async Task DisposeBootstrapProviders()
@@ -89,8 +127,7 @@ public sealed class ServiceExtensionsStartup : Startup
 
 			_bootstrapProviders.Clear();
 			_bootstrapProvider = null;
-			_bootstrapCount = -1;
-			_bootstrapLast = null;
+			_bootstrapSnapshot = [];
 		}
 
 		foreach (var provider in providers)
