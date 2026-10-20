@@ -19,6 +19,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Net.Mime;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Text;
 
@@ -165,10 +166,7 @@ public static class Application
 			 */
 			running = true;
 
-			if (Options.Stopping.CanBeCanceled)
-				await HostingAbstractionsHostExtensions.RunAsync(webApp, Options.Stopping);
-			else
-				await webApp.RunAsync();
+			await HostingAbstractionsHostExtensions.RunAsync(webApp, Options.Stopping);
 		}
 		catch (OperationCanceledException) when (Options.Stopping.IsCancellationRequested)
 		{
@@ -208,13 +206,15 @@ public static class Application
 			}
 		}
 		/*
-		 * After the web application, so singletons it disposes still see the cache.
+		 * The provider, the collection and the mapped gRPC services belong to this run; a later start in the same process
+		 * builds its own.
+		 */
+		await ServiceExtensionsStartup.Reset();
+		RuntimeExtensions.GrpcServices.Clear();
+		/*
+		 * Last, so singletons the web application and the bootstrap providers dispose still see the cache.
 		 */
 		Caching.Cache.Shutdown();
-		/*
-		 * The provider and the collection belong to this run; a later start in the same process builds its own.
-		 */
-		ServiceExtensionsStartup.Reset();
 	}
 
 	/*
@@ -235,13 +235,15 @@ public static class Application
 			{
 				/*
 				 * A factory names no type, so what it builds is only known once it runs; a worker it builds is
-				 * replaced with a hosted service that does nothing.
+				 * replaced with a hosted service that does nothing. The container does not track what a factory builds
+				 * itself, so the stand-in disposes the worker when the container disposes it; a worker the factory
+				 * resolved from the container is then disposed twice, which Dispose allows.
 				 */
 				services[i] = new ServiceDescriptor(typeof(IHostedService), sp =>
 				{
 					var instance = factory(sp);
 
-					return instance is IWorker ? new IdleHostedService() : instance;
+					return instance is IWorker ? new IdleHostedService(instance) : instance;
 				}, descriptor.Lifetime);
 
 				continue;
@@ -254,20 +256,44 @@ public static class Application
 		}
 	}
 
-	private sealed class IdleHostedService : IHostedService
+	/// <summary>
+	/// Stands in for a worker built by a factory while workers are off. It never starts the worker, and disposes it when
+	/// the container disposes this service.
+	/// </summary>
+	private sealed class IdleHostedService(object worker) : IHostedService, IAsyncDisposable, IDisposable
 	{
 		public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
 		public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-	}
 
+		public async ValueTask DisposeAsync()
+		{
+			if (worker is IAsyncDisposable asyncDisposable)
+				await asyncDisposable.DisposeAsync();
+			else if (worker is IDisposable disposable)
+				disposable.Dispose();
+		}
+
+		public void Dispose()
+		{
+			if (worker is IDisposable disposable)
+				disposable.Dispose();
+			else if (worker is IAsyncDisposable asyncDisposable)
+				asyncDisposable.DisposeAsync().AsTask().GetAwaiter().GetResult();
+		}
+	}
+	/*
+	 * Unsubscribed first, so a later start in the same process does not subscribe a second time.
+	 */
 	private static void AddOutOfMemoryExceptionHandler()
 	{
+		AppDomain.CurrentDomain.FirstChanceException -= OnFirstChanceException;
 		AppDomain.CurrentDomain.FirstChanceException += OnFirstChanceException;
 	}
 
 	private static void AddAutoRestart()
 	{
+		AppDomain.CurrentDomain.UnhandledException -= OnUnhandledExceptionThrown;
 		AppDomain.CurrentDomain.UnhandledException += OnUnhandledExceptionThrown;
 	}
 
@@ -442,7 +468,7 @@ public static class Application
 		var assembly = LoadContext.LoadFromAssemblyPath(fileName);
 
 		if (LoadContext != AssemblyLoadContext.Default)
-			LoadReferences(assembly, Resolver(fileName), Path.GetDirectoryName(fileName)!);
+			LoadReferences(assembly, Resolver(fileName), Path.GetDirectoryName(fileName) ?? PluginDirectory);
 
 		return assembly;
 	}
@@ -485,10 +511,18 @@ public static class Application
 		}
 	}
 
-	private static string[] FrameworkDirectories =>
+	/*
+	 * Where the shared frameworks are. An assembly bundled into a single-file host has no location; the runtime's own
+	 * directory still names the core framework, and a bundled ASP.NET Core is then simply not probed.
+	 */
+	private static readonly string[] FrameworkDirectories =
 	[
-		Path.GetDirectoryName(typeof(object).Assembly.Location)!,
-		Path.GetDirectoryName(typeof(WebApplication).Assembly.Location)!
+		.. new[]
+		{
+			Path.GetDirectoryName(typeof(object).Assembly.Location),
+			Path.GetDirectoryName(typeof(WebApplication).Assembly.Location),
+			RuntimeEnvironment.GetRuntimeDirectory()
+		}.Where(f => !string.IsNullOrEmpty(f)).Cast<string>().Distinct(StringComparer.OrdinalIgnoreCase)
 	];
 
 	private static AssemblyDependencyResolver? Resolver(string fileName)

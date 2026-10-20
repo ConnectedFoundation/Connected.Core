@@ -12,11 +12,7 @@ public static class DtoExtensions
 		ArgumentNullException.ThrowIfNull(dto);
 
 		if (ServiceExtensionsStartup.Services is null)
-		{
-			using var provider = ServiceExtensionsStartup.ServicesCollection.BuildServiceProvider(false);
-
-			return provider.GetRequiredService(type) as IDto;
-		}
+			return ServiceExtensionsStartup.BootstrapProvider().GetRequiredService(type) as IDto;
 
 		return ServiceExtensionsStartup.Services.GetRequiredService(type) as IDto;
 	}
@@ -28,11 +24,7 @@ public static class DtoExtensions
 		ArgumentNullException.ThrowIfNull(dto);
 
 		if (ServiceExtensionsStartup.Services is null)
-		{
-			using var provider = ServiceExtensionsStartup.ServicesCollection.BuildServiceProvider(false);
-
-			return provider.GetRequiredService<TDto>();
-		}
+			return ServiceExtensionsStartup.BootstrapProvider().GetRequiredService<TDto>();
 
 		return ServiceExtensionsStartup.Services.GetRequiredService<TDto>();
 	}

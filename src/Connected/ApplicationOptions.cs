@@ -9,8 +9,9 @@ namespace Connected;
 /// <remarks>
 /// The defaults reproduce <see cref="Application.Start(string[])"/> exactly. A nested host loads the application into
 /// its own collectible <see cref="System.Runtime.Loader.AssemblyLoadContext"/>, sets <see cref="Nested"/>, and stops it
-/// through <see cref="Stopping"/>; because every assembly is then loaded into that context and no process-wide handler
-/// is installed, the context can be unloaded once <see cref="Application.Start(string[], ApplicationOptions)"/> returns.
+/// through <see cref="Stopping"/>; because every assembly is then loaded into that context and no process-wide exception
+/// handler is installed, the context can be unloaded once <see cref="Application.Start(string[], ApplicationOptions)"/>
+/// returns.
 /// </remarks>
 public sealed class ApplicationOptions
 {
@@ -32,6 +33,10 @@ public sealed class ApplicationOptions
 	/// process-wide exception handlers, so it can never exit the process or replace it with the error server; its
 	/// failures surface as exceptions from <see cref="Application.Start(string[], ApplicationOptions)"/>.
 	/// </summary>
+	/// <remarks>
+	/// The console lifetime is kept on purpose: Ctrl+C or SIGTERM sent to the process stops every application in it,
+	/// nested ones included, just as <see cref="Stopping"/> does. Its registration lasts until the application stops.
+	/// </remarks>
 	public bool Nested { get; set; }
 
 	/// <summary>

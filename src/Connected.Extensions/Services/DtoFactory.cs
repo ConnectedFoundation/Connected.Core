@@ -8,11 +8,7 @@ public static class DtoFactory
 		where T : IDto
 	{
 		if (ServiceExtensionsStartup.Services is null)
-		{
-			using var provider = ServiceExtensionsStartup.ServicesCollection.BuildServiceProvider(false);
-
-			return provider.GetRequiredService<T>();
-		}
+			return ServiceExtensionsStartup.BootstrapProvider().GetRequiredService<T>();
 
 		return ServiceExtensionsStartup.Services.GetRequiredService<T>();
 	}

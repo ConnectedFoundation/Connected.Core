@@ -7,7 +7,7 @@ public static class Scope
 	public static AsyncServiceScope Create()
 	{
 		if (ServiceExtensionsStartup.Services is null)
-			return ServiceExtensionsStartup.BuildBootstrapProvider().CreateAsyncScope();
+			return ServiceExtensionsStartup.BootstrapProvider().CreateAsyncScope();
 
 		return ServiceExtensionsStartup.Services.CreateAsyncScope();
 	}
@@ -15,11 +15,7 @@ public static class Scope
 	public static TService? GetSingletonService<TService>()
 	{
 		if (ServiceExtensionsStartup.Services is null)
-		{
-			var provider = ServiceExtensionsStartup.BuildBootstrapProvider();
-
-			return provider.GetService<TService>();
-		}
+			return ServiceExtensionsStartup.BootstrapProvider().GetService<TService>();
 
 		return ServiceExtensionsStartup.Services.GetService<TService>();
 	}

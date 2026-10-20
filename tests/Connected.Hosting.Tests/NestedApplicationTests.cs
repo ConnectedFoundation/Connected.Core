@@ -50,8 +50,12 @@ public sealed class NestedApplicationTests
 
 	[TestMethod]
 	[Timeout(300_000)]
-	public async Task InstallsNoProcessWideHandlers()
+	public async Task InstallsNoProcessWideExceptionHandlers()
 	{
+		/*
+		 * Only the exception events: the console lifetime's Ctrl+C/SIGTERM handling is kept on purpose, so a signal to the
+		 * process stops nested applications too.
+		 */
 		var unhandled = HandlerCount("UnhandledException");
 		var firstChance = HandlerCount("FirstChanceException");
 
@@ -146,7 +150,11 @@ public sealed class NestedApplicationTests
 		first.Unload = false;
 
 		Assert.IsTrue(await first.Start(), "The first run did not start.");
+
+		var grpcServices = first.GrpcServices();
+
 		await first.Stop();
+		Assert.AreEqual(0, first.GrpcServices(), "The gRPC services of the first run were kept after it stopped.");
 		Assert.IsFalse(first.HasStarted(), "HasStarted stayed true after the application stopped.");
 
 		var second = first.Again();
@@ -154,6 +162,7 @@ public sealed class NestedApplicationTests
 		try
 		{
 			Assert.IsTrue(await second.Start(), "The second run in the same context did not start.");
+			Assert.AreEqual(grpcServices, second.GrpcServices(), "The second run mapped gRPC services the first run had mapped already.");
 		}
 		finally
 		{
@@ -359,7 +368,20 @@ public sealed class NestedApplicationTests
 			var services = (IServiceProvider)startup.GetProperty("Services")!.GetValue(null)!;
 			var hosted = (IEnumerable<object>)services.GetService(typeof(IEnumerable<Microsoft.Extensions.Hosting.IHostedService>))!;
 
-			return hosted.Count(f => f.GetType().Assembly.GetName().Name?.StartsWith("Connected", StringComparison.Ordinal) == true);
+			/*
+			 * The idle stand-in for a worker a factory built while workers are off is not a worker.
+			 */
+			return hosted.Count(f => f.GetType().Assembly.GetName().Name?.StartsWith("Connected", StringComparison.Ordinal) == true
+				&& f.GetType().Name != "IdleHostedService");
+		}
+
+		/// <summary>Counts the gRPC services the application in this context has mapped.</summary>
+		public int GrpcServices()
+		{
+			var extensions = _context.LoadFromAssemblyName(new AssemblyName("Connected")).GetType("Connected.RuntimeExtensions", true)!;
+			var services = (System.Collections.ICollection)extensions.GetProperty("GrpcServices", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
+
+			return services.Count;
 		}
 
 		public static NestedHost Create() => new(new ApplicationContext(ApplicationPath));
