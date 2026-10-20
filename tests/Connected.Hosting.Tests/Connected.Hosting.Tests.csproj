@@ -18,12 +18,17 @@
   -->
   <ItemGroup>
     <ProjectReference Include="..\Connected.Hosting.Tests.App\Connected.Hosting.Tests.App.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
+    <ProjectReference Include="..\Connected.Hosting.Tests.Plugin\Connected.Hosting.Tests.Plugin.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
   </ItemGroup>
 
   <ItemGroup>
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
       <_Parameter1>NestedApplication</_Parameter1>
       <_Parameter2>$(MSBuildThisFileDirectory)..\Connected.Hosting.Tests.App\bin\$(Configuration)\net10.0\Connected.Hosting.Tests.App.dll</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>Plugin</_Parameter1>
+      <_Parameter2>$(MSBuildThisFileDirectory)..\Connected.Hosting.Tests.Plugin\bin\$(Configuration)\net10.0\Connected.Hosting.Tests.Plugin.dll</_Parameter2>
     </AssemblyAttribute>
   </ItemGroup>
 

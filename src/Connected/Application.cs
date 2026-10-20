@@ -74,6 +74,11 @@ public static class Application
 		try
 		{
 			/*
+			 * A stop requested before the start builds nothing, and one requested while it builds skips the work that
+			 * only a running application needs (migrations, schedulers, external connections).
+			 */
+			Options.Stopping.ThrowIfCancellationRequested();
+			/*
 			 * A nested application shares its host's content root and so its configuration, plugins included; settings of
 			 * its own come from Options.Configuration.
 			 */
@@ -145,12 +150,16 @@ public static class Application
 
 			webApp.UseWebSockets(socketOptions);
 
+			Options.Stopping.ThrowIfCancellationRequested();
 			await InitializeDependencies(webApp);
+			Options.Stopping.ThrowIfCancellationRequested();
 			await StartDependencies();
 			/*
-			 * Only once the server listens, so a caller waiting for it can send requests straight away.
+			 * Only while the server listens, so a caller waiting for it can send requests straight away and stops once
+			 * it no longer can.
 			 */
 			webApp.Lifetime.ApplicationStarted.Register(() => HasStarted = true);
+			webApp.Lifetime.ApplicationStopping.Register(() => HasStarted = false);
 			/*
 			 * RunAsync disposes the web application itself, whichever way it ends.
 			 */
@@ -169,6 +178,7 @@ public static class Application
 		}
 		finally
 		{
+			HasStarted = false;
 			/*
 			 * Runs on a failed start as well; otherwise the cache scavenger, the bootstrap providers and the web
 			 * application stay alive, and a nested application's load context can never unload.
@@ -201,7 +211,10 @@ public static class Application
 		 * After the web application, so singletons it disposes still see the cache.
 		 */
 		Caching.Cache.Shutdown();
-		ServiceExtensionsStartup.DisposeBootstrapProviders();
+		/*
+		 * The provider and the collection belong to this run; a later start in the same process builds its own.
+		 */
+		ServiceExtensionsStartup.Reset();
 	}
 
 	/*
@@ -218,11 +231,34 @@ public static class Application
 			if (descriptor.ServiceType != typeof(IHostedService) || descriptor.IsKeyedService)
 				continue;
 
+			if (descriptor.ImplementationFactory is { } factory)
+			{
+				/*
+				 * A factory names no type, so what it builds is only known once it runs; a worker it builds is
+				 * replaced with a hosted service that does nothing.
+				 */
+				services[i] = new ServiceDescriptor(typeof(IHostedService), sp =>
+				{
+					var instance = factory(sp);
+
+					return instance is IWorker ? new IdleHostedService() : instance;
+				}, descriptor.Lifetime);
+
+				continue;
+			}
+
 			var type = descriptor.ImplementationType ?? descriptor.ImplementationInstance?.GetType();
 
 			if (type is not null && typeof(IWorker).IsAssignableFrom(type))
 				services.RemoveAt(i);
 		}
+	}
+
+	private sealed class IdleHostedService : IHostedService
+	{
+		public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+		public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 	}
 
 	private static void AddOutOfMemoryExceptionHandler()
@@ -389,9 +425,85 @@ public static class Application
 
 	private static void RegisterDependency(string directory, string assemblyName)
 	{
-		var fileName = Path.Combine(directory, assemblyName);
+		Dependencies.Register(Load(Path.Combine(directory, assemblyName)));
+	}
 
-		Dependencies.Register(LoadContext.LoadFromAssemblyPath(fileName));
+	/*
+	 * An assembly already in the context is used as it is: a second build with the same name cannot be loaded into one
+	 * context, and the first one is what everything bound so far uses.
+	 */
+	private static Assembly Load(string fileName)
+	{
+		var name = AssemblyName.GetAssemblyName(fileName);
+
+		if (Loaded(name) is { } loaded)
+			return loaded;
+
+		var assembly = LoadContext.LoadFromAssemblyPath(fileName);
+
+		if (LoadContext != AssemblyLoadContext.Default)
+			LoadReferences(assembly, Resolver(fileName), Path.GetDirectoryName(fileName)!);
+
+		return assembly;
+	}
+
+	private static Assembly? Loaded(AssemblyName name)
+	{
+		return LoadContext.Assemblies.FirstOrDefault(f => string.Equals(f.GetName().Name, name.Name, StringComparison.OrdinalIgnoreCase));
+	}
+
+	/*
+	 * A nested context resolves names from the application's own directory and leaves anything else to the default
+	 * context, where a plugin's own dependencies would be shared with the host and never unload. So the references a
+	 * plugin brings with it, the ones the application does not have itself, are loaded into the nested context from
+	 * the plugin's location before anything binds them; a later bind by name finds them there.
+	 */
+	private static void LoadReferences(Assembly assembly, AssemblyDependencyResolver? resolver, string directory)
+	{
+		foreach (var reference in assembly.GetReferencedAssemblies())
+		{
+			if (reference.Name is null || Loaded(reference) is not null)
+				continue;
+			/*
+			 * The application's own assemblies bind through the host's context as usual, which decides what is shared.
+			 */
+			if (File.Exists(Path.Combine(BaseDirectory, $"{reference.Name}.dll")))
+				continue;
+			/*
+			 * Shared framework assemblies always come from the default context; a copy beside the plugin would give the
+			 * plugin types of its own that nothing else in the application can use.
+			 */
+			if (FrameworkDirectories.Any(f => File.Exists(Path.Combine(f, $"{reference.Name}.dll"))))
+				continue;
+
+			var path = resolver?.ResolveAssemblyToPath(reference) ?? Path.Combine(directory, $"{reference.Name}.dll");
+
+			if (!File.Exists(path))
+				continue;
+
+			LoadReferences(LoadContext.LoadFromAssemblyPath(path), resolver, directory);
+		}
+	}
+
+	private static string[] FrameworkDirectories =>
+	[
+		Path.GetDirectoryName(typeof(object).Assembly.Location)!,
+		Path.GetDirectoryName(typeof(WebApplication).Assembly.Location)!
+	];
+
+	private static AssemblyDependencyResolver? Resolver(string fileName)
+	{
+		try
+		{
+			return new AssemblyDependencyResolver(fileName);
+		}
+		catch (InvalidOperationException)
+		{
+			/*
+			 * No dependency manifest the resolver can read; the plugin's directory is probed instead.
+			 */
+			return null;
+		}
 	}
 
 	private static void RegisterCoreDependencies()
@@ -432,8 +544,7 @@ public static class Application
 			if (string.IsNullOrWhiteSpace(value))
 				continue;
 
-			var fileName = Path.Combine(PluginDirectory, value);
-			var assembly = LoadContext.LoadFromAssemblyPath(fileName);
+			var assembly = Load(Path.Combine(PluginDirectory, value));
 			var types = assembly.GetTypes();
 
 			Dependencies.Register(assembly);

@@ -54,8 +54,21 @@ public sealed class ServiceExtensionsStartup : Startup
 	}
 
 	/// <summary>
+	/// Clears what one run of the application left here once it has stopped or failed to start: the bootstrap providers
+	/// are disposed and <see cref="Services"/> and <see cref="ServicesCollection"/> are unset, so a later start in the
+	/// same process builds and uses its own instead of the disposed ones.
+	/// </summary>
+	public static void Reset()
+	{
+		DisposeBootstrapProviders();
+
+		Services = null!;
+		ServicesCollection = null!;
+	}
+
+	/// <summary>
 	/// Disposes every provider built by <see cref="BuildBootstrapProvider"/>. Called once the application's own provider
-	/// is in place, and again once the application has stopped or failed to start.
+	/// is in place, and again by <see cref="Reset"/>.
 	/// </summary>
 	public static void DisposeBootstrapProviders()
 	{

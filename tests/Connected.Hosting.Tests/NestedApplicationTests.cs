@@ -139,6 +139,63 @@ public sealed class NestedApplicationTests
 
 	[TestMethod]
 	[Timeout(300_000)]
+	public async Task RestartsInTheSameContext()
+	{
+		var first = NestedHost.Create();
+
+		first.Unload = false;
+
+		Assert.IsTrue(await first.Start(), "The first run did not start.");
+		await first.Stop();
+		Assert.IsFalse(first.HasStarted(), "HasStarted stayed true after the application stopped.");
+
+		var second = first.Again();
+
+		try
+		{
+			Assert.IsTrue(await second.Start(), "The second run in the same context did not start.");
+		}
+		finally
+		{
+			await second.Stop();
+		}
+	}
+
+	[TestMethod]
+	[Timeout(300_000)]
+	public async Task LoadsTheHostsPluginsWithTheirDependenciesIntoItsOwnContext()
+	{
+		/*
+		 * The plugin sits in the host's directory, beside its dependency, which the nested application does not have.
+		 */
+		var directory = Path.Combine(AppContext.BaseDirectory, "plugin-test");
+
+		Directory.CreateDirectory(directory);
+
+		foreach (var file in Directory.GetFiles(Path.GetDirectoryName(NestedHost.PluginPath)!))
+			File.Copy(file, Path.Combine(directory, Path.GetFileName(file)), true);
+
+		var host = NestedHost.Create();
+
+		try
+		{
+			host.Overrides["dependencies:0"] = $"plugin-test/{Path.GetFileName(NestedHost.PluginPath)}";
+
+			Assert.IsTrue(await host.Start(), "The nested application did not start with the plugin.");
+
+			string[] plugin = ["Connected.Hosting.Tests.Plugin", "Connected.Hosting.Tests.PluginDependency"];
+
+			Assert.IsTrue(plugin.All(f => host.Loaded(f)), "The plugin or its dependency is not in the nested context.");
+			Assert.IsFalse(AssemblyLoadContext.Default.Assemblies.Any(f => plugin.Contains(f.GetName().Name)), "The plugin or its dependency was loaded into the host's default context.");
+		}
+		finally
+		{
+			await host.Stop();
+		}
+	}
+
+	[TestMethod]
+	[Timeout(300_000)]
 	public async Task StoppingBeforeStartIsANormalStop()
 	{
 		var host = NestedHost.Create();
@@ -246,7 +303,35 @@ public sealed class NestedApplicationTests
 			}
 		}
 
+		public static string PluginPath
+		{
+			get
+			{
+				var path = typeof(NestedApplicationTests).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+					.First(f => f.Key == "Plugin").Value!;
+
+				return Path.GetFullPath(path.Replace('\\', Path.DirectorySeparatorChar));
+			}
+		}
+
 		public WeakReference Context { get; }
+
+		/// <summary>Whether <see cref="Stop"/> unloads the context; off to start again in the same one.</summary>
+		public bool Unload { get; set; } = true;
+
+		/// <summary>Another host for the same load context, for a second run in it.</summary>
+		public NestedHost Again() => new(_context);
+
+		/// <summary>Reads <c>Application.HasStarted</c> in this host's context.</summary>
+		public bool HasStarted()
+		{
+			var application = _context.LoadFromAssemblyName(new AssemblyName("Connected")).GetType("Connected.Application", true)!;
+
+			return (bool)application.GetProperty("HasStarted")!.GetValue(null)!;
+		}
+
+		/// <summary>Whether an assembly with this name is loaded into this host's context.</summary>
+		public bool Loaded(string name) => _context.Assemblies.Any(f => f.GetName().Name == name);
 
 		public Dictionary<string, string?> Overrides { get; } = [];
 
@@ -341,7 +426,9 @@ public sealed class NestedApplicationTests
 
 			_running = null;
 			_hasStarted = null;
-			_context.Unload();
+
+			if (Unload)
+				_context.Unload();
 		}
 
 		private static int FreePort()
