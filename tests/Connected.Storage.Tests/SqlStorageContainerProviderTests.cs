@@ -65,10 +65,83 @@ public sealed class SqlStorageContainerProviderTests
 	{
 		var defaultConnection = TestConfiguration.From(Variable);
 		var provider = new SqlStorageContainerProvider(new TestConfiguration(defaultConnection));
-		var name = new SqlConnectionStringBuilder(defaultConnection).InitialCatalog;
+		/*
+		 * As the server resolves it, because the connection string may name no database.
+		 */
+		var name = await Scalar("SELECT DB_NAME()") as string;
 
+		Assert.IsFalse(string.IsNullOrEmpty(name));
 		await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => provider.Drop(TestConfiguration.Container(name)));
 		Assert.IsTrue(await Exists(name));
+	}
+
+	[TestMethod]
+	public async Task ConcurrentDropsOfOneContainerAllSucceed()
+	{
+		var provider = new SqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
+		var name = $"connected_test_{Guid.NewGuid():N}";
+
+		await provider.Create(TestConfiguration.Container(name));
+		await Task.WhenAll(Enumerable.Range(0, 3).Select(_ => provider.Drop(TestConfiguration.Container(name))));
+
+		Assert.IsFalse(await Exists(name));
+	}
+
+	[TestMethod]
+	public async Task ConcurrentDropsOfDifferentContainersAllSucceed()
+	{
+		var provider = new SqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
+		var names = Enumerable.Range(0, 3).Select(_ => $"connected_test_{Guid.NewGuid():N}").ToList();
+
+		foreach (var name in names)
+			await provider.Create(TestConfiguration.Container(name));
+
+		await Task.WhenAll(names.Select(f => provider.Drop(TestConfiguration.Container(f))));
+
+		foreach (var name in names)
+			Assert.IsFalse(await Exists(name));
+	}
+
+	[TestMethod]
+	public async Task DropsAContainerAClientKeepsReconnectingTo()
+	{
+		var provider = new SqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
+		var name = $"connected_test_{Guid.NewGuid():N}";
+		var connectionString = new SqlConnectionStringBuilder(await provider.Create(TestConfiguration.Container(name))) { Pooling = false, ConnectTimeout = 2 }.ConnectionString;
+		using var stop = new CancellationTokenSource();
+
+		/*
+		 * The application's own login, reconnecting as fast as it can.
+		 */
+		var client = Task.Run(async () =>
+		{
+			while (!stop.IsCancellationRequested)
+			{
+				try
+				{
+					await using var connection = new SqlConnection(connectionString);
+
+					await connection.OpenAsync();
+					await Task.Delay(10);
+				}
+				catch (SqlException)
+				{
+				}
+			}
+		});
+
+		try
+		{
+			await Task.Delay(200);
+			await provider.Drop(TestConfiguration.Container(name));
+		}
+		finally
+		{
+			await stop.CancelAsync();
+			await client;
+		}
+
+		Assert.IsFalse(await Exists(name));
 	}
 
 	[TestMethod]
@@ -113,23 +186,65 @@ public sealed class SqlStorageContainerProviderTests
 	}
 
 	[TestMethod]
-	public async Task ADatabaseLeftByAnInterruptedDropIsRemovedByTheNextDrop()
+	public async Task AnAbandonedDropIsRemovedByALaterDrop()
 	{
 		var provider = new SqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
 		var name = $"connected_test_{Guid.NewGuid():N}";
-		var dropping = $"connected_dropping_{Guid.NewGuid():N}";
+		var dropping = Dropping(TimeSpan.FromHours(2));
 
 		/*
-		 * A drop interrupted after the rename, with the database taken offline.
+		 * A drop interrupted after the rename, two hours ago.
 		 */
 		await provider.Create(TestConfiguration.Container(name));
-		await Run($"ALTER DATABASE [{name}] MODIFY NAME = [{dropping}]; ALTER DATABASE [{dropping}] SET OFFLINE");
+		await Run($"ALTER DATABASE [{name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE [{name}] MODIFY NAME = [{dropping}]");
 
 		Assert.IsFalse(await Exists(name));
 
 		await provider.Drop(TestConfiguration.Container($"connected_test_{Guid.NewGuid():N}"));
 
 		Assert.IsFalse(await Exists(dropping));
+	}
+
+	[TestMethod]
+	public async Task ADropInProgressIsNotRemovedByAnotherDrop()
+	{
+		var provider = new SqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
+		var name = $"connected_test_{Guid.NewGuid():N}";
+		var dropping = Dropping(TimeSpan.Zero);
+
+		await provider.Create(TestConfiguration.Container(name));
+		await Run($"ALTER DATABASE [{name}] MODIFY NAME = [{dropping}]");
+
+		try
+		{
+			await provider.Drop(TestConfiguration.Container($"connected_test_{Guid.NewGuid():N}"));
+
+			Assert.IsTrue(await Exists(dropping));
+		}
+		finally
+		{
+			await Run($"DROP DATABASE [{dropping}]");
+		}
+	}
+
+	[TestMethod]
+	public async Task AnUnmarkedDatabaseUnderTheDroppingPrefixIsNotRemoved()
+	{
+		var provider = new SqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
+		var dropping = Dropping(TimeSpan.FromHours(2));
+
+		await Run($"CREATE DATABASE [{dropping}]");
+
+		try
+		{
+			await provider.Drop(TestConfiguration.Container($"connected_test_{Guid.NewGuid():N}"));
+
+			Assert.IsTrue(await Exists(dropping));
+		}
+		finally
+		{
+			await Run($"DROP DATABASE [{dropping}]");
+		}
 	}
 
 	[TestMethod]
@@ -152,6 +267,75 @@ public sealed class SqlStorageContainerProviderTests
 			await provider.Drop(TestConfiguration.Container(name));
 		}
 	}
+
+	[TestMethod]
+	public async Task AContainerLeftSingleUserIsLeftWhileAClientHoldsItAndOpenedAgainAfter()
+	{
+		var provider = new SqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
+		var name = $"connected_test_{Guid.NewGuid():N}";
+		var connectionString = new SqlConnectionStringBuilder(await provider.Create(TestConfiguration.Container(name))) { Pooling = false }.ConnectionString;
+
+		try
+		{
+			await Run($"ALTER DATABASE [{name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE");
+
+			/*
+			 * Its marker cannot be read while the one connection is taken, so it is not touched.
+			 */
+			await using (var holder = new SqlConnection(connectionString))
+			{
+				await holder.OpenAsync();
+
+				var ex = await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => provider.Create(TestConfiguration.Container(name)));
+
+				StringAssert.Contains(ex.Message, "single-user");
+				await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => provider.Drop(TestConfiguration.Container(name)));
+				Assert.AreEqual("SINGLE_USER", await Access(name));
+			}
+
+			await provider.Create(TestConfiguration.Container(name));
+
+			Assert.AreEqual("MULTI_USER", await Access(name));
+		}
+		finally
+		{
+			await provider.Drop(TestConfiguration.Container(name));
+		}
+
+		Assert.IsFalse(await Exists(name));
+	}
+
+	[TestMethod]
+	public async Task AContainerLeftSingleUserIsDropped()
+	{
+		var provider = new SqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
+		var name = $"connected_test_{Guid.NewGuid():N}";
+
+		await provider.Create(TestConfiguration.Container(name));
+		await Run($"ALTER DATABASE [{name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE");
+		await provider.Drop(TestConfiguration.Container(name));
+
+		Assert.IsFalse(await Exists(name));
+	}
+
+	[TestMethod]
+	public async Task AMarkedStagingDatabaseLeftByACreateIsRemovedByALaterDrop()
+	{
+		var provider = new SqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
+		var staging = ProviderName("connected_staging_", TimeSpan.FromHours(2));
+
+		/*
+		 * A create interrupted after the marker, before the rename.
+		 */
+		await Run($"CREATE DATABASE [{staging}]; EXEC [{staging}].sys.sp_addextendedproperty @name = N'connected:storage-container', @value = N'true'");
+		await provider.Drop(TestConfiguration.Container($"connected_test_{Guid.NewGuid():N}"));
+
+		Assert.IsFalse(await Exists(staging));
+	}
+
+	private static string Dropping(TimeSpan age) => ProviderName("connected_dropping_", age);
+
+	private static string ProviderName(string prefix, TimeSpan age) => $"{prefix}{(DateTimeOffset.UtcNow - age).ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture)}_{Guid.NewGuid():N}";
 
 	[TestMethod]
 	public async Task AnOfflineContainerUnderItsOwnNameIsLeftAsItIs()
@@ -223,9 +407,24 @@ public sealed class SqlStorageContainerProviderTests
 		return await command.ExecuteScalarAsync() as string;
 	}
 
-	private static async Task Run(string text)
+	private static async Task<object?> Scalar(string text)
 	{
 		await using var connection = new SqlConnection(TestConfiguration.From(Variable));
+
+		await connection.OpenAsync();
+
+		await using var command = new SqlCommand(text, connection);
+
+		return await command.ExecuteScalarAsync();
+	}
+
+	/// <remarks>
+	/// Not pooled: the session that takes a database to single user keeps its one connection, and a pooled one would
+	/// keep it after the statement.
+	/// </remarks>
+	private static async Task Run(string text)
+	{
+		await using var connection = new SqlConnection(new SqlConnectionStringBuilder(TestConfiguration.From(Variable)) { Pooling = false }.ConnectionString);
 
 		await connection.OpenAsync();
 

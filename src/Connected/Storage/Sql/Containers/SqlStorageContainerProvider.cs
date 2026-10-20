@@ -1,6 +1,7 @@
 using Connected.Configuration;
 using Connected.Storage.Containers;
 using Microsoft.Data.SqlClient;
+using System.Globalization;
 
 namespace Connected.Storage.Sql.Containers;
 
@@ -11,7 +12,7 @@ namespace Connected.Storage.Sql.Containers;
 /// <remarks>
 /// Database names starting with <c>connected_staging_</c> and <c>connected_dropping_</c> are the provider's own: a
 /// container is created under the first and renamed when it is complete, and renamed to the second before it is dropped.
-/// The provider never changes the state of a database under any other name.
+/// The provider changes the state of no database that is not online or does not carry the container marker.
 /// </remarks>
 internal sealed class SqlStorageContainerProvider(IConfigurationService configuration)
 	: StorageContainerProvider(configuration)
@@ -30,14 +31,22 @@ internal sealed class SqlStorageContainerProvider(IConfigurationService configur
 	private const int AzureSqlDatabase = 5;
 
 	/// <summary>
-	/// The error a rename raises when another session uses the database.
+	/// The error raised when a single-user database's one connection is taken.
 	/// </summary>
-	private const int ExclusiveLockFailed = 5030;
+	private const int SingleUserInUse = 924;
 
-	private const int RenameAttempts = 3;
+	private const int DropAttempts = 3;
 
 	private const string StagingPrefix = "connected_staging_";
 	private const string DroppingPrefix = "connected_dropping_";
+	private const string TimeFormat = "yyyyMMddHHmmss";
+
+	/// <summary>
+	/// How long after its create or drop started a database under <see cref="StagingPrefix"/> or
+	/// <see cref="DroppingPrefix"/> counts as abandoned; well beyond what any create or drop takes, so a later drop never
+	/// removes one a concurrent create or drop is still working on.
+	/// </summary>
+	private static readonly TimeSpan AbandonedAfter = TimeSpan.FromHours(1);
 
 	/// <summary>
 	/// Whether the server is supported, once known; the engine edition never changes for a connection string.
@@ -63,7 +72,18 @@ internal sealed class SqlStorageContainerProvider(IConfigurationService configur
 
 		await EnsureSupported(connection);
 
-		switch (await Probe(name, connection))
+		bool? container;
+
+		try
+		{
+			container = await Probe(name, connection);
+		}
+		catch (SqlException ex) when (ex.Number == SingleUserInUse)
+		{
+			throw InUse(name, ex);
+		}
+
+		switch (container)
 		{
 			case null:
 				await CreateMarked(name, connection);
@@ -72,11 +92,13 @@ internal sealed class SqlStorageContainerProvider(IConfigurationService configur
 				throw NotAContainer(name);
 			case true:
 				/*
-				 * A drop interrupted before its rename leaves the container with restricted access.
+				 * A drop interrupted before its rename can leave the container single user. Its one connection was free
+				 * for the probe, and the container is now known to be one, so a client that took it since is rolled
+				 * back.
 				 */
 				if (await Scalar("SELECT user_access_desc FROM sys.databases WHERE name = @name", name, connection) is string access
 					&& !string.Equals(access, "MULTI_USER", StringComparison.OrdinalIgnoreCase))
-					await Execute($"ALTER DATABASE {Quote(name)} SET MULTI_USER", name, connection, uninterruptible: true);
+					await Execute($"ALTER DATABASE {Quote(name)} SET MULTI_USER WITH ROLLBACK IMMEDIATE", name, connection, uninterruptible: true);
 				break;
 		}
 
@@ -86,59 +108,140 @@ internal sealed class SqlStorageContainerProvider(IConfigurationService configur
 	/// <inheritdoc/>
 	protected override async Task OnDrop(string name)
 	{
-		await using var connection = await Open();
+		var connection = await Open();
 
-		await EnsureSupported(connection);
-		await DropAbandoned(connection);
-
-		switch (await Probe(name, connection))
+		try
 		{
-			case null:
-				return;
-			case false:
-				throw NotAContainer(name);
-		}
+			await EnsureSupported(connection);
+			await DropAbandoned(connection);
 
-		var dropping = $"{DroppingPrefix}{Guid.NewGuid():N}";
-		/*
-		 * The container is renamed first, so its name is free as soon as the drop starts and nothing that follows can
-		 * leave a database under it in a state other than online. A rename needs the database to itself, so open
-		 * sessions are rolled back by restricting access, which keeps it online; a session that slips back in before
-		 * the rename is rolled back on the next attempt. Once renamed, clients reconnecting by the old name fail, so
-		 * the database can be taken to single user and dropped without a client taking the one connection allowed.
-		 * The steps run without a timeout and are not cancelled midway; a drop interrupted anyway leaves either the
-		 * container, online and still marked, or a database only this provider names, which the next drop removes.
-		 */
-		SqlConnection.ClearPool(new SqlConnection(new SqlConnectionStringBuilder(DefaultConnectionString) { InitialCatalog = name }.ConnectionString));
+			SqlConnection.ClearPool(new SqlConnection(new SqlConnectionStringBuilder(DefaultConnectionString) { InitialCatalog = name }.ConnectionString));
 
-		await Rename(name, dropping, connection);
-		await Remove(dropping, "ONLINE", connection);
-	}
-
-	private async Task Rename(string name, string dropping, SqlConnection connection)
-	{
-		for (var attempt = 1; ; attempt++)
-		{
-			try
+			for (var attempt = 1; ; attempt++)
 			{
-				await Execute($"""
-					ALTER DATABASE {Quote(name)} SET RESTRICTED_USER WITH ROLLBACK IMMEDIATE;
-					ALTER DATABASE {Quote(name)} MODIFY NAME = {Quote(dropping)};
-					""", name, connection, uninterruptible: true);
+				string dropping;
 
-				return;
-			}
-			catch (SqlException ex) when (ex.Number == ExclusiveLockFailed)
-			{
-				if (attempt < RenameAttempts)
+				try
+				{
+					switch (await Probe(name, connection))
+					{
+						case null:
+							/*
+							 * Also where a concurrent drop of the same container got there first.
+							 */
+							return;
+						case false:
+							throw NotAContainer(name);
+					}
+
+					dropping = await Rename(name, connection);
+				}
+				catch (SqlException) when (attempt < DropAttempts)
+				{
+					/*
+					 * Another session holds the container's single connection (a concurrent drop), or rolled this one
+					 * back. The next attempt starts on a fresh connection and finds the container gone if the other
+					 * drop finished.
+					 */
+					await Release(name, connection);
+					await connection.DisposeAsync();
+					await Task.Delay(TimeSpan.FromSeconds(attempt), CancellationToken);
+
+					connection = await Open();
+
 					continue;
+				}
+				catch (SqlException ex)
+				{
+					await Release(name, connection);
 
-				await Execute($"ALTER DATABASE {Quote(name)} SET MULTI_USER", name, connection, uninterruptible: true);
+					if (ex.Number == SingleUserInUse)
+						throw InUse(name, ex);
 
-				throw;
+					throw;
+				}
+				/*
+				 * Once renamed, clients reconnecting by the old name fail, so nothing takes the database's single
+				 * connection before it is dropped from master.
+				 */
+				await Execute($"""
+					USE master;
+					DROP DATABASE IF EXISTS {Quote(dropping)};
+					""", dropping, connection, uninterruptible: true);
+
+				return;
 			}
 		}
+		finally
+		{
+			await connection.DisposeAsync();
+		}
 	}
+
+	/// <summary>
+	/// Renames the container to a name only this provider uses.
+	/// </summary>
+	/// <remarks>
+	/// The session switches to the container before taking it to single user, so it keeps the one connection allowed
+	/// and no client, the application's own login included, can take it before the rename. The steps run without a
+	/// timeout and are not cancelled midway; a drop interrupted anyway leaves either the container under its own name,
+	/// still marked, or a database only this provider names, which a later drop removes once it is old enough.
+	/// </remarks>
+	/// <returns>The database's new name.</returns>
+	private async Task<string> Rename(string name, SqlConnection connection)
+	{
+		var dropping = ProviderName(DroppingPrefix);
+
+		await Execute($"""
+			USE {Quote(name)};
+			ALTER DATABASE {Quote(name)} SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+			ALTER DATABASE {Quote(name)} MODIFY NAME = {Quote(dropping)};
+			""", name, connection, uninterruptible: true);
+
+		return dropping;
+	}
+
+	/// <summary>
+	/// Opens the container to every user again if this session holds its single connection, after a drop that failed
+	/// before the rename. A session that never got into the container leaves it alone: whoever holds it is not this
+	/// drop's to undo.
+	/// </summary>
+	private async Task Release(string name, SqlConnection connection)
+	{
+		if (connection.State != System.Data.ConnectionState.Open)
+			return;
+
+		try
+		{
+			if (!string.Equals(await Scalar("SELECT DB_NAME()", name, connection, uninterruptible: true) as string, name, StringComparison.OrdinalIgnoreCase))
+				return;
+
+			await Execute($"""
+				ALTER DATABASE {Quote(name)} SET MULTI_USER;
+				USE master;
+				""", name, connection, uninterruptible: true);
+		}
+		catch (SqlException)
+		{
+			/*
+			 * The session ends with the connection, which frees the single connection; the container stays single
+			 * user until the next create opens it again.
+			 */
+		}
+	}
+
+	/// <summary>
+	/// Returns the exception thrown for a database in single-user mode whose one connection another session holds: its
+	/// marker cannot be read, so it is left as it is.
+	/// </summary>
+	private static InvalidOperationException InUse(string name, SqlException inner)
+		=> new($"The storage '{name}' is in single-user mode and its one connection is in use, so whether it is a storage container cannot be read; it is left as it is.", inner);
+
+	/// <summary>
+	/// A name only this provider uses, carrying the time the create or drop started, so a later drop can tell an
+	/// abandoned database from one a concurrent create or drop is still working on.
+	/// </summary>
+	private static string ProviderName(string prefix) => $"{prefix}{DateTimeOffset.UtcNow.ToString(TimeFormat, CultureInfo.InvariantCulture)}_{Guid.NewGuid():N}";
 
 	/// <summary>
 	/// Creates and marks the database under a staging name and only then renames it, so the container's name never
@@ -147,7 +250,7 @@ internal sealed class SqlStorageContainerProvider(IConfigurationService configur
 	/// </summary>
 	private async Task CreateMarked(string name, SqlConnection connection)
 	{
-		var staging = $"{StagingPrefix}{Guid.NewGuid():N}";
+		var staging = ProviderName(StagingPrefix);
 
 		await Execute($"CREATE DATABASE {Quote(staging)}", staging, connection, uninterruptible: true);
 
@@ -201,48 +304,58 @@ internal sealed class SqlStorageContainerProvider(IConfigurationService configur
 	}
 
 	/// <summary>
-	/// Removes databases left behind by interrupted drops. Each is best effort: another drop may be removing the same
-	/// database, and a database that cannot be removed now is tried again on the next drop.
+	/// Removes databases left behind by interrupted creates and drops: only online ones that carry the container marker
+	/// and whose create or drop started long enough ago that nothing can still be working on them. Each is best effort,
+	/// and one that cannot be removed now is tried again by a later drop. A staging database interrupted before it was
+	/// marked is not removed, like any other unmarked database.
 	/// </summary>
 	private async Task DropAbandoned(SqlConnection connection)
 	{
-		var abandoned = new List<(string Name, string State)>();
+		var candidates = new List<string>();
 
-		await using (var command = CreateCommand("SELECT name, state_desc FROM sys.databases WHERE name LIKE @prefix", string.Empty, connection))
+		await using (var command = CreateCommand("SELECT name FROM sys.databases WHERE (name LIKE @staging OR name LIKE @dropping) AND state_desc = 'ONLINE'", string.Empty, connection))
 		{
-			command.Parameters.AddWithValue("@prefix", $"{DroppingPrefix.Replace("_", "[_]")}%");
+			command.Parameters.AddWithValue("@staging", $"{StagingPrefix.Replace("_", "[_]")}%");
+			command.Parameters.AddWithValue("@dropping", $"{DroppingPrefix.Replace("_", "[_]")}%");
 
 			await using var reader = await command.ExecuteReaderAsync(CancellationToken);
 
 			while (await reader.ReadAsync(CancellationToken))
-				abandoned.Add((reader.GetString(0), reader.GetString(1)));
+				candidates.Add(reader.GetString(0));
 		}
 
-		foreach (var (name, state) in abandoned)
+		foreach (var name in candidates)
 		{
+			if (Started(name) is not { } started || DateTimeOffset.UtcNow - started < AbandonedAfter)
+				continue;
+
 			try
 			{
-				await Remove(name, state, connection);
+				if (await Probe(name, connection) != true)
+					continue;
+
+				await Execute($"""
+					ALTER DATABASE {Quote(name)} SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+					DROP DATABASE IF EXISTS {Quote(name)};
+					""", name, connection, uninterruptible: true);
 			}
-			catch (SqlException)
+			catch (Exception ex) when (ex is SqlException or InvalidOperationException)
 			{
 			}
 		}
 	}
 
-	/// <summary>
-	/// Drops a database only this provider names. An offline database is brought online first, because dropping it
-	/// offline would leave its files on disk.
-	/// </summary>
-	private async Task Remove(string name, string state, SqlConnection connection)
+	/// <returns>When the create or drop that named the database started, or <c>null</c> for a name this provider did not write.</returns>
+	private static DateTimeOffset? Started(string name)
 	{
-		if (string.Equals(state, "OFFLINE", StringComparison.OrdinalIgnoreCase))
-			await Execute($"ALTER DATABASE {Quote(name)} SET ONLINE", name, connection, uninterruptible: true);
+		var prefix = name.StartsWith(StagingPrefix, StringComparison.Ordinal) ? StagingPrefix : DroppingPrefix;
+		var stamp = name.Length >= prefix.Length + TimeFormat.Length
+			? name.Substring(prefix.Length, TimeFormat.Length)
+			: string.Empty;
 
-		if (string.Equals(state, "ONLINE", StringComparison.OrdinalIgnoreCase) || string.Equals(state, "OFFLINE", StringComparison.OrdinalIgnoreCase))
-			await Execute($"ALTER DATABASE {Quote(name)} SET SINGLE_USER WITH ROLLBACK IMMEDIATE", name, connection, uninterruptible: true);
-
-		await Execute($"DROP DATABASE {Quote(name)}", name, connection, uninterruptible: true);
+		return DateTimeOffset.TryParseExact(stamp, TimeFormat, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var started)
+			? started
+			: null;
 	}
 
 	/// <summary>
@@ -269,18 +382,25 @@ internal sealed class SqlStorageContainerProvider(IConfigurationService configur
 		await command.ExecuteNonQueryAsync(uninterruptible ? CancellationToken.None : CancellationToken);
 	}
 
-	private async Task<object?> Scalar(string text, string name, SqlConnection connection)
+	private async Task<object?> Scalar(string text, string name, SqlConnection connection, bool uninterruptible = false)
 	{
 		await using var command = CreateCommand(text, name, connection);
 
-		return await command.ExecuteScalarAsync(CancellationToken);
+		if (uninterruptible)
+			command.CommandTimeout = 0;
+
+		return await command.ExecuteScalarAsync(uninterruptible ? CancellationToken.None : CancellationToken);
 	}
 
 	private Task<SqlConnection> Open() => Open(CancellationToken);
 
 	private async Task<SqlConnection> Open(CancellationToken cancel)
 	{
-		var connection = new SqlConnection(new SqlConnectionStringBuilder(DefaultConnectionString) { InitialCatalog = "master" }.ConnectionString);
+		/*
+		 * Not pooled: a session that switched to a container must end with the connection, or a pooled connection would
+		 * keep holding the container's single connection.
+		 */
+		var connection = new SqlConnection(new SqlConnectionStringBuilder(DefaultConnectionString) { InitialCatalog = "master", Pooling = false }.ConnectionString);
 
 		await connection.OpenAsync(cancel);
 

@@ -65,8 +65,12 @@ public sealed class PostgreSqlStorageContainerProviderTests
 	{
 		var defaultConnection = TestConfiguration.From(Variable);
 		var provider = new PostgreSqlStorageContainerProvider(new TestConfiguration(defaultConnection));
-		var name = new NpgsqlConnectionStringBuilder(defaultConnection).Database!;
+		/*
+		 * As the server resolves it, because the connection string may name no database.
+		 */
+		var name = await Scalar("SELECT current_database()") as string;
 
+		Assert.IsFalse(string.IsNullOrEmpty(name));
 		await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => provider.Drop(TestConfiguration.Container(name)));
 		Assert.IsTrue(await Exists(name));
 	}
@@ -110,6 +114,17 @@ public sealed class PostgreSqlStorageContainerProviderTests
 		}
 
 		Assert.IsFalse(await Exists(name));
+	}
+
+	private static async Task<object?> Scalar(string text)
+	{
+		await using var connection = new NpgsqlConnection(TestConfiguration.From(Variable));
+
+		await connection.OpenAsync();
+
+		await using var command = new NpgsqlCommand(text, connection);
+
+		return await command.ExecuteScalarAsync();
 	}
 
 	private static async Task Run(string text)
