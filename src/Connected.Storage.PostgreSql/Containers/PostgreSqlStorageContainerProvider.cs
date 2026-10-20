@@ -1,6 +1,7 @@
 using Connected.Configuration;
 using Connected.Storage.Containers;
 using Npgsql;
+using System.Globalization;
 
 namespace Connected.Storage.PostgreSql.Containers;
 
@@ -17,6 +18,15 @@ internal sealed class PostgreSqlStorageContainerProvider(IConfigurationService c
 {
 	/// <inheritdoc/>
 	public override Type ConnectionType => typeof(PostgreSqlDataConnection);
+
+	private const string StagingPrefix = "connected_staging_";
+	private const string TimeFormat = "yyyyMMddHHmmss";
+
+	/// <summary>
+	/// How long after its create started a staging database counts as abandoned; well beyond what any create takes, so
+	/// a drop never removes one a concurrent create is still working on.
+	/// </summary>
+	private static readonly TimeSpan AbandonedAfter = TimeSpan.FromHours(1);
 
 	/// <inheritdoc/>
 	protected override async Task<string?> DefaultName()
@@ -55,6 +65,8 @@ internal sealed class PostgreSqlStorageContainerProvider(IConfigurationService c
 	{
 		await using var connection = await Open();
 
+		await DropAbandoned(connection);
+
 		switch (await Probe(name, connection))
 		{
 			case null:
@@ -78,7 +90,11 @@ internal sealed class PostgreSqlStorageContainerProvider(IConfigurationService c
 	/// </summary>
 	private async Task CreateMarked(string name, NpgsqlConnection connection)
 	{
-		var staging = $"connected_staging_{Guid.NewGuid():N}";
+		/*
+		 * The time the create started, so a later drop can tell an abandoned staging database from one a concurrent
+		 * create is still working on; the id is shortened to keep the name within the 63-byte identifier limit.
+		 */
+		var staging = $"{StagingPrefix}{DateTimeOffset.UtcNow.ToString(TimeFormat, CultureInfo.InvariantCulture)}_{Guid.NewGuid().ToString("N")[..16]}";
 
 		await Execute($"CREATE DATABASE {Quote(staging)}", connection, CancellationToken.None);
 
@@ -111,6 +127,45 @@ internal sealed class PostgreSqlStorageContainerProvider(IConfigurationService c
 
 			if (await Probe(name, connection) != true)
 				throw NotAContainer(name);
+		}
+	}
+
+	/// <summary>
+	/// Removes staging databases left behind by interrupted creates: only ones that carry the container marker and whose
+	/// create started long enough ago that no create can still be working on them. Each is best effort, and one that
+	/// cannot be removed now is tried again by a later drop. A staging database interrupted before it was marked is not
+	/// removed, like any other unmarked database.
+	/// </summary>
+	private async Task DropAbandoned(NpgsqlConnection connection)
+	{
+		var candidates = new List<string>();
+
+		await using (var command = new NpgsqlCommand("SELECT datname FROM pg_database WHERE datname LIKE @prefix AND shobj_description(oid, 'pg_database') = @marker", connection))
+		{
+			command.Parameters.AddWithValue("prefix", $"{StagingPrefix.Replace("_", "\\_")}%");
+			command.Parameters.AddWithValue("marker", ContainerMarker);
+
+			await using var reader = await command.ExecuteReaderAsync(CancellationToken);
+
+			while (await reader.ReadAsync(CancellationToken))
+				candidates.Add(reader.GetString(0));
+		}
+
+		foreach (var name in candidates)
+		{
+			var stamp = name.Length >= StagingPrefix.Length + TimeFormat.Length ? name.Substring(StagingPrefix.Length, TimeFormat.Length) : string.Empty;
+
+			if (!DateTimeOffset.TryParseExact(stamp, TimeFormat, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var started)
+				|| DateTimeOffset.UtcNow - started < AbandonedAfter)
+				continue;
+
+			try
+			{
+				await Execute($"DROP DATABASE IF EXISTS {Quote(name)} WITH (FORCE)", connection, CancellationToken.None);
+			}
+			catch (NpgsqlException)
+			{
+			}
 		}
 	}
 

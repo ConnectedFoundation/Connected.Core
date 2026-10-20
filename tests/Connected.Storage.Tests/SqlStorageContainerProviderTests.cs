@@ -248,7 +248,9 @@ public sealed class SqlStorageContainerProviderTests
 	}
 
 	[TestMethod]
-	public async Task AContainerLeftRestrictedByAnInterruptedDropIsOpenedAgainOnCreate()
+	[DataRow("RESTRICTED_USER")]
+	[DataRow("SINGLE_USER")]
+	public async Task AccessAnAdministratorRestrictedIsLeftOnCreate(string access)
 	{
 		var provider = new SqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
 		var name = $"connected_test_{Guid.NewGuid():N}";
@@ -257,27 +259,61 @@ public sealed class SqlStorageContainerProviderTests
 
 		try
 		{
-			await Run($"ALTER DATABASE [{name}] SET RESTRICTED_USER");
+			await Run($"ALTER DATABASE [{name}] SET {access} WITH ROLLBACK IMMEDIATE");
 			await provider.Create(TestConfiguration.Container(name));
 
-			Assert.AreEqual("MULTI_USER", await Access(name));
+			Assert.AreEqual(access, await Access(name));
 		}
 		finally
 		{
 			await provider.Drop(TestConfiguration.Container(name));
 		}
+
+		Assert.IsFalse(await Exists(name));
 	}
 
 	[TestMethod]
-	public async Task AContainerLeftSingleUserIsLeftWhileAClientHoldsItAndOpenedAgainAfter()
+	public async Task ADropWaitsForTheContainersOneConnectionToBeFreed()
 	{
 		var provider = new SqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
 		var name = $"connected_test_{Guid.NewGuid():N}";
 		var connectionString = new SqlConnectionStringBuilder(await provider.Create(TestConfiguration.Container(name))) { Pooling = false }.ConnectionString;
 
+		/*
+		 * Another session holds the one connection for a while, as a concurrent drop rolling back a large transaction
+		 * would.
+		 */
+		await Run($"ALTER DATABASE [{name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE");
+
+		var holder = new SqlConnection(connectionString);
+
+		await holder.OpenAsync();
+
+		var release = Task.Run(async () =>
+		{
+			await Task.Delay(TimeSpan.FromSeconds(6));
+			await holder.DisposeAsync();
+		});
+
+		await provider.Drop(TestConfiguration.Container(name));
+		await release;
+
+		Assert.IsFalse(await Exists(name));
+	}
+
+	[TestMethod]
+	public async Task AContainerLeftSingleUserByADropIsLeftWhileAClientHoldsItAndOpenedAgainAfter()
+	{
+		var provider = new SqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable))) { ContentionWait = TimeSpan.FromSeconds(3) };
+		var name = $"connected_test_{Guid.NewGuid():N}";
+		var connectionString = new SqlConnectionStringBuilder(await provider.Create(TestConfiguration.Container(name))) { Pooling = false }.ConnectionString;
+
 		try
 		{
-			await Run($"ALTER DATABASE [{name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE");
+			/*
+			 * A drop interrupted after it marked the container and took it to single user, before the rename.
+			 */
+			await Run($"EXEC [{name}].sys.sp_addextendedproperty @name = N'connected:storage-container-dropping', @value = N'true'; ALTER DATABASE [{name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE");
 
 			/*
 			 * Its marker cannot be read while the one connection is taken, so it is not touched.
@@ -296,6 +332,7 @@ public sealed class SqlStorageContainerProviderTests
 			await provider.Create(TestConfiguration.Container(name));
 
 			Assert.AreEqual("MULTI_USER", await Access(name));
+			Assert.IsNull(await Scalar($"SELECT 1 FROM [{name}].sys.extended_properties WHERE class = 0 AND name = N'connected:storage-container-dropping'"));
 		}
 		finally
 		{

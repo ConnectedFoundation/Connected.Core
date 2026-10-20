@@ -35,7 +35,41 @@ internal sealed class SqlStorageContainerProvider(IConfigurationService configur
 	/// </summary>
 	private const int SingleUserInUse = 924;
 
-	private const int DropAttempts = 3;
+	/// <summary>
+	/// The error raised when a rename cannot lock the database because another session uses it.
+	/// </summary>
+	private const int ExclusiveLockFailed = 5030;
+
+	/// <summary>
+	/// The error raised in a session another session's <c>ROLLBACK IMMEDIATE</c> ended.
+	/// </summary>
+	private const int SessionKilled = 596;
+
+	/// <summary>
+	/// The error raised while another session changes the database's state or access.
+	/// </summary>
+	private const int InTransition = 952;
+
+	/// <summary>
+	/// The error raised when <c>ALTER DATABASE</c> cannot lock the database because another session is changing it.
+	/// </summary>
+	private const int LockNotPlaced = 5061;
+
+	private const int DeadlockVictim = 1205;
+
+	/// <summary>
+	/// The extended property a drop sets on the container before it takes it to single user, so a create can tell a
+	/// container a drop left single user from one an administrator restricted.
+	/// </summary>
+	private const string DroppingMarker = "connected:storage-container-dropping";
+
+	private static readonly TimeSpan MaxBackoff = TimeSpan.FromSeconds(10);
+
+	/// <summary>
+	/// Gets how long a drop waits for another session to give up the container's one connection, a concurrent drop of
+	/// the same container possibly rolling back a large transaction, before it gives up.
+	/// </summary>
+	internal TimeSpan ContentionWait { get; init; } = TimeSpan.FromMinutes(5);
 
 	private const string StagingPrefix = "connected_staging_";
 	private const string DroppingPrefix = "connected_dropping_";
@@ -77,6 +111,9 @@ internal sealed class SqlStorageContainerProvider(IConfigurationService configur
 		try
 		{
 			container = await Probe(name, connection);
+
+			if (container == true)
+				await Reopen(name, connection);
 		}
 		catch (SqlException ex) when (ex.Number == SingleUserInUse)
 		{
@@ -90,16 +127,6 @@ internal sealed class SqlStorageContainerProvider(IConfigurationService configur
 				break;
 			case false:
 				throw NotAContainer(name);
-			case true:
-				/*
-				 * A drop interrupted before its rename can leave the container single user. Its one connection was free
-				 * for the probe, and the container is now known to be one, so a client that took it since is rolled
-				 * back.
-				 */
-				if (await Scalar("SELECT user_access_desc FROM sys.databases WHERE name = @name", name, connection) is string access
-					&& !string.Equals(access, "MULTI_USER", StringComparison.OrdinalIgnoreCase))
-					await Execute($"ALTER DATABASE {Quote(name)} SET MULTI_USER WITH ROLLBACK IMMEDIATE", name, connection, uninterruptible: true);
-				break;
 		}
 
 		return new SqlConnectionStringBuilder(DefaultConnectionString) { InitialCatalog = name }.ConnectionString;
@@ -116,6 +143,8 @@ internal sealed class SqlStorageContainerProvider(IConfigurationService configur
 			await DropAbandoned(connection);
 
 			SqlConnection.ClearPool(new SqlConnection(new SqlConnectionStringBuilder(DefaultConnectionString) { InitialCatalog = name }.ConnectionString));
+
+			var deadline = DateTimeOffset.UtcNow + ContentionWait;
 
 			for (var attempt = 1; ; attempt++)
 			{
@@ -136,16 +165,17 @@ internal sealed class SqlStorageContainerProvider(IConfigurationService configur
 
 					dropping = await Rename(name, connection);
 				}
-				catch (SqlException) when (attempt < DropAttempts)
+				catch (Exception ex) when (IsContention(ex, connection) && DateTimeOffset.UtcNow < deadline)
 				{
 					/*
-					 * Another session holds the container's single connection (a concurrent drop), or rolled this one
-					 * back. The next attempt starts on a fresh connection and finds the container gone if the other
-					 * drop finished.
+					 * Another session holds the container's single connection (a concurrent drop, possibly rolling back
+					 * a large transaction), or rolled this one back. Nothing has been renamed, so the wait honours
+					 * cancellation; the next attempt starts on a fresh connection and finds the container gone if the
+					 * other drop finished.
 					 */
 					await Release(name, connection);
 					await connection.DisposeAsync();
-					await Task.Delay(TimeSpan.FromSeconds(attempt), CancellationToken);
+					await Task.Delay(TimeSpan.FromSeconds(Math.Min(attempt, MaxBackoff.TotalSeconds)), CancellationToken);
 
 					connection = await Open();
 
@@ -182,10 +212,11 @@ internal sealed class SqlStorageContainerProvider(IConfigurationService configur
 	/// Renames the container to a name only this provider uses.
 	/// </summary>
 	/// <remarks>
-	/// The session switches to the container before taking it to single user, so it keeps the one connection allowed
-	/// and no client, the application's own login included, can take it before the rename. The steps run without a
-	/// timeout and are not cancelled midway; a drop interrupted anyway leaves either the container under its own name,
-	/// still marked, or a database only this provider names, which a later drop removes once it is old enough.
+	/// The session switches to the container and marks it as being dropped before taking it to single user, so it keeps
+	/// the one connection allowed and no client, the application's own login included, can take it before the rename.
+	/// The steps run without a timeout and are not cancelled midway; a drop interrupted anyway leaves either the
+	/// container under its own name, still marked and possibly single user, or a database only this provider names,
+	/// which a later drop removes once it is old enough.
 	/// </remarks>
 	/// <returns>The database's new name.</returns>
 	private async Task<string> Rename(string name, SqlConnection connection)
@@ -194,6 +225,16 @@ internal sealed class SqlStorageContainerProvider(IConfigurationService configur
 
 		await Execute($"""
 			USE {Quote(name)};
+			BEGIN TRY
+				EXEC sys.sp_addextendedproperty @name = @dropping, @value = N'true';
+			END TRY
+			BEGIN CATCH
+				/*
+				 * 15233: already marked, by an earlier interrupted drop or a concurrent one.
+				 */
+				IF ERROR_NUMBER() <> 15233
+					THROW;
+			END CATCH;
 			ALTER DATABASE {Quote(name)} SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
 			ALTER DATABASE {Quote(name)} MODIFY NAME = {Quote(dropping)};
 			""", name, connection, uninterruptible: true);
@@ -218,6 +259,8 @@ internal sealed class SqlStorageContainerProvider(IConfigurationService configur
 
 			await Execute($"""
 				ALTER DATABASE {Quote(name)} SET MULTI_USER;
+				IF EXISTS (SELECT 1 FROM sys.extended_properties WHERE class = 0 AND name = @dropping)
+					EXEC sys.sp_dropextendedproperty @name = @dropping;
 				USE master;
 				""", name, connection, uninterruptible: true);
 		}
@@ -225,9 +268,49 @@ internal sealed class SqlStorageContainerProvider(IConfigurationService configur
 		{
 			/*
 			 * The session ends with the connection, which frees the single connection; the container stays single
-			 * user until the next create opens it again.
+			 * user, marked as being dropped, until the next create or drop.
 			 */
 		}
+	}
+
+	/// <summary>
+	/// Undoes what an interrupted drop left on a container: single-user mode and the mark that it was being dropped.
+	/// </summary>
+	/// <remarks>
+	/// Only a container carrying <see cref="DroppingMarker"/> is touched, so access an administrator restricted stays as
+	/// it is. Its one connection was free for the probe, and the container is known to be one, so a client that took it
+	/// since is rolled back.
+	/// </remarks>
+	private async Task Reopen(string name, SqlConnection connection)
+	{
+		if (await Scalar($"SELECT 1 FROM {Quote(name)}.sys.extended_properties WHERE class = 0 AND name = @dropping", name, connection) is null or DBNull)
+			return;
+
+		if (await Scalar("SELECT user_access_desc FROM sys.databases WHERE name = @name", name, connection) is string access
+			&& !string.Equals(access, "MULTI_USER", StringComparison.OrdinalIgnoreCase))
+			await Execute($"ALTER DATABASE {Quote(name)} SET MULTI_USER WITH ROLLBACK IMMEDIATE", name, connection, uninterruptible: true);
+
+		await Execute($"EXEC {Quote(name)}.sys.sp_dropextendedproperty @name = @dropping", name, connection, uninterruptible: true);
+	}
+
+	/// <returns>Whether the failure is another session holding or having taken the container, worth waiting out.</returns>
+	/// <remarks>
+	/// Every error of the batch is looked at, because a failed <c>ALTER DATABASE</c> reports a generic error after the
+	/// one that says why. A session another drop's <c>ROLLBACK IMMEDIATE</c> ended can also close the connection after
+	/// a statement that succeeded, so the next command finds it closed.
+	/// </remarks>
+	private static bool IsContention(Exception ex, SqlConnection connection)
+	{
+		if (ex is not SqlException sql)
+			return ex is InvalidOperationException && connection.State != System.Data.ConnectionState.Open;
+
+		foreach (SqlError error in sql.Errors)
+		{
+			if (error.Number is SingleUserInUse or ExclusiveLockFailed or SessionKilled or InTransition or LockNotPlaced or DeadlockVictim || error.Class >= 20)
+				return true;
+		}
+
+		return false;
 	}
 
 	/// <summary>
@@ -313,10 +396,10 @@ internal sealed class SqlStorageContainerProvider(IConfigurationService configur
 	{
 		var candidates = new List<string>();
 
-		await using (var command = CreateCommand("SELECT name FROM sys.databases WHERE (name LIKE @staging OR name LIKE @dropping) AND state_desc = 'ONLINE'", string.Empty, connection))
+		await using (var command = CreateCommand("SELECT name FROM sys.databases WHERE (name LIKE @stagingPrefix OR name LIKE @droppingPrefix) AND state_desc = 'ONLINE'", string.Empty, connection))
 		{
-			command.Parameters.AddWithValue("@staging", $"{StagingPrefix.Replace("_", "[_]")}%");
-			command.Parameters.AddWithValue("@dropping", $"{DroppingPrefix.Replace("_", "[_]")}%");
+			command.Parameters.AddWithValue("@stagingPrefix", $"{StagingPrefix.Replace("_", "[_]")}%");
+			command.Parameters.AddWithValue("@droppingPrefix", $"{DroppingPrefix.Replace("_", "[_]")}%");
 
 			await using var reader = await command.ExecuteReaderAsync(CancellationToken);
 
@@ -413,6 +496,7 @@ internal sealed class SqlStorageContainerProvider(IConfigurationService configur
 
 		command.Parameters.AddWithValue("@name", name);
 		command.Parameters.AddWithValue("@marker", ContainerMarker);
+		command.Parameters.AddWithValue("@dropping", DroppingMarker);
 
 		return command;
 	}

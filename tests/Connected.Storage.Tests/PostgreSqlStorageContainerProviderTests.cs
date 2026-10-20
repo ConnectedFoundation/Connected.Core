@@ -116,6 +116,49 @@ public sealed class PostgreSqlStorageContainerProviderTests
 		Assert.IsFalse(await Exists(name));
 	}
 
+	[TestMethod]
+	public async Task AMarkedStagingDatabaseLeftByACreateIsRemovedByALaterDrop()
+	{
+		var provider = new PostgreSqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
+		var staging = Staging(TimeSpan.FromHours(2));
+
+		/*
+		 * A create interrupted after the marker, before the rename.
+		 */
+		await Run($"CREATE DATABASE \"{staging}\"");
+		await Run($"COMMENT ON DATABASE \"{staging}\" IS 'connected:storage-container'");
+		await provider.Drop(TestConfiguration.Container($"connected_test_{Guid.NewGuid():N}"));
+
+		Assert.IsFalse(await Exists(staging));
+	}
+
+	[TestMethod]
+	[DataRow(0, true)]
+	[DataRow(2, false)]
+	public async Task AStagingDatabaseACreateMayStillBeWorkingOnOrThatIsUnmarkedIsNotRemoved(int hoursOld, bool marked)
+	{
+		var provider = new PostgreSqlStorageContainerProvider(new TestConfiguration(TestConfiguration.From(Variable)));
+		var staging = Staging(TimeSpan.FromHours(hoursOld));
+
+		await Run($"CREATE DATABASE \"{staging}\"");
+
+		if (marked)
+			await Run($"COMMENT ON DATABASE \"{staging}\" IS 'connected:storage-container'");
+
+		try
+		{
+			await provider.Drop(TestConfiguration.Container($"connected_test_{Guid.NewGuid():N}"));
+
+			Assert.IsTrue(await Exists(staging));
+		}
+		finally
+		{
+			await Run($"DROP DATABASE \"{staging}\"");
+		}
+	}
+
+	private static string Staging(TimeSpan age) => $"connected_staging_{(DateTimeOffset.UtcNow - age).ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture)}_{Guid.NewGuid().ToString("N")[..16]}";
+
 	private static async Task<object?> Scalar(string text)
 	{
 		await using var connection = new NpgsqlConnection(TestConfiguration.From(Variable));
