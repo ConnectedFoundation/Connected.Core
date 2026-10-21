@@ -156,7 +156,8 @@ public static class RuntimeExtensions
 
 		method?.Invoke(null, [app]);
 
-		GrpcServices.Add(type);
+		if (!GrpcServices.Contains(type))
+			GrpcServices.Add(type);
 	}
 	/// <summary>
 	/// Registers a single service operation type into the service collection as transient.

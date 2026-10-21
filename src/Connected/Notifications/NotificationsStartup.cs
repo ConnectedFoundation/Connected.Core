@@ -16,6 +16,12 @@ public sealed class NotificationsStartup : Runtime.Startup
 
 	protected override void OnConfigure(IApplicationBuilder app, IWebHostEnvironment env)
 	{
+		/*
+		 * Without workers nothing drains or cleans the queued messages, so clients must not connect at all.
+		 */
+		if (!Application.WorkersEnabled)
+			return;
+
 		app.UseEndpoints((f) =>
 		{
 			f.MapHub<EventHub>(Hub);

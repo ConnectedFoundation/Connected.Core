@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    A minimal Connected application the hosting tests load into a collectible load context. It is never referenced
+    as an assembly by the tests, so the test process's own default context never loads Connected.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Connected\Connected.csproj" />
+    <ProjectReference Include="..\..\src\Connected.Extensions\Connected.Extensions.csproj" />
+    <ProjectReference Include="..\..\src\Connected.Authorization\Connected.Authorization.csproj" />
+  </ItemGroup>
+
+</Project>

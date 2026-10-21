@@ -1,0 +1,35 @@
+<Project Sdk="MSTest.Sdk/3.6.4">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <!--
+    The application under test is built first but not referenced, so Connected is only ever loaded into the
+    collectible contexts the tests create. Its output path is handed to the tests as assembly metadata.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Connected.Hosting.Tests.App\Connected.Hosting.Tests.App.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
+    <ProjectReference Include="..\Connected.Hosting.Tests.Plugin\Connected.Hosting.Tests.Plugin.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>NestedApplication</_Parameter1>
+      <_Parameter2>$(MSBuildThisFileDirectory)..\Connected.Hosting.Tests.App\bin\$(Configuration)\net10.0\Connected.Hosting.Tests.App.dll</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>Plugin</_Parameter1>
+      <_Parameter2>$(MSBuildThisFileDirectory)..\Connected.Hosting.Tests.Plugin\bin\$(Configuration)\net10.0\Connected.Hosting.Tests.Plugin.dll</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>
