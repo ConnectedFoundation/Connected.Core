@@ -82,17 +82,13 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 	{
 		var result = new List<IStorageConnection>();
 		/*
-		 * We need middlewares which provides storage connections.
-		 */
-		var middlewares = await middleware.Query<IStorageConnectionProvider>();
-		/*
 		 * First we'll prepare a list of default connections. Note thay won't get initialized
 		 * just retrieved from the DI container to get information about what connection type
 		 * will be used when executing the operation. Namely, even in a sharding models the
 		 * same connection type will be used for all shards but with different connection strings.
 		 * This is why sharding providers provide only connection strings instead of connections.
 		 */
-		var proposedConnections = new List<IStorageConnection>();
+		var proposedConnections = await Propose<TEntity>(middleware, dto);
 		/*
 		 * The default connection dto which uses a default connection string provided
 		 * by a system configuration.
@@ -101,29 +97,6 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 
 		connectionDto.Mode = Mode == StorageConnectionMode.Isolated ? Mode : dto.ConnectionMode;
 		connectionDto.ConnectionString = ConnectionString;
-		/*
-		 * Now look at the each middleware and try to retrieve at least one connection. If fact,
-		 * only one connection should be used by most providers since the default behavior
-		 * should not provides distributed storages.
-		 */
-		foreach (var middleware in middlewares)
-		{
-			var connections = await middleware.Invoke<TEntity>(dto);
-
-			if (connections.Count != 0)
-			{
-				/*
-				 * Middleware provided connection(s). We are happy with that so we
-				 * won't look in the other middlewares. This is why the priority is important,
-				 * the more specific entities can have their very own providers and once 
-				 * identified, we are not interested in the default implementations anymore.
-				 */
-				foreach (var connection in connections)
-					proposedConnections.Add(connection);
-
-				break;
-			}
-		}
 		/*
 		 * At this point we must have at least one proposed connection. Otherwise we don't have
 		 * an information about connection type which is essential to performing an execute.
@@ -200,6 +173,50 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 			result.Add(await EnsureConnection<TEntity>(proposed, connectionDto));
 
 		return [.. result];
+	}
+
+	/// <summary>
+	/// Returns the connection type a storage operation on the entity is performed with.
+	/// </summary>
+	/// <remarks>
+	/// The type is chosen with the same rule every storage operation uses. The proposed connections are only inspected
+	/// for their type and are never opened.
+	/// </remarks>
+	/// <returns>The connection type, or <c>null</c> if no storage connection provider proposes a connection.</returns>
+	internal static async Task<Type?> ResolveConnectionType<TEntity>(IMiddlewareService middleware, IStorageContextDto dto)
+		where TEntity : IEntity
+	{
+		var proposed = await Propose<TEntity>(middleware, dto);
+
+		foreach (var connection in proposed)
+			await connection.DisposeAsync();
+
+		return proposed.Count == 0 ? null : proposed[0].GetType();
+	}
+
+	private static async Task<List<IStorageConnection>> Propose<TEntity>(IMiddlewareService middleware, IStorageContextDto dto)
+		where TEntity : IEntity
+	{
+		/*
+		 * Now look at the each middleware and try to retrieve at least one connection. If fact,
+		 * only one connection should be used by most providers since the default behavior
+		 * should not provides distributed storages.
+		 */
+		foreach (var provider in await middleware.Query<IStorageConnectionProvider>())
+		{
+			var connections = await provider.Invoke<TEntity>(dto);
+
+			/*
+			 * Middleware provided connection(s). We are happy with that so we
+			 * won't look in the other middlewares. This is why the priority is important,
+			 * the more specific entities can have their very own providers and once
+			 * identified, we are not interested in the default implementations anymore.
+			 */
+			if (connections.Count != 0)
+				return [.. connections];
+		}
+
+		return [];
 	}
 
 	private async Task<IStorageConnection> EnsureConnection<TEntity>(IStorageConnection connection, IStorageConnectionDto dto)

@@ -11,6 +11,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Connected.Storage.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Connected\Connected.csproj" />
     <ProjectReference Include="..\Connected.Extensions\Connected.Extensions.csproj" />
     <ProjectReference Include="..\Connected.Model\Connected.Model.csproj" />
