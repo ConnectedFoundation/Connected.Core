@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
@@ -220,6 +221,48 @@ public sealed class NestedApplicationTests
 		finally
 		{
 			await host.Stop();
+		}
+	}
+
+	[TestMethod]
+	[Timeout(120_000)]
+	public async Task WhatTheBootstrapProviderHandsOutLastsUntilTheRunEnds()
+	{
+		var context = new ApplicationContext(NestedHost.ApplicationPath);
+
+		try
+		{
+			var startupType = context.LoadFromAssemblyName(new AssemblyName("Connected.Extensions")).GetType("Connected.Services.ServiceExtensionsStartup", true)!;
+			var startup = Activator.CreateInstance(startupType)!;
+			var services = new ServiceCollection();
+
+			services.AddSingleton<CancellationTokenSource>();
+			startupType.GetMethod("ConfigureServices")!.Invoke(startup, [services]);
+			/*
+			 * Taken before start-up and kept past it, as a long-lived service would.
+			 */
+			var bootstrap = (IServiceProvider)startupType.GetMethod("BootstrapProvider", BindingFlags.Public | BindingFlags.Static)!.Invoke(null, null)!;
+			var scope = bootstrap.CreateAsyncScope();
+			var singleton = bootstrap.GetRequiredService<CancellationTokenSource>();
+
+			using var host = new Microsoft.Extensions.Hosting.HostBuilder().Build();
+
+			await (Task)startupType.GetMethod("Initialize")!.Invoke(startup, [host])!;
+			await host.StartAsync();
+
+			Assert.AreSame(host.Services, startupType.GetProperty("Services")!.GetValue(null), "Once initialized, the application's own provider is handed out.");
+			Assert.IsFalse(singleton.Token.IsCancellationRequested, "A singleton taken before start-up was disposed when the application started.");
+			Assert.AreSame(singleton, scope.ServiceProvider.GetRequiredService<CancellationTokenSource>(), "A scope taken before start-up stopped working when the application started.");
+
+			await host.StopAsync();
+
+			await (Task)startupType.GetMethod("Reset", BindingFlags.Public | BindingFlags.Static)!.Invoke(null, null)!;
+
+			Assert.ThrowsException<ObjectDisposedException>(() => singleton.Token, "The bootstrap provider was not disposed when the run ended.");
+		}
+		finally
+		{
+			context.Unload();
 		}
 	}
 
