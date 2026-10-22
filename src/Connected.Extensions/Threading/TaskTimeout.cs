@@ -27,13 +27,18 @@ public sealed class TaskTimeout : IDisposable
 
 		CancelSource = new CancellationTokenSource();
 
-		cancel.Register(() =>
+		/*
+		 * The registration must be disposed, otherwise a long-lived token keeps this instance
+		 * (and everything referenced by the ping and lifespan actions) alive forever.
+		 */
+		CancelRegistration = cancel.Register(() =>
 		{
 			CancelSource.Cancel();
 		});
 	}
 
 	private CancellationTokenSource CancelSource { get; }
+	private CancellationTokenRegistration CancelRegistration { get; }
 	private bool IsRunning { get; set; }
 
 	public void Start()
@@ -129,6 +134,7 @@ public sealed class TaskTimeout : IDisposable
 
 	public void Dispose()
 	{
+		CancelRegistration.Dispose();
 		Stop();
 		CancelSource.Dispose();
 
