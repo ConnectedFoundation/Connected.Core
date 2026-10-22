@@ -26,14 +26,19 @@ public sealed class TaskTimeout : IDisposable
 		_pingInterval = pingInterval;
 
 		CancelSource = new CancellationTokenSource();
-
-		cancel.Register(() =>
+		/*
+		 * The token usually outlives this instance (a dispatcher's or a host's token), so the
+		 * registration must be disposed, otherwise the token keeps this instance and everything
+		 * reachable from the ping action alive for the life of the process.
+		 */
+		Registration = cancel.Register(() =>
 		{
 			CancelSource.Cancel();
 		});
 	}
 
 	private CancellationTokenSource CancelSource { get; }
+	private CancellationTokenRegistration Registration { get; }
 	private bool IsRunning { get; set; }
 
 	public void Start()
@@ -129,6 +134,7 @@ public sealed class TaskTimeout : IDisposable
 
 	public void Dispose()
 	{
+		Registration.Dispose();
 		Stop();
 		CancelSource.Dispose();
 
