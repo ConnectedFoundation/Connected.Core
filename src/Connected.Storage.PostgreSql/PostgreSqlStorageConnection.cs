@@ -100,7 +100,7 @@ internal abstract class PostgreSqlStorageConnection(ICancellationContext context
 	protected override void SetParameterValue(IDbCommand command, string parameterName, object? value)
 	{
 		if (command is NpgsqlCommand cmd)
-			cmd.Parameters[parameterName].Value = value is null ? DBNull.Value : value;
+			cmd.Parameters[parameterName].Value = ToParameterValue(value);
 	}
 
 	/// <summary>
@@ -132,6 +132,21 @@ internal abstract class PostgreSqlStorageConnection(ICancellationContext context
 	/// server version. If the connection fails, it returns a default version (15.0).
 	/// The version information can be used for version-specific SQL syntax or feature detection.
 	/// </remarks>
+	/// <summary>
+	/// Converts a value to one a parameter accepts.
+	/// </summary>
+	/// <param name="value">The value.</param>
+	/// <returns><see cref="DBNull"/> for null, the underlying number for an enum, which NpgsqlParameter refuses unlike SqlParameter.</returns>
+	internal static object ToParameterValue(object? value)
+	{
+		return value switch
+		{
+			null => DBNull.Value,
+			Enum e => Convert.ChangeType(e, e.GetTypeCode()),
+			_ => value
+		};
+	}
+
 	public static Version ResolveVersion(string connectionString)
 	{
 		try

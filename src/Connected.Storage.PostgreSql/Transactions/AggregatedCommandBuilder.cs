@@ -22,11 +22,12 @@ internal sealed class AggregatedCommandBuilder<TEntity>
 	/// Builds a storage operation for a single entity based on its state.
 	/// </summary>
 	/// <param name="entity">The entity to build the operation for.</param>
+	/// <param name="updatedProperties">The properties an update is limited to, or <c>null</c> for all of them.</param>
 	/// <param name="cancel">Cancellation token for the operation.</param>
 	/// <returns>A <see cref="PostgreSqlStorageOperation"/> for the entity, or null if the state is not supported.</returns>
 	/// <exception cref="ArgumentException">Thrown when the entity does not implement <see cref="IEntity"/>.</exception>
 	/// <exception cref="NotSupportedException">Thrown when the entity state is not Add, Update, or Delete.</exception>
-	public static async Task<PostgreSqlStorageOperation?> Build(TEntity entity, CancellationToken cancel)
+	public static async Task<PostgreSqlStorageOperation?> Build(TEntity entity, IEnumerable<string>? updatedProperties, CancellationToken cancel)
 	{
 		if (entity is not IEntity ie)
 			throw new ArgumentException(null, nameof(entity));
@@ -34,7 +35,7 @@ internal sealed class AggregatedCommandBuilder<TEntity>
 		return ie.State switch
 		{
 			State.Add => await AggregatedCommandBuilder<TEntity>.BuildInsert(ie, cancel),
-			State.Update => await AggregatedCommandBuilder<TEntity>.BuildUpdate(ie, cancel),
+			State.Update => await AggregatedCommandBuilder<TEntity>.BuildUpdate(ie, updatedProperties, cancel),
 			State.Delete => await AggregatedCommandBuilder<TEntity>.BuildDelete(ie, cancel),
 			_ => throw new NotSupportedException(),
 		};
@@ -57,7 +58,7 @@ internal sealed class AggregatedCommandBuilder<TEntity>
 
 		foreach (var entity in entities)
 		{
-			var operation = await AggregatedCommandBuilder<TEntity>.Build(entity, cancel);
+			var operation = await AggregatedCommandBuilder<TEntity>.Build(entity, null, cancel);
 
 			if (operation is not null)
 				result.Add(operation);
@@ -74,18 +75,19 @@ internal sealed class AggregatedCommandBuilder<TEntity>
 	/// <returns>A <see cref="PostgreSqlStorageOperation"/> for the INSERT command.</returns>
 	private static Task<PostgreSqlStorageOperation?> BuildInsert(IEntity entity, CancellationToken cancel)
 	{
-		return new InsertCommandBuilder().Build(entity, cancel);
+		return new InsertCommandBuilder().Build(entity, null, cancel);
 	}
 
 	/// <summary>
 	/// Builds an UPDATE operation for an entity.
 	/// </summary>
 	/// <param name="entity">The entity to update.</param>
+	/// <param name="updatedProperties">The properties the update is limited to, or <c>null</c> for all of them.</param>
 	/// <param name="cancel">Cancellation token for the operation.</param>
 	/// <returns>A <see cref="PostgreSqlStorageOperation"/> for the UPDATE command.</returns>
-	private static Task<PostgreSqlStorageOperation?> BuildUpdate(IEntity entity, CancellationToken cancel)
+	private static Task<PostgreSqlStorageOperation?> BuildUpdate(IEntity entity, IEnumerable<string>? updatedProperties, CancellationToken cancel)
 	{
-		return new UpdateCommandBuilder().Build(entity, cancel);
+		return new UpdateCommandBuilder().Build(entity, updatedProperties, cancel);
 	}
 
 	/// <summary>
@@ -96,6 +98,6 @@ internal sealed class AggregatedCommandBuilder<TEntity>
 	/// <returns>A <see cref="PostgreSqlStorageOperation"/> for the DELETE command.</returns>
 	private static Task<PostgreSqlStorageOperation?> BuildDelete(IEntity entity, CancellationToken cancel)
 	{
-		return new DeleteCommandBuilder().Build(entity, cancel);
+		return new DeleteCommandBuilder().Build(entity, null, cancel);
 	}
 }

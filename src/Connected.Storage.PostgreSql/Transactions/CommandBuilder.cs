@@ -60,6 +60,11 @@ internal abstract class CommandBuilder
 	protected SchemaAttribute? Schema { get; private set; }
 
 	/// <summary>
+	/// Gets the names of the properties an update is limited to, or <c>null</c> for all of them.
+	/// </summary>
+	protected IEnumerable<string>? UpdatedProperties { get; private set; }
+
+	/// <summary>
 	/// Gets the list of parameters for the command.
 	/// </summary>
 	protected List<IStorageParameter> Parameters { get; }
@@ -70,9 +75,10 @@ internal abstract class CommandBuilder
 	/// <param name="entity">The entity to build the command for.</param>
 	/// <param name="cancel">Cancellation token for the operation.</param>
 	/// <returns>A <see cref="PostgreSqlStorageOperation"/> containing the command text and parameters, or null if no operation is needed.</returns>
-	public async Task<PostgreSqlStorageOperation?> Build(IEntity entity, CancellationToken cancel)
+	public async Task<PostgreSqlStorageOperation?> Build(IEntity entity, IEnumerable<string>? updatedProperties, CancellationToken cancel)
 	{
 		Entity = entity;
+		UpdatedProperties = updatedProperties;
 		DiscoverProperties();
 
 		if (TryGetExisting(out PostgreSqlStorageOperation? existing))
@@ -120,9 +126,31 @@ internal abstract class CommandBuilder
 			return result;
 		}
 
-		Schema = Entity.GetSchemaAttribute();
+		Schema = ResolveSchema();
 
 		return await OnBuild(cancel);
+	}
+
+	/// <summary>
+	/// Resolves the entity's table the way schema synchronization names it.
+	/// </summary>
+	/// <remarks>
+	/// GetSchemaAttribute defaults the name to pascal case and synchronization to camel case. SQL Server's collation
+	/// hides the difference, a quoted PostgreSQL identifier is exact.
+	/// </remarks>
+	private SchemaAttribute ResolveSchema()
+	{
+		var schema = Entity!.GetSchemaAttribute();
+
+		if (!string.IsNullOrWhiteSpace(Entity.GetType().GetCustomAttribute<SchemaAttribute>()?.Name))
+			return schema;
+
+		return new TableAttribute
+		{
+			Id = schema.Id,
+			Name = Entity.GetType().Name.ToCamelCase(),
+			Schema = schema.Schema
+		};
 	}
 
 	/// <summary>
@@ -199,7 +227,10 @@ internal abstract class CommandBuilder
 		{
 			var persistence = property.FindAttribute<PersistenceAttribute>();
 
-			if (persistence is not null && persistence.Mode.HasFlag(PersistenceMode.InMemory))
+			/*
+			 * InMemory is 0, so HasFlag is true for every mode. The version stays: without it nothing detects a conflict.
+			 */
+			if (persistence is not null && persistence.Mode.HasFlag(PersistenceMode.InMemory) && !IsVersion(property))
 				continue;
 
 			Properties.Add(property);
@@ -360,6 +391,15 @@ internal abstract class CommandBuilder
 			return raw;
 
 		return null;
+	}
+
+	/// <summary>
+	/// Creates the key a built command is cached under; a limited update is a different command.
+	/// </summary>
+	/// <returns>The entity type name and the names of the updated properties.</returns>
+	protected string CreateCacheKey()
+	{
+		return $"{ResolveEntityTypeName()}:{(UpdatedProperties is null ? string.Empty : string.Join(',', UpdatedProperties))}";
 	}
 
 	/// <summary>
