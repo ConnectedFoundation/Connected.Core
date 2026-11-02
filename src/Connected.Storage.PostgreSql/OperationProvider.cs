@@ -42,6 +42,6 @@ internal sealed class OperationProvider(ICancellationContext cancel)
 	/// </remarks>
 	protected override async Task<IStorageOperation?> OnInvoke<TEntity>(IStorage<TEntity> storage, TEntity entity, IEnumerable<string>? updatingProperties)
 	{
-		return await AggregatedCommandBuilder<TEntity>.Build(entity, Cancel.CancellationToken);
+		return await AggregatedCommandBuilder<TEntity>.Build(entity, updatingProperties, Cancel.CancellationToken);
 	}
 }

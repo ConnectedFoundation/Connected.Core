@@ -30,7 +30,7 @@ internal sealed class UpdateCommandBuilder
 	/// <inheritdoc/>
 	protected override bool TryGetExisting(out PostgreSqlStorageOperation? result)
 	{
-		return Cache.TryGetValue(ResolveEntityTypeName(), out result);
+		return Cache.TryGetValue(CreateCacheKey(), out result);
 	}
 
 	/// <inheritdoc/>
@@ -59,7 +59,7 @@ internal sealed class UpdateCommandBuilder
 		foreach (var parameter in Parameters)
 			result.Parameters.Add(parameter);
 
-		Cache.TryAdd(ResolveEntityTypeName(), result);
+		Cache.TryAdd(CreateCacheKey(), result);
 
 		return result;
 	}
@@ -87,10 +87,16 @@ internal sealed class UpdateCommandBuilder
 				continue;
 			}
 
+			if (UpdatedProperties is not null && !UpdatedProperties.Contains(property.Name, StringComparer.OrdinalIgnoreCase))
+				continue;
+
 			var parameter = await CreateParameter(property, cancel);
 
 			WriteLine($"\"{ColumnName(property)}\" = {parameter.Name},");
 		}
+
+		foreach (var property in Properties.Where(IsVersion))
+			WriteLine($"\"{ColumnName(property)}\" = {PostgreSqlVersion.Next},");
 
 		Trim();
 	}

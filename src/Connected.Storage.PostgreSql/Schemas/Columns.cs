@@ -32,18 +32,7 @@ internal sealed class Columns
 		 */
 		var rdr = await Context.OpenReader(new PostgreSqlStorageOperation
 		{
-			CommandText = $@"
-				SELECT 
-					c.column_name,
-					c.data_type,
-					c.character_maximum_length,
-					c.is_nullable,
-					c.column_default,
-					CASE WHEN c.column_default LIKE 'nextval%' THEN true ELSE false END as is_identity
-				FROM information_schema.columns c
-				WHERE c.table_schema = '{schema}' 
-					AND c.table_name = '{Context.Schema.Name}'
-				ORDER BY c.ordinal_position"
+			CommandText = ColumnsCommandText(schema, Context.Schema.Name)
 		});
 
 		/*
@@ -86,6 +75,35 @@ internal sealed class Columns
 	/// <param name="schema">The existing schema object to populate with constraints.</param>
 	/// <param name="schemaName">The schema name.</param>
 	/// <returns>A task representing the asynchronous operation.</returns>
+	internal static string ColumnsCommandText(string schema, string table) => $@"
+				SELECT
+					c.column_name,
+					c.data_type,
+					c.character_maximum_length,
+					c.is_nullable,
+					c.column_default,
+					CASE WHEN c.is_identity = 'YES' OR c.column_default LIKE 'nextval%' THEN true ELSE false END as is_identity
+				FROM information_schema.columns c
+				WHERE c.table_schema = '{schema}'
+					AND c.table_name = '{table}'
+				ORDER BY c.ordinal_position";
+
+	/*
+	 * contype is PostgreSQL's internal "char" type, which does not read as a string.
+	 */
+	internal static string ConstraintsCommandText(string schema, string table) => $@"
+				SELECT
+					con.conname as constraint_name,
+					con.contype::text as constraint_type,
+					a.attname as column_name
+				FROM pg_catalog.pg_constraint con
+				JOIN pg_catalog.pg_class rel ON rel.oid = con.conrelid
+				JOIN pg_catalog.pg_namespace nsp ON nsp.oid = rel.relnamespace
+				LEFT JOIN pg_catalog.pg_attribute a ON a.attrelid = con.conrelid AND a.attnum = ANY(con.conkey)
+				WHERE nsp.nspname = '{schema}'
+					AND rel.relname = '{table}'
+				ORDER BY con.conname, a.attnum";
+
 	private async Task LoadConstraints(ExistingSchema schema, string schemaName)
 	{
 		/*
@@ -93,18 +111,7 @@ internal sealed class Columns
 		 */
 		var rdr = await Context.OpenReader(new PostgreSqlStorageOperation
 		{
-			CommandText = $@"
-				SELECT 
-					con.conname as constraint_name,
-					con.contype as constraint_type,
-					a.attname as column_name
-				FROM pg_catalog.pg_constraint con
-				JOIN pg_catalog.pg_class rel ON rel.oid = con.conrelid
-				JOIN pg_catalog.pg_namespace nsp ON nsp.oid = rel.relnamespace
-				LEFT JOIN pg_catalog.pg_attribute a ON a.attrelid = con.conrelid AND a.attnum = ANY(con.conkey)
-				WHERE nsp.nspname = '{schemaName}' 
-					AND rel.relname = '{Context.Schema.Name}'
-				ORDER BY con.conname, a.attnum"
+			CommandText = ConstraintsCommandText(schemaName, Context.Schema.Name)
 		});
 
 		/*
