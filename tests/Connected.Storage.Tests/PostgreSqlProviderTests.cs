@@ -235,6 +235,43 @@ public sealed class PostgreSqlProviderTests
 	}
 
 	[TestMethod]
+	[DataRow(DbType.Int32, 0, "0", "0")]
+	[DataRow(DbType.Int32, 0, "7", "7")]
+	[DataRow(DbType.String, 16, "it's", "it's")]
+	[DataRow(DbType.Boolean, 0, "True", "true")]
+	[DataRow(DbType.Decimal, 0, "1.5", "1.5")]
+	[DataRow(DbType.DateTime2, 0, "2020-01-02 03:04:05", "2020-01-02 03:04:05")]
+	public async Task AColumnAddedWithADefaultFillsTheExistingRows(DbType type, int length, string defaultValue, string expected)
+	{
+		var table = $"t{Guid.NewGuid():N}";
+
+		await using var connection = await Open();
+
+		try
+		{
+			await Execute(connection, $"""CREATE TABLE "{table}" (name varchar(8))""");
+			await Execute(connection, $"""INSERT INTO "{table}" (name) VALUES ('a'), ('b')""");
+			await Execute(connection, $"""ALTER TABLE "{table}" ADD COLUMN {Ddl.Column(new Column { Name = "added", DataType = type, MaxLength = length, DefaultValue = defaultValue })}""");
+
+			await using var command = new NpgsqlCommand($"""SELECT "added"::text FROM "{table}" """, connection);
+			await using var reader = await command.ExecuteReaderAsync();
+			var count = 0;
+
+			while (await reader.ReadAsync())
+			{
+				count++;
+				Assert.AreEqual(expected, reader.GetString(0), "Existing rows have to read the default.");
+			}
+
+			Assert.AreEqual(2, count);
+		}
+		finally
+		{
+			await Execute(connection, $"DROP TABLE IF EXISTS \"{table}\"");
+		}
+	}
+
+	[TestMethod]
 	public async Task AnInsertWithoutAVersionGetsOne()
 	{
 		var table = $"t{Guid.NewGuid():N}";
