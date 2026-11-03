@@ -127,19 +127,74 @@ public sealed class PostgreSqlProviderTests
 		StringAssert.Contains(Ddl.Column(new Column { Name = "eTag", DataType = DbType.Binary, IsVersion = true }), $"DEFAULT {PostgreSqlVersion.Next}");
 	}
 
+	/*
+	 * The shared cache keeps an entity only if its version is not lower than the cached one (Entry.Set), as a rowversion
+	 * only grows. Random versions were lower half the time, so half of all updates never reached the cache.
+	 */
 	[TestMethod]
-	public async Task TheVersionIsEightBytesAndChanges()
+	public async Task TheVersionIsEightBytesAndAlwaysGrows()
 	{
 		await using var connection = await Open();
-		await using var command = new NpgsqlCommand($"SELECT {PostgreSqlVersion.Next}, {PostgreSqlVersion.Next}", connection);
+
+		await Execute(connection, PostgreSqlVersion.CreateSequence);
+
+		await using var command = new NpgsqlCommand($"SELECT {PostgreSqlVersion.Next} FROM generate_series(1, 200)", connection);
 		await using var reader = await command.ExecuteReaderAsync();
 
-		Assert.IsTrue(await reader.ReadAsync());
+		EntityVersion? previous = null;
+		var count = 0;
 
-		var first = reader.GetFieldValue<byte[]>(0);
+		while (await reader.ReadAsync())
+		{
+			var bytes = reader.GetFieldValue<byte[]>(0);
 
-		Assert.AreEqual(8, first.Length);
-		CollectionAssert.AreNotEqual(first, reader.GetFieldValue<byte[]>(1));
+			Assert.AreEqual(8, bytes.Length);
+
+			var version = (EntityVersion?)bytes;
+
+			if (previous is not null)
+				Assert.IsTrue(version!.CompareTo(previous) > 0, $"Version {Convert.ToHexString(bytes)} does not follow {previous}.");
+
+			previous = version;
+			count++;
+		}
+
+		Assert.AreEqual(200, count);
+	}
+
+	[TestMethod]
+	public async Task AnUpdatedRowGetsAHigherVersionThanTheOneItHad()
+	{
+		var table = $"t{Guid.NewGuid():N}";
+
+		await using var connection = await Open();
+
+		try
+		{
+			await Execute(connection, PostgreSqlVersion.CreateSequence);
+			await Execute(connection, $"""CREATE TABLE "{table}" (name varchar(8), {Ddl.Column(new Column { Name = "eTag", DataType = DbType.Binary, IsVersion = true })})""");
+			await Execute(connection, $"""INSERT INTO "{table}" (name) VALUES ('a')""");
+
+			for (var i = 0; i < 50; i++)
+			{
+				var before = await Version(connection, table);
+
+				await Execute(connection, $"""UPDATE "{table}" SET name = 'b', "eTag" = {PostgreSqlVersion.Next}""");
+
+				Assert.IsTrue((await Version(connection, table))!.CompareTo(before) > 0, "An update has to move the version forward.");
+			}
+		}
+		finally
+		{
+			await Execute(connection, $"DROP TABLE IF EXISTS \"{table}\"");
+		}
+	}
+
+	private static async Task<EntityVersion?> Version(NpgsqlConnection connection, string table)
+	{
+		await using var command = new NpgsqlCommand($"""SELECT "eTag" FROM "{table}" """, connection);
+
+		return (EntityVersion?)(byte[])(await command.ExecuteScalarAsync())!;
 	}
 
 	[TestMethod]
@@ -151,6 +206,7 @@ public sealed class PostgreSqlProviderTests
 
 		try
 		{
+			await Execute(connection, PostgreSqlVersion.CreateSequence);
 			await Execute(connection, $"""
 				CREATE TABLE "{table}" (
 					{Ddl.Column(new Column { Name = "id", DataType = DbType.Int32, IsIdentity = true })} PRIMARY KEY,
@@ -187,6 +243,7 @@ public sealed class PostgreSqlProviderTests
 
 		try
 		{
+			await Execute(connection, PostgreSqlVersion.CreateSequence);
 			await Execute(connection, $"""CREATE TABLE "{table}" (name varchar(8), {Ddl.Column(new Column { Name = "eTag", DataType = DbType.Binary, IsVersion = true })})""");
 			await Execute(connection, $"""INSERT INTO "{table}" (name) VALUES ('a')""");
 

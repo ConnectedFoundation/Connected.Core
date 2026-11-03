@@ -21,6 +21,12 @@ internal sealed class ColumnAdd(ISchemaColumn column)
 	protected override async Task OnExecute()
 	{
 		/*
+		 * A version column's default draws from a sequence, which has to exist first.
+		 */
+		if (Column.IsVersion)
+			await Context.Execute(PostgreSqlVersion.CreateSequence);
+
+		/*
 		 * Execute the ALTER TABLE ADD COLUMN statement to add the new column.
 		 */
 		await Context.Execute(CommandText);
