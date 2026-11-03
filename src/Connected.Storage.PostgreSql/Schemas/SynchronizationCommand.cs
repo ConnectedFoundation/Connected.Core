@@ -113,6 +113,21 @@ internal abstract class SynchronizationCommand
 	}
 
 	/// <summary>
+	/// Formats a column default as a PostgreSQL literal, the way the SQL Server provider does.
+	/// </summary>
+	/// <param name="value">The default value in its invariant string form.</param>
+	/// <returns>A quoted literal, which PostgreSQL coerces to the column type, or the expression when it is already parenthesized.</returns>
+	private static string FormatDefault(string value)
+	{
+		var trimmed = value.Trim();
+
+		if (trimmed.Length > 1 && trimmed[0] == '(' && trimmed[^1] == ')')
+			return trimmed;
+
+		return $"'{value.Replace("'", "''")}'";
+	}
+
+	/// <summary>
 	/// Creates the column definition SQL for a schema column.
 	/// </summary>
 	/// <param name="column">The schema column to generate definition for.</param>
@@ -134,6 +149,8 @@ internal abstract class SynchronizationCommand
 
 		if (column.IsVersion)
 			text.Append($" DEFAULT {PostgreSqlVersion.Next}");
+		else if (!column.IsIdentity && !string.IsNullOrWhiteSpace(column.DefaultValue))
+			text.Append($" DEFAULT {FormatDefault(column.DefaultValue)}");
 
 		/*
 		 * Add NULL/NOT NULL constraint
