@@ -195,6 +195,45 @@ public sealed class PostgreSqlProviderTests
 		}
 	}
 
+	/*
+	 * ConnectionProvider commits from an async void handler, so a commit that is still running when it returns
+	 * races the scope's dispose. SqlClient's commit, rollback and close finish before they return; these have to too.
+	 */
+	[TestMethod]
+	[DataRow(true)]
+	[DataRow(false)]
+	public async Task ACommitOrRollbackFinishesBeforeItReturns(bool commit)
+	{
+		var table = $"t{Guid.NewGuid():N}";
+
+		await using var setup = await Open();
+
+		try
+		{
+			await Execute(setup, $"""CREATE TABLE "{table}" (name varchar(8))""");
+
+			var connection = new PostgreSqlDataConnection(null!);
+
+			await connection.Initialize(new TestConnectionDto { ConnectionString = TestConfiguration.From(Variable) });
+			await connection.Execute(new TextCommand(connection, $"""INSERT INTO "{table}" (name) VALUES ('a')"""));
+
+			var end = commit ? connection.Commit() : connection.Rollback();
+
+			Assert.IsTrue(end.IsCompleted, "The transaction has to end before Commit or Rollback returns.");
+
+			await end;
+			await connection.DisposeAsync();
+
+			await using var count = new NpgsqlCommand($"""SELECT count(*) FROM "{table}" """, setup);
+
+			Assert.AreEqual(commit ? 1L : 0L, (long)(await count.ExecuteScalarAsync())!);
+		}
+		finally
+		{
+			await Execute(setup, $"DROP TABLE IF EXISTS \"{table}\"");
+		}
+	}
+
 	private static async Task<NpgsqlConnection> Open()
 	{
 		var connection = new NpgsqlConnection(TestConfiguration.From(Variable));
