@@ -54,6 +54,30 @@ internal sealed class PostgreSqlFormatter(ExpressionCompilationContext context, 
 	}
 
 	/// <summary>
+	/// Writes a SELECT with its Take as a LIMIT after the ORDER BY; PostgreSQL has no TOP.
+	/// </summary>
+	protected override Expression VisitSelect(SelectExpression select)
+	{
+		base.VisitSelect(select);
+
+		if (select.Take is not null)
+		{
+			WriteLine(Indentation.Same);
+			Write("LIMIT ");
+			Visit(select.Take);
+		}
+
+		return select;
+	}
+
+	/// <summary>
+	/// Writes nothing; the Take is written as a LIMIT by <see cref="VisitSelect"/>.
+	/// </summary>
+	protected override void WriteTopClause(Expression expression)
+	{
+	}
+
+	/// <summary>
 	/// Writes the PostgreSQL specific aggregate function name.
 	/// </summary>
 	/// <param name="aggregateName">The name of the aggregate function.</param>

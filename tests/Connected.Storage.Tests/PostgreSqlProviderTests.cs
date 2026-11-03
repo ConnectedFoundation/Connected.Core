@@ -1,12 +1,17 @@
 using Connected.Annotations;
 using Connected.Annotations.Entities;
 using Connected.Entities;
+using Connected.Data.Expressions;
+using Connected.Data.Expressions.Expressions;
+using Connected.Data.Expressions.Translation;
 using Connected.Storage.PostgreSql;
+using Connected.Storage.PostgreSql.Query;
 using Connected.Storage.PostgreSql.Schemas;
 using Connected.Storage.PostgreSql.Transactions;
 using Connected.Storage.Schemas;
 using Npgsql;
 using System.Data;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Connected.Storage.Tests;
@@ -193,6 +198,25 @@ public sealed class PostgreSqlProviderTests
 		{
 			await Execute(connection, $"DROP TABLE IF EXISTS \"{table}\"");
 		}
+	}
+
+	/*
+	 * Take without Skip came out as SQL Server's TOP (n), which PostgreSQL reads as a call to a function top.
+	 */
+	[TestMethod]
+	public async Task ATakeIsALimitAfterTheOrder()
+	{
+		var select = new SelectExpression(Alias.New(), [], null, null, [new OrderExpression(OrderType.Descending, Expression.Constant(1))], null, false, null, Expression.Constant(5), false);
+		var text = PostgreSqlFormatter.Format(new ExpressionCompilationContext(new PostgreSqlLanguage()), select);
+
+		Assert.IsFalse(text.Contains("TOP"), text);
+		StringAssert.EndsWith(text.TrimEnd(), "LIMIT 5");
+
+		await using var connection = await Open();
+		await using var command = new NpgsqlCommand(text, connection);
+		await using var reader = await command.ExecuteReaderAsync();
+
+		Assert.IsTrue(await reader.ReadAsync());
 	}
 
 	/*
