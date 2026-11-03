@@ -35,6 +35,12 @@ internal sealed class TableCreate(bool temporary)
 	protected override async Task OnExecute()
 	{
 		/*
+		 * A version column's default draws from a sequence, which has to exist first.
+		 */
+		if (Context.Schema.Columns.Any(f => f.IsVersion))
+			await Context.Execute(PostgreSqlVersion.CreateSequence);
+
+		/*
 		 * Execute the CREATE TABLE statement to create the table structure.
 		 */
 		await Context.Execute(CommandText);
