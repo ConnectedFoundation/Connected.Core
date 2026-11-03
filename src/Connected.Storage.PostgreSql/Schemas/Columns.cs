@@ -69,12 +69,6 @@ internal sealed class Columns
 		return result;
 	}
 
-	/// <summary>
-	/// Loads constraint information for the table.
-	/// </summary>
-	/// <param name="schema">The existing schema object to populate with constraints.</param>
-	/// <param name="schemaName">The schema name.</param>
-	/// <returns>A task representing the asynchronous operation.</returns>
 	internal static string ColumnsCommandText(string schema, string table) => $@"
 				SELECT
 					c.column_name,
@@ -104,6 +98,12 @@ internal sealed class Columns
 					AND rel.relname = '{table}'
 				ORDER BY con.conname, a.attnum";
 
+	/// <summary>
+	/// Loads constraint information for the table.
+	/// </summary>
+	/// <param name="schema">The existing schema object to populate with constraints.</param>
+	/// <param name="schemaName">The schema name.</param>
+	/// <returns>A task representing the asynchronous operation.</returns>
 	private async Task LoadConstraints(ExistingSchema schema, string schemaName)
 	{
 		/*

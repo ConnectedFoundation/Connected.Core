@@ -113,25 +113,16 @@ internal abstract class PostgreSqlStorageConnection(ICancellationContext context
 	/// <remarks>
 	/// This method creates a new NpgsqlConnection instance using the configured connection
 	/// string. The connection is not opened by this method; it will be opened when first
-	/// used by the connection manager.
+	/// used by the connection manager. It is wrapped in a <see cref="SynchronousConnection"/>
+	/// so that commit, rollback and close finish before they return, as they do on SQL Server.
 	/// </remarks>
 	protected override async Task<IDbConnection> OnCreateConnection()
 	{
 		await Task.CompletedTask;
 
-		return new NpgsqlConnection(ConnectionString);
+		return new SynchronousConnection(new NpgsqlConnection(ConnectionString));
 	}
 
-	/// <summary>
-	/// Resolves the PostgreSQL server version from the connection string.
-	/// </summary>
-	/// <param name="connectionString">The connection string containing server information.</param>
-	/// <returns>The PostgreSQL server version.</returns>
-	/// <remarks>
-	/// This method opens a temporary connection to the PostgreSQL server to retrieve the
-	/// server version. If the connection fails, it returns a default version (15.0).
-	/// The version information can be used for version-specific SQL syntax or feature detection.
-	/// </remarks>
 	/// <summary>
 	/// Converts a value to one a parameter accepts.
 	/// </summary>
@@ -147,6 +138,16 @@ internal abstract class PostgreSqlStorageConnection(ICancellationContext context
 		};
 	}
 
+	/// <summary>
+	/// Resolves the PostgreSQL server version from the connection string.
+	/// </summary>
+	/// <param name="connectionString">The connection string containing server information.</param>
+	/// <returns>The PostgreSQL server version.</returns>
+	/// <remarks>
+	/// This method opens a temporary connection to the PostgreSQL server to retrieve the
+	/// server version. If the connection fails, it returns a default version (15.0).
+	/// The version information can be used for version-specific SQL syntax or feature detection.
+	/// </remarks>
 	public static Version ResolveVersion(string connectionString)
 	{
 		try
