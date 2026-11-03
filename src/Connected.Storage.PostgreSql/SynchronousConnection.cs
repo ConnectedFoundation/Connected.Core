@@ -14,6 +14,7 @@ namespace Connected.Storage.PostgreSql;
 /// SqlConnection and SqlTransaction do not override CloseAsync, BeginTransactionAsync, CommitAsync or RollbackAsync,
 /// so on SQL Server these run synchronously. This class leaves those to the <see cref="DbConnection"/> and
 /// <see cref="DbTransaction"/> defaults, which call the synchronous methods, and passes everything else to Npgsql.
+/// Batches are not passed through: CanCreateBatch is false and CreateBatch throws NotSupportedException.
 /// </remarks>
 internal sealed class SynchronousConnection(NpgsqlConnection connection) : DbConnection
 {

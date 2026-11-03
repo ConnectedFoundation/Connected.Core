@@ -116,6 +116,20 @@ public sealed class PostgreSqlStorageContainerProviderTests
 		Assert.IsFalse(await Exists(name));
 	}
 
+	/*
+	 * Concurrent renames to the same name fail on pg_database_datname_index (23505), not with 42P04, and the create that
+	 * loses has to find the winner's container instead of failing. ConcurrentCreatesYieldOneContainer hits this only
+	 * some of the time.
+	 */
+	[TestMethod]
+	[DataRow(PostgresErrorCodes.DuplicateDatabase, true)]
+	[DataRow(PostgresErrorCodes.UniqueViolation, true)]
+	[DataRow(PostgresErrorCodes.InsufficientPrivilege, false)]
+	public void ARenameThatLosesTheRaceCountsAsTaken(string sqlState, bool taken)
+	{
+		Assert.AreEqual(taken, PostgreSqlStorageContainerProvider.IsTaken(new PostgresException("", "ERROR", "ERROR", sqlState)));
+	}
+
 	[TestMethod]
 	public async Task AMarkedStagingDatabaseLeftByACreateIsRemovedByALaterDrop()
 	{

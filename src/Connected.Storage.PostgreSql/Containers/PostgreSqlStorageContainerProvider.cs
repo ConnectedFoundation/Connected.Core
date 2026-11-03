@@ -122,12 +122,21 @@ internal sealed class PostgreSqlStorageContainerProvider(IConfigurationService c
 				 */
 			}
 
-			if (ex is not PostgresException { SqlState: PostgresErrorCodes.DuplicateDatabase })
+			if (!IsTaken(ex))
 				throw;
 
 			if (await Probe(name, connection) != true)
 				throw NotAContainer(name);
 		}
+	}
+
+	/// <summary>
+	/// Whether a rename failed because the name is taken. A rename that races another for the same name fails on the
+	/// catalog's unique index rather than with the duplicate database error the name check gives.
+	/// </summary>
+	internal static bool IsTaken(Exception ex)
+	{
+		return ex is PostgresException { SqlState: PostgresErrorCodes.DuplicateDatabase or PostgresErrorCodes.UniqueViolation };
 	}
 
 	/// <summary>
