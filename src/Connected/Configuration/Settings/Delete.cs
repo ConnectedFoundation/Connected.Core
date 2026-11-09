@@ -17,7 +17,7 @@ internal sealed class Delete(ISettingCache cache, IStorageProvider storage, IEve
 
 	private async Task<Setting?> Select()
 	{
-		return await service.Select(Dto.AsDto<INameDto>()) as Setting;
+		return await service.Select(Dto) as Setting;
 	}
 
 	protected override async Task OnCommitted()
