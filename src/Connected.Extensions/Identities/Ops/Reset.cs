@@ -1,4 +1,5 @@
 ﻿using Connected.Authentication;
+using Connected.Configuration;
 using Connected.Entities;
 using Connected.Identities.Authentication;
 using Connected.Identities.Authentication.Dtos;
@@ -6,7 +7,7 @@ using Connected.Services;
 
 namespace Connected.Identities.Ops;
 
-internal sealed class Reset(IIdentityAuthenticationTokenService identityAuthenticationTokenService, IAuthenticationService authentication)
+internal sealed class Reset(IIdentityAuthenticationTokenService identityAuthenticationTokenService, IAuthenticationService authentication, IConfigurationService configuration)
 	: ServiceFunction<IValueDto<string>, string?>
 {
 	protected override async Task<string?> OnInvoke()
@@ -29,7 +30,8 @@ internal sealed class Reset(IIdentityAuthenticationTokenService identityAuthenti
 			f.Token = token.Token;
 			f.Identity = token.Identity;
 			f.Status = AuthenticationTokenStatus.Enabled;
-			f.Expire = DateTimeOffset.UtcNow.AddMinutes(20);
+			f.Created = token.Created;
+			f.Expire = configuration.Authentication.Tokens.ResolveExpire(token.Created, IdentityAuthenticationTokenExtensions.DefaultRenewTimeout);
 		}));
 
 		return key;

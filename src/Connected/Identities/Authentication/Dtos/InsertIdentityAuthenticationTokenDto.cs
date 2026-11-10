@@ -9,4 +9,6 @@ internal sealed class InsertIdentityAuthenticationTokenDto : IdentityAuthenticat
 
 	[Required, MaxLength(256)]
 	public required string Key { get; set; }
+
+	public DateTimeOffset? Created { get; set; }
 }

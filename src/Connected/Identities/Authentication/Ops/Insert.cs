@@ -11,7 +11,7 @@ internal class Insert(IStorageProvider storage, IEventService events, IIdentityA
 {
 	protected override async Task<long> OnInvoke()
 	{
-		var entity = await storage.Open<IdentityAuthenticationToken>().Update(Dto.AsEntity<IdentityAuthenticationToken>(State.Add)) ?? throw new NullReferenceException(Connected.Strings.ErrEntityExpected);
+		var entity = await storage.Open<IdentityAuthenticationToken>().Update(Dto.AsEntity<IdentityAuthenticationToken>(State.Add, new { Created = Dto.Created ?? DateTimeOffset.UtcNow })) ?? throw new NullReferenceException(Connected.Strings.ErrEntityExpected);
 
 		SetState(entity);
 

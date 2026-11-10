@@ -63,4 +63,13 @@ public interface IIdentityAuthenticationToken
 	/// Gets the expiration date and time of the authentication token.
 	/// </summary>
 	DateTimeOffset? Expire { get; init; }
+
+	/// <summary>
+	/// Gets the date and time the authentication token was created.
+	/// </summary>
+	/// <remarks>
+	/// The value bounds the token's lifetime when <see cref="Configuration.Authentication.IAuthenticationTokenConfiguration.MaxLifetime"/>
+	/// is set. Tokens created before the value was recorded have no creation time and are not bounded.
+	/// </remarks>
+	DateTimeOffset? Created { get; init; }
 }

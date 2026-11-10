@@ -12,4 +12,9 @@ public interface IAuthenticationConfiguration
 	/// Gets the JWT token configuration.
 	/// </summary>
 	IJwTokenConfiguration JwToken { get; }
+
+	/// <summary>
+	/// Gets the lifetime configuration of expiring authentication tokens.
+	/// </summary>
+	IAuthenticationTokenConfiguration Tokens { get; }
 }

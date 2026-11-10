@@ -20,4 +20,13 @@ public interface IInsertIdentityAuthenticationTokenDto
 	/// Gets or sets the unique key associated with the authentication token.
 	/// </summary>
 	string Key { get; set; }
+
+	/// <summary>
+	/// Gets or sets the creation time of the token.
+	/// </summary>
+	/// <remarks>
+	/// Leave unset for a new token; the current time is used. Set it only when a token is re-issued and
+	/// must keep the creation time, and therefore the maximum lifetime, of the token it replaces.
+	/// </remarks>
+	DateTimeOffset? Created { get; set; }
 }
