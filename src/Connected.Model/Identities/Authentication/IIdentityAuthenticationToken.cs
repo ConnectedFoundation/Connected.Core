@@ -69,7 +69,8 @@ public interface IIdentityAuthenticationToken
 	/// </summary>
 	/// <remarks>
 	/// The value bounds the token's lifetime when <see cref="Configuration.Authentication.IAuthenticationTokenConfiguration.MaxLifetime"/>
-	/// is set. Tokens created before the value was recorded have no creation time and are not bounded.
+	/// is set. Tokens created before the value was recorded have no creation time and are not bounded. The default
+	/// implementation keeps existing implementations of this interface valid; they report no creation time.
 	/// </remarks>
-	DateTimeOffset? Created { get; init; }
+	DateTimeOffset? Created { get => null; init { } }
 }

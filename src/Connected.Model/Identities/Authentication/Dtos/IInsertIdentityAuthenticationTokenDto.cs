@@ -26,7 +26,8 @@ public interface IInsertIdentityAuthenticationTokenDto
 	/// </summary>
 	/// <remarks>
 	/// Leave unset for a new token; the current time is used. Set it only when a token is re-issued and
-	/// must keep the creation time, and therefore the maximum lifetime, of the token it replaces.
+	/// must keep the creation time, and therefore the maximum lifetime, of the token it replaces. The default
+	/// implementation keeps existing implementations of this interface valid.
 	/// </remarks>
-	DateTimeOffset? Created { get; set; }
+	DateTimeOffset? Created { get => null; set { } }
 }

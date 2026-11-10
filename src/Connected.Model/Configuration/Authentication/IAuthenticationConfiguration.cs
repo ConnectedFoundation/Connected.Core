@@ -16,5 +16,9 @@ public interface IAuthenticationConfiguration
 	/// <summary>
 	/// Gets the lifetime configuration of expiring authentication tokens.
 	/// </summary>
-	IAuthenticationTokenConfiguration Tokens { get; }
+	/// <remarks>
+	/// The default implementation keeps existing implementations of this interface valid; it configures no idle
+	/// timeout and no maximum lifetime.
+	/// </remarks>
+	IAuthenticationTokenConfiguration Tokens => UnboundedTokenConfiguration.Instance;
 }

@@ -1,4 +1,5 @@
 using Connected.Authentication;
+using Connected.Configuration;
 using Connected.Configuration.Authentication;
 using Connected.Identities.Authentication;
 using Connected.Identities.Authentication.Dtos;
@@ -72,24 +73,60 @@ public static class IdentityAuthenticationTokenExtensions
 	/// <param name="created">The creation time of the token, or <see langword="null"/> when it is unknown.</param>
 	/// <param name="defaultTimeout">The number of minutes to use when no idle timeout is configured.</param>
 	/// <returns>The current time plus the idle timeout, bounded by the token's maximum lifetime when one is configured.</returns>
+	/// <remarks>
+	/// Values that are not positive are treated as not configured, so a misconfiguration cannot make every token
+	/// lapse as soon as it is issued.
+	/// </remarks>
 	public static DateTimeOffset ResolveExpire(this IAuthenticationTokenConfiguration configuration, DateTimeOffset? created, int defaultTimeout)
 	{
-		var expire = DateTimeOffset.UtcNow.AddMinutes(configuration.IdleTimeout ?? defaultTimeout);
+		var idleTimeout = configuration.IdleTimeout is int configured && configured > 0 ? configured : defaultTimeout;
+		var expire = DateTimeOffset.UtcNow.AddMinutes(idleTimeout);
 
 		/*
 		 * Tokens without a creation time were issued before it was recorded and cannot be bounded.
 		 */
-		if (configuration.MaxLifetime is not int maxLifetime || created is null)
+		if (created is null || configuration.LifetimeLimit(created.Value) is not DateTimeOffset limit)
 			return expire;
-
-		var limit = created.Value.AddMinutes(maxLifetime);
 
 		return limit < expire ? limit : expire;
 	}
 
+	/// <summary>
+	/// Resolves the time after which a token created at the given time may no longer be extended.
+	/// </summary>
+	/// <param name="configuration">The token lifetime configuration.</param>
+	/// <param name="created">The creation time of the token.</param>
+	/// <returns>The end of the token's maximum lifetime, or <see langword="null"/> when no positive maximum lifetime is configured.</returns>
+	public static DateTimeOffset? LifetimeLimit(this IAuthenticationTokenConfiguration configuration, DateTimeOffset created)
+	{
+		return configuration.MaxLifetime is int maxLifetime && maxLifetime > 0 ? created.AddMinutes(maxLifetime) : null;
+	}
+
 	public static async Task<string> Ensure(this IIdentityAuthenticationTokenService service, string identity, string proposedToken, bool permanent)
 	{
-		return await service.Ensure(DefaultTokenConfiguration.Instance, identity, proposedToken, permanent);
+		/*
+		 * Callers of this overload do not pass a configuration, so the application's configuration is used when
+		 * it is available. Otherwise a configured maximum lifetime would be ignored by such callers.
+		 */
+		var configuration = ServiceExtensionsStartup.Services?.GetService<IConfigurationService>()?.Authentication.Tokens ?? DefaultTokenConfiguration.Instance;
+
+		return await service.Ensure(configuration, identity, proposedToken, permanent);
+	}
+
+	/// <summary>
+	/// Determines whether a token can no longer be extended under a configured maximum lifetime.
+	/// </summary>
+	/// <param name="configuration">The token lifetime configuration.</param>
+	/// <param name="token">The token to evaluate.</param>
+	/// <returns><see langword="true"/> when a maximum lifetime is configured and the token has expired or reached it.</returns>
+	private static bool IsSpent(IAuthenticationTokenConfiguration configuration, IIdentityAuthenticationToken token)
+	{
+		if (token.Created is null || configuration.LifetimeLimit(token.Created.Value) is not DateTimeOffset limit)
+			return false;
+
+		var now = DateTimeOffset.UtcNow;
+
+		return limit <= now || token.Expire is not null && token.Expire <= now;
 	}
 
 	/// <summary>
@@ -111,10 +148,11 @@ public static class IdentityAuthenticationTokenExtensions
 		var existingKey = (await service.Query(dto)).FirstOrDefault(f => string.Equals(f.Key, IdentityAuthenticationTokens.AuthenticationToken, StringComparison.Ordinal));
 
 		/*
-		 * With a maximum lifetime, a lapsed token must not be revived, since its creation time would
-		 * otherwise end the new sign-in immediately. Issuing a new token starts a new lifetime.
+		 * With a maximum lifetime, a token that has lapsed or reached the end of its lifetime must not be
+		 * revived, since its creation time would otherwise end the new sign-in immediately. Issuing a new
+		 * token starts a new lifetime.
 		 */
-		if (existingKey is not null && configuration.MaxLifetime is not null && existingKey.Status == AuthenticationTokenStatus.Enabled && existingKey.Expire <= DateTimeOffset.UtcNow)
+		if (existingKey is not null && existingKey.Status == AuthenticationTokenStatus.Enabled && IsSpent(configuration, existingKey))
 		{
 			await service.Delete(DtoFactory.Create<IPrimaryKeyDto<long>>(f => f.Id = existingKey.Id));
 

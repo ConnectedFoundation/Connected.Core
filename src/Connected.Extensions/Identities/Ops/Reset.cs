@@ -23,6 +23,11 @@ internal sealed class Reset(IIdentityAuthenticationTokenService identityAuthenti
 		}));
 
 		var key = Guid.NewGuid().ToString("N");
+		/*
+		 * A reset turns a permanent token into an expiring one. Its original creation time would end the new
+		 * token immediately under a maximum lifetime, so such a token starts a new lifetime instead.
+		 */
+		var created = token.Expire is null ? null : token.Created;
 
 		var id = await identityAuthenticationTokenService.Insert(DtoFactory.Create<IInsertIdentityAuthenticationTokenDto>(f =>
 		{
@@ -30,8 +35,8 @@ internal sealed class Reset(IIdentityAuthenticationTokenService identityAuthenti
 			f.Token = token.Token;
 			f.Identity = token.Identity;
 			f.Status = AuthenticationTokenStatus.Enabled;
-			f.Created = token.Created;
-			f.Expire = configuration.Authentication.Tokens.ResolveExpire(token.Created, IdentityAuthenticationTokenExtensions.DefaultRenewTimeout);
+			f.Created = created;
+			f.Expire = configuration.Authentication.Tokens.ResolveExpire(created ?? DateTimeOffset.UtcNow, IdentityAuthenticationTokenExtensions.DefaultRenewTimeout);
 		}));
 
 		return key;
