@@ -22,4 +22,7 @@ internal sealed record IdentityAuthenticationToken : ConsistentEntity<long>, IId
 
 	[Ordinal(4), Date(DateKind.DateTime2, 7)]
 	public DateTimeOffset? Expire { get; init; }
+
+	[Ordinal(5), Date(DateKind.DateTime2, 7)]
+	public DateTimeOffset? Created { get; init; }
 }
