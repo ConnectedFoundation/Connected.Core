@@ -1,3 +1,5 @@
+using Connected.Configuration;
+using Connected.Configuration.Authentication;
 using Connected.Identities;
 using Connected.Identities.Authentication;
 using Connected.Services;
@@ -47,10 +49,12 @@ internal sealed class TokenAuthentication(IHttpContextAccessor http)
 
 		if (token is null)
 			return;
+		var configuration = scope.ServiceProvider.GetService<IConfigurationService>()?.Authentication.Tokens ?? IAuthenticationTokenConfiguration.Unbounded;
 		/*
-		 * Expiration check: if the token is expired, remove it from the store to prevent reuse then exit.
+		 * Expiration check: if the token is expired or has reached the end of its maximum lifetime, remove
+		 * it from the store to prevent reuse then exit.
 		 */
-		if (token.Expire < DateTimeOffset.UtcNow)
+		if (token.Expire < DateTimeOffset.UtcNow || configuration.IsBeyondLifetime(token))
 		{
 			await tokens.Delete(Dto.CreatePrimaryKey(token.Id));
 

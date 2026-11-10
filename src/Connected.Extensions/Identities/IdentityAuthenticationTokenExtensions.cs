@@ -15,11 +15,40 @@ public static class IdentityAuthenticationTokenExtensions
 		return value.Status == AuthenticationTokenStatus.Enabled && (value.Expire is null || value.Expire > DateTimeOffset.UtcNow);
 	}
 
+	/// <summary>
+	/// Determines whether a token is enabled, has not expired and has not exceeded the configured maximum lifetime.
+	/// </summary>
+	/// <param name="value">The token to evaluate.</param>
+	/// <param name="configuration">The token lifetime configuration.</param>
+	/// <returns><see langword="true"/> when the token may still be used.</returns>
+	public static bool IsValid(this IIdentityAuthenticationToken value, IAuthenticationTokenConfiguration configuration)
+	{
+		return value.IsValid() && !configuration.IsBeyondLifetime(value);
+	}
+
+	/// <summary>
+	/// Determines whether an expiring token has reached the end of the configured maximum lifetime.
+	/// </summary>
+	/// <param name="configuration">The token lifetime configuration.</param>
+	/// <param name="token">The token to evaluate.</param>
+	/// <returns><see langword="true"/> when a maximum lifetime is configured and the token has reached it.</returns>
+	/// <remarks>
+	/// Permanent tokens and tokens without a creation time are never beyond their lifetime.
+	/// </remarks>
+	public static bool IsBeyondLifetime(this IAuthenticationTokenConfiguration configuration, IIdentityAuthenticationToken token)
+	{
+		if (token.Expire is null || token.Created is null || configuration.LifetimeLimit(token.Created.Value) is not DateTimeOffset limit)
+			return false;
+
+		return limit <= DateTimeOffset.UtcNow;
+	}
+
 	public static async Task<string?> AuthenticationToken(this IIdentity identity)
 	{
 		await using var scope = await Scope.Create().WithSystemIdentity();
 
 		var tokenService = scope.ServiceProvider.GetRequiredService<IIdentityAuthenticationTokenService>();
+		var configuration = scope.ServiceProvider.GetService<IConfigurationService>()?.Authentication.Tokens ?? IAuthenticationTokenConfiguration.Unbounded;
 		var dto = scope.ServiceProvider.GetRequiredService<IQueryIdentityAuthenticationTokensDto>();
 
 		dto.Identity = identity.Token;
@@ -32,7 +61,7 @@ public static class IdentityAuthenticationTokenExtensions
 			if (tokens.Count == 0)
 				return null;
 
-			var target = tokens.FirstOrDefault(f => f.IsValid());
+			var target = tokens.FirstOrDefault(f => f.IsValid(configuration));
 
 			if (target is null)
 				return null;
@@ -108,25 +137,40 @@ public static class IdentityAuthenticationTokenExtensions
 		 * Callers of this overload do not pass a configuration, so the application's configuration is used when
 		 * it is available. Otherwise a configured maximum lifetime would be ignored by such callers.
 		 */
-		var configuration = ServiceExtensionsStartup.Services?.GetService<IConfigurationService>()?.Authentication.Tokens ?? DefaultTokenConfiguration.Instance;
+		var configuration = ServiceExtensionsStartup.Services?.GetService<IConfigurationService>()?.Authentication.Tokens ?? IAuthenticationTokenConfiguration.Unbounded;
 
 		return await service.Ensure(configuration, identity, proposedToken, permanent);
 	}
 
 	/// <summary>
-	/// Determines whether a token can no longer be extended under a configured maximum lifetime.
+	/// Determines whether signing in should issue a new token instead of reusing the given one.
 	/// </summary>
 	/// <param name="configuration">The token lifetime configuration.</param>
-	/// <param name="token">The token to evaluate.</param>
-	/// <returns><see langword="true"/> when a maximum lifetime is configured and the token has expired or reached it.</returns>
-	private static bool IsSpent(IAuthenticationTokenConfiguration configuration, IIdentityAuthenticationToken token)
+	/// <param name="token">The existing token of the identity.</param>
+	/// <returns>
+	/// <see langword="true"/> when the token is an expiring token that has expired, or that can no longer be given a
+	/// full idle period before the end of its maximum lifetime.
+	/// </returns>
+	/// <remarks>
+	/// An expired token is never revived, so a bearer value that has lapsed cannot become valid again. Permanent
+	/// tokens are never spent.
+	/// </remarks>
+	public static bool IsSpent(this IAuthenticationTokenConfiguration configuration, IIdentityAuthenticationToken token)
 	{
-		if (token.Created is null || configuration.LifetimeLimit(token.Created.Value) is not DateTimeOffset limit)
+		if (token.Expire is null)
 			return false;
 
 		var now = DateTimeOffset.UtcNow;
 
-		return limit <= now || token.Expire is not null && token.Expire <= now;
+		if (token.Expire <= now)
+			return true;
+
+		if (token.Created is null || configuration.LifetimeLimit(token.Created.Value) is not DateTimeOffset limit)
+			return false;
+
+		var idleTimeout = configuration.IdleTimeout is int configured && configured > 0 ? configured : DefaultSignInTimeout;
+
+		return limit < now.AddMinutes(idleTimeout);
 	}
 
 	/// <summary>
@@ -148,13 +192,18 @@ public static class IdentityAuthenticationTokenExtensions
 		var existingKey = (await service.Query(dto)).FirstOrDefault(f => string.Equals(f.Key, IdentityAuthenticationTokens.AuthenticationToken, StringComparison.Ordinal));
 
 		/*
-		 * With a maximum lifetime, a token that has lapsed or reached the end of its lifetime must not be
-		 * revived, since its creation time would otherwise end the new sign-in immediately. Issuing a new
+		 * A token that has lapsed or is about to reach the end of its lifetime is not revived. Issuing a new
 		 * token starts a new lifetime.
 		 */
-		if (existingKey is not null && existingKey.Status == AuthenticationTokenStatus.Enabled && IsSpent(configuration, existingKey))
+		if (existingKey is not null && existingKey.Status == AuthenticationTokenStatus.Enabled && configuration.IsSpent(existingKey))
 		{
-			await service.Delete(DtoFactory.Create<IPrimaryKeyDto<long>>(f => f.Id = existingKey.Id));
+			/*
+			 * Token authentication deletes expired tokens as well, so the row may already be gone.
+			 */
+			var key = DtoFactory.Create<IPrimaryKeyDto<long>>(f => f.Id = existingKey.Id);
+
+			if (await service.Select(key) is not null)
+				await service.Delete(key);
 
 			existingKey = null;
 		}

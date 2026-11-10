@@ -10,6 +10,10 @@ namespace Connected.Configuration.Authentication;
 public interface IAuthenticationTokenConfiguration
 {
 	/// <summary>
+	/// Gets a configuration with no idle timeout and no maximum lifetime.
+	/// </summary>
+	static IAuthenticationTokenConfiguration Unbounded => UnboundedTokenConfiguration.Instance;
+	/// <summary>
 	/// Gets the number of minutes of inactivity after which an expiring token lapses.
 	/// </summary>
 	/// <remarks>
