@@ -45,10 +45,26 @@ public static class IdentityAuthenticationTokenExtensions
 
 	public static async Task<string?> AuthenticationToken(this IIdentity identity)
 	{
+		return await AuthenticationToken(identity, null, false);
+	}
+
+	/// <summary>
+	/// Returns the identity's authentication token when it can be handed out at sign-in.
+	/// </summary>
+	/// <param name="identity">The identity the authentication token belongs to.</param>
+	/// <param name="configuration">The token lifetime configuration.</param>
+	/// <returns>The value of a valid token that is not spent, or <see langword="null"/> when a new token must be issued.</returns>
+	public static async Task<string?> SignInToken(this IIdentity identity, IAuthenticationTokenConfiguration configuration)
+	{
+		return await AuthenticationToken(identity, configuration, true);
+	}
+
+	private static async Task<string?> AuthenticationToken(IIdentity identity, IAuthenticationTokenConfiguration? tokenConfiguration, bool excludeSpent)
+	{
 		await using var scope = await Scope.Create().WithSystemIdentity();
 
 		var tokenService = scope.ServiceProvider.GetRequiredService<IIdentityAuthenticationTokenService>();
-		var configuration = scope.ServiceProvider.GetService<IConfigurationService>()?.Authentication.Tokens ?? IAuthenticationTokenConfiguration.Unbounded;
+		var configuration = tokenConfiguration ?? scope.ServiceProvider.GetService<IConfigurationService>()?.Authentication.Tokens ?? IAuthenticationTokenConfiguration.Unbounded;
 		var dto = scope.ServiceProvider.GetRequiredService<IQueryIdentityAuthenticationTokensDto>();
 
 		dto.Identity = identity.Token;
@@ -61,7 +77,7 @@ public static class IdentityAuthenticationTokenExtensions
 			if (tokens.Count == 0)
 				return null;
 
-			var target = tokens.FirstOrDefault(f => f.IsValid(configuration));
+			var target = tokens.FirstOrDefault(f => f.IsValid(configuration) && !(excludeSpent && configuration.IsSpent(f)));
 
 			if (target is null)
 				return null;
@@ -108,8 +124,7 @@ public static class IdentityAuthenticationTokenExtensions
 	/// </remarks>
 	public static DateTimeOffset ResolveExpire(this IAuthenticationTokenConfiguration configuration, DateTimeOffset? created, int defaultTimeout)
 	{
-		var idleTimeout = configuration.IdleTimeout is int configured && configured > 0 ? configured : defaultTimeout;
-		var expire = DateTimeOffset.UtcNow.AddMinutes(idleTimeout);
+		var expire = DateTimeOffset.UtcNow.AddMinutes(configuration.ResolveIdleTimeout(defaultTimeout));
 
 		/*
 		 * Tokens without a creation time were issued before it was recorded and cannot be bounded.
@@ -118,6 +133,17 @@ public static class IdentityAuthenticationTokenExtensions
 			return expire;
 
 		return limit < expire ? limit : expire;
+	}
+
+	/// <summary>
+	/// Resolves the number of minutes an expiring token stays valid without activity.
+	/// </summary>
+	/// <param name="configuration">The token lifetime configuration.</param>
+	/// <param name="defaultTimeout">The number of minutes to use when no positive idle timeout is configured.</param>
+	/// <returns>The configured idle timeout, or <paramref name="defaultTimeout"/>.</returns>
+	private static int ResolveIdleTimeout(this IAuthenticationTokenConfiguration configuration, int defaultTimeout)
+	{
+		return configuration.IdleTimeout is int configured && configured > 0 ? configured : defaultTimeout;
 	}
 
 	/// <summary>
@@ -153,7 +179,8 @@ public static class IdentityAuthenticationTokenExtensions
 	/// </returns>
 	/// <remarks>
 	/// An expired token is never revived, so a bearer value that has lapsed cannot become valid again. Permanent
-	/// tokens are never spent.
+	/// tokens are never spent. When the maximum lifetime is not longer than the idle timeout, no token could ever be
+	/// given a full idle period, so only expired tokens are spent; otherwise every sign-in would replace the token.
 	/// </remarks>
 	public static bool IsSpent(this IAuthenticationTokenConfiguration configuration, IIdentityAuthenticationToken token)
 	{
@@ -165,12 +192,34 @@ public static class IdentityAuthenticationTokenExtensions
 		if (token.Expire <= now)
 			return true;
 
-		if (token.Created is null || configuration.LifetimeLimit(token.Created.Value) is not DateTimeOffset limit)
+		if (token.Created is null || configuration.MaxLifetime is not int maxLifetime || maxLifetime <= 0)
 			return false;
 
-		var idleTimeout = configuration.IdleTimeout is int configured && configured > 0 ? configured : DefaultSignInTimeout;
+		var idleTimeout = configuration.ResolveIdleTimeout(DefaultSignInTimeout);
 
-		return limit < now.AddMinutes(idleTimeout);
+		if (maxLifetime <= idleTimeout)
+			return false;
+
+		return token.Created.Value.AddMinutes(maxLifetime) < now.AddMinutes(idleTimeout);
+	}
+
+	/// <summary>
+	/// Determines whether signing in must replace the token instead of updating it in place.
+	/// </summary>
+	/// <param name="configuration">The token lifetime configuration.</param>
+	/// <param name="token">The existing token of the identity.</param>
+	/// <param name="permanent">Whether the sign-in asks for a permanent token.</param>
+	/// <returns>
+	/// <see langword="true"/> when the token is spent, or when a permanent token becomes expiring under a maximum
+	/// lifetime: its creation time marks the start of the remembered session, not of this one, so the maximum
+	/// lifetime could already have passed.
+	/// </returns>
+	private static bool MustReplace(IAuthenticationTokenConfiguration configuration, IIdentityAuthenticationToken token, bool permanent)
+	{
+		if (configuration.IsSpent(token))
+			return true;
+
+		return !permanent && token.Expire is null && token.Created is DateTimeOffset created && configuration.LifetimeLimit(created) is not null;
 	}
 
 	/// <summary>
@@ -193,17 +242,12 @@ public static class IdentityAuthenticationTokenExtensions
 
 		/*
 		 * A token that has lapsed or is about to reach the end of its lifetime is not revived. Issuing a new
-		 * token starts a new lifetime.
+		 * token starts a new lifetime. The token is shared by every session of the identity, so replacing it
+		 * near the end of its lifetime ends the other sessions early; they could not have outlived the limit.
 		 */
-		if (existingKey is not null && existingKey.Status == AuthenticationTokenStatus.Enabled && configuration.IsSpent(existingKey))
+		if (existingKey is not null && existingKey.Status == AuthenticationTokenStatus.Enabled && MustReplace(configuration, existingKey, permanent))
 		{
-			/*
-			 * Token authentication deletes expired tokens as well, so the row may already be gone.
-			 */
-			var key = DtoFactory.Create<IPrimaryKeyDto<long>>(f => f.Id = existingKey.Id);
-
-			if (await service.Select(key) is not null)
-				await service.Delete(key);
+			await service.Delete(DtoFactory.Create<IPrimaryKeyDto<long>>(f => f.Id = existingKey.Id));
 
 			existingKey = null;
 		}

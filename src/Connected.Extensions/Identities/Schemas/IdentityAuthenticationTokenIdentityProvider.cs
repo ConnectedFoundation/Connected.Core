@@ -1,9 +1,10 @@
+using Connected.Configuration;
 using Connected.Identities.Authentication;
 using Connected.Services;
 using System.Collections.Immutable;
 
 namespace Connected.Identities.Schemas;
-internal sealed class IdentityAuthenticationTokenIdentityProvider(IIdentityAuthenticationTokenService authenticationTokens, IIdentityExtensions extensions)
+internal sealed class IdentityAuthenticationTokenIdentityProvider(IIdentityAuthenticationTokenService authenticationTokens, IIdentityExtensions extensions, IConfigurationService configuration)
 	: IdentityDescriptorProvider
 {
 	public override string Name => "IdentityAuthenticationTokens";
@@ -44,7 +45,7 @@ internal sealed class IdentityAuthenticationTokenIdentityProvider(IIdentityAuthe
 		{
 			var authenticationToken = await authenticationTokens.Select(new Dto().CreateValue(token));
 
-			if (authenticationToken is null || !authenticationToken.IsValid())
+			if (authenticationToken is null || !authenticationToken.IsValid(configuration.Authentication.Tokens))
 				continue;
 
 			retVal.Add(authenticationToken.Identity);

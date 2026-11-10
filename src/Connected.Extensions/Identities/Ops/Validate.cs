@@ -17,13 +17,13 @@ internal sealed class Validate(IUserService users, IIdentityAuthenticationTokenS
 		if (user is null)
 			return null;
 
-		var token = await user.AuthenticationToken();
-
 		/*
 		 * A token that is about to reach the end of its maximum lifetime is not returned, since it could
 		 * not be extended. Ensure replaces it with a new one.
 		 */
-		if (token is not null && await tokens.Select(DtoFactory.Create<IValueDto<string>>(f => f.Value = token)) is IIdentityAuthenticationToken existing && !configuration.Authentication.Tokens.IsSpent(existing))
+		var token = await user.SignInToken(configuration.Authentication.Tokens);
+
+		if (token is not null)
 			return token;
 
 		return await tokens.Ensure(configuration.Authentication.Tokens, user.Token, Guid.NewGuid().ToString(), Dto.Permanent);
