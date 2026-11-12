@@ -219,13 +219,7 @@ internal sealed class CacheScope : ICache, IDisposable
 
 	public void CopyTo(string key, object id, IEntry instance)
 	{
-		if (!Items.TryGetValue(key, out Entries? value))
-		{
-			value = new Entries();
-
-			if (!Items.TryAdd(key, value))
-				return;
-		}
+		var value = Items.GetOrAdd(key, _ => new Entries());
 
 		value.Set(ResolveId(id), instance.Instance, instance.Duration, instance.SlidingExpiration, instance.Merge);
 	}
@@ -247,13 +241,7 @@ internal sealed class CacheScope : ICache, IDisposable
 
 	public T? Set<T>(string key, object id, T? instance, TimeSpan duration, bool slidingExpiration, CacheEntryMergeBehavior merge)
 	{
-		if (!Items.TryGetValue(key, out Entries? value))
-		{
-			value = new Entries();
-
-			if (!Items.TryAdd(key, value))
-				return default;
-		}
+		var value = Items.GetOrAdd(key, _ => new Entries());
 
 		value.Set(ResolveId(id), instance, duration, slidingExpiration, merge);
 
