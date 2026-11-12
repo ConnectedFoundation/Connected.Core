@@ -21,6 +21,12 @@ internal class Entries
 	/// </summary>
 	public bool Retired { get; set; }
 	public int Count => Items.Count;
+	/*
+	 * Bumped under the bucket's lock after every change to Items. A snapshot built at one version is handed out until
+	 * the version moves on, so a query reads the bucket without copying it, and a change is seen by the next query.
+	 */
+	private long _version;
+	private volatile Snapshots _snapshots = new(-1);
 
 	public bool Any()
 	{
@@ -54,37 +60,99 @@ internal class Entries
 		}
 
 		foreach (var i in expired)
-			Remove(i);
+			RemoveExpired(i);
+	}
+
+	/// <summary>
+	/// Removes the entry only if it is still expired, so a write that refreshed it after the scan is kept.
+	/// </summary>
+	private void RemoveExpired(string key)
+	{
+		IEntry? d;
+
+		lock (this)
+		{
+			if (!Items.TryGetValue(key, out d) || (d is not null && !d.Expired) || !Items.TryRemove(key, out d))
+				return;
+
+			Changed();
+		}
+
+		d?.Dispose();
 	}
 
 	public IImmutableList<T> All<T>()
 	{
-		var r = new List<T>();
-		var instances = Items.Select(f => f.Value.Instance);
+		var snapshot = GetSnapshot<T>();
 
-		foreach (var i in instances)
-		{
-			if (i is not T t)
-				throw new InvalidCastException($"{Exceptions.ExInvalidCacheEntry} ({i?.GetType().ShortName()}->{typeof(T).ShortName()})");
+		if (snapshot.HasNull)
+			throw new InvalidCastException($"{Exceptions.ExInvalidCacheEntry} (null->{typeof(T).ShortName()})");
 
-			r.Add(t);
-		}
-
-		return [.. r];
+		return snapshot.List;
 	}
 
-	private IEnumerable<T> AsEnumerable<T>()
+	/// <summary>
+	/// The bucket's instances as <typeparamref name="T"/> at the current version, built once under the bucket's lock and
+	/// shared by every reader until the next change. Nobody can change a snapshot once it is handed out.
+	/// </summary>
+	private Snapshot<T> GetSnapshot<T>()
 	{
-		var r = new List<T>();
-		var instances = Items.Select(f => f.Value.Instance);
+		var current = _snapshots;
 
-		foreach (var i in instances)
+		if (current.Version == Volatile.Read(ref _version) && current.Typed.TryGetValue(typeof(T), out var cached))
+			return (Snapshot<T>)cached;
+
+		lock (this)
 		{
-			if (i is not T t)
-				throw new InvalidCastException($"{Exceptions.ExInvalidCacheEntry} ({i?.GetType().ShortName()}->{typeof(T).ShortName()})");
+			current = _snapshots;
 
-			yield return t;
+			if (current.Version != _version)
+			{
+				current = new Snapshots(_version);
+				_snapshots = current;
+			}
+			else if (current.Typed.TryGetValue(typeof(T), out cached))
+				return (Snapshot<T>)cached;
+
+			var result = BuildSnapshot<T>();
+
+			current.Typed[typeof(T)] = result;
+
+			return result;
 		}
+	}
+
+	private Snapshot<T> BuildSnapshot<T>()
+	{
+		var items = new T[Items.Count];
+		var keys = new string[items.Length];
+		var hasNull = false;
+		var index = 0;
+
+		foreach (var i in Items)
+		{
+			var instance = i.Value.Instance;
+
+			if (instance is T t)
+				items[index] = t;
+			else if (instance is null && default(T) is null)
+			{
+				items[index] = default!;
+				hasNull = true;
+			}
+			else
+				throw new InvalidCastException($"{Exceptions.ExInvalidCacheEntry} ({instance?.GetType().ShortName()}->{typeof(T).ShortName()})");
+
+			keys[index] = i.Key;
+			index++;
+		}
+
+		return new Snapshot<T>(items, keys, hasNull);
+	}
+
+	private void Changed()
+	{
+		Interlocked.Increment(ref _version);
 	}
 
 	public void Remove(string key)
@@ -92,16 +160,20 @@ internal class Entries
 		if (Items.IsEmpty)
 			return;
 
-		if (Items.TryRemove(key, out IEntry? v))
-			v.Dispose();
+		RemoveInternal(key);
 	}
 
 	public void Set(string key, object? instance, TimeSpan duration, bool slidingExpiration, CacheEntryMergeBehavior merge)
 	{
-		if (Items.TryGetValue(key, out IEntry? existing) && existing is Entry e)
-			e.Set(instance, duration, slidingExpiration, merge);
-		else
-			Items[key] = new Entry(key, instance, duration, slidingExpiration, merge);
+		lock (this)
+		{
+			if (Items.TryGetValue(key, out IEntry? existing) && existing is Entry e)
+				e.Set(instance, duration, slidingExpiration, merge);
+			else
+				Items[key] = new Entry(key, instance, duration, slidingExpiration, merge);
+
+			Changed();
+		}
 	}
 
 	public IEnumerator<T> GetEnumerator<T>()
@@ -148,41 +220,67 @@ internal class Entries
 
 	public IImmutableList<T> Where<T>(Func<T, bool> predicate)
 	{
-		var values = Items.Select(f => f.Value.Instance).Cast<T>();
+		var items = GetSnapshot<T>().Items;
 
-		if (values is null || !values.Any())
+		if (items.Length == 0)
 			return ImmutableList<T>.Empty;
 
-		var filtered = values.Where(predicate);
+		var filtered = ImmutableList.CreateBuilder<T>();
 
-		if (filtered is null || !filtered.Any())
+		foreach (var i in items)
+		{
+			if (predicate(i))
+				filtered.Add(i);
+		}
+
+		if (filtered.Count == 0)
 			return ImmutableList<T>.Empty;
 
 		foreach (var i in filtered)
 			HitList.Enqueue(i);
 
-		return filtered.ToImmutableList();
+		return filtered.ToImmutable();
 	}
 
 	private void RemoveInternal(string key)
 	{
-		if (Items.TryRemove(key, out IEntry? d))
-			d.Dispose();
+		IEntry? d;
+
+		lock (this)
+		{
+			if (!Items.TryRemove(key, out d))
+				return;
+
+			Changed();
+		}
+
+		d.Dispose();
 	}
 
 	private IEntry? Find<T>(Func<T, bool> predicate)
 	{
-		var instances = Items.Select(f => f.Value?.Instance).Cast<T>();
+		var snapshot = GetSnapshot<T>();
+		var items = snapshot.Items;
 
-		if (instances is null || !instances.Any())
-			return default;
+		for (var i = 0; i < items.Length; i++)
+		{
+			if (!predicate(items[i]))
+				continue;
 
-		if (instances.FirstOrDefault(predicate) is not T instance)
-			return default;
+			if (items[i] is not T instance)
+				return default;
 
-		HitList.Enqueue(instance);
+			HitList.Enqueue(instance);
+			/*
+			 * The entry under the matched key, as long as it still holds the instance the predicate matched.
+			 */
+			if (Items.TryGetValue(snapshot.Keys[i], out IEntry? entry) && InstanceEquals(entry.Instance, instance))
+				return entry;
 
-		return Items.Values.FirstOrDefault(f => InstanceEquals(f.Instance, instance));
+			return Items.Values.FirstOrDefault(f => InstanceEquals(f.Instance, instance));
+		}
+
+		return default;
 	}
 
 	private IEntry? Find(string key)
@@ -232,5 +330,30 @@ internal class Entries
 			return left.Equals(right);
 
 		return ReferenceEqualityComparer.Instance.Equals(left, right);
+	}
+
+	private sealed class Snapshots(long version)
+	{
+		public long Version { get; } = version;
+		public ConcurrentDictionary<Type, object> Typed { get; } = new();
+	}
+
+	private sealed class Snapshot<T>(T[] items, string[] keys, bool hasNull)
+	{
+		private ImmutableList<T>? _list;
+
+		public T[] Items { get; } = items;
+		public string[] Keys { get; } = keys;
+		public bool HasNull { get; } = hasNull;
+		public ImmutableList<T> List
+		{
+			get
+			{
+				if (_list is null)
+					Interlocked.CompareExchange(ref _list, ImmutableList.Create(Items), null);
+
+				return _list;
+			}
+		}
 	}
 }
