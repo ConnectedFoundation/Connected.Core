@@ -1,5 +1,7 @@
 using Connected.Storage.Transactions;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Connected.Caching;
@@ -282,7 +284,7 @@ internal class CacheContext : ICacheContext
 		{
 			var id = ResolveId(item);
 
-			if (id is null || IsItemRemoved(key, item) || scopeIds.Contains(id))
+			if (id is null || IsRemoved(key, id) || scopeIds.Contains(id))
 				continue;
 
 			result.Add(item);
@@ -291,15 +293,32 @@ internal class CacheContext : ICacheContext
 		return [.. result];
 	}
 
+	private static readonly ConcurrentDictionary<Type, Func<object, object?>> KeyGetters = new();
+
 	private static object? ResolveId(object? value)
 	{
 		if (value is null)
 			return default;
 
-		if (CachingUtils.GetCacheKeyProperty(value) is not PropertyInfo cacheProperty)
-			return default;
+		return KeyGetters.GetOrAdd(value.GetType(), static (_, instance) => CreateKeyGetter(instance), value)(value);
+	}
 
-		return cacheProperty.GetValue(value);
+	/// <summary>
+	/// Reads the instance's cache key property through a delegate compiled once per type instead of by reflection on
+	/// every row.
+	/// </summary>
+	private static Func<object, object?> CreateKeyGetter(object instance)
+	{
+		if (CachingUtils.GetCacheKeyProperty(instance) is not PropertyInfo property)
+			return static _ => null;
+
+		if (property.GetMethod is null || property.DeclaringType is null || property.GetIndexParameters().Length != 0)
+			return property.GetValue;
+
+		var parameter = Expression.Parameter(typeof(object));
+		var body = Expression.Convert(Expression.Property(Expression.Convert(parameter, property.DeclaringType), property), typeof(object));
+
+		return Expression.Lambda<Func<object, object?>>(body, parameter).Compile();
 	}
 
 	public IEntry? Get(string key, object id)
