@@ -22,6 +22,53 @@ public sealed class CacheScopeConcurrencyTests
 		await Hammer((scope, key, id) => scope.Set(key, id, (object)id, TimeSpan.Zero, false, CacheEntryMergeBehavior.Merge));
 	}
 
+	/// <summary>
+	/// Writers keep emptying their key and writing to it again while the cleanup removes empty keys. A write that
+	/// lands in a key's bucket just as the cleanup removes it must not be lost.
+	/// </summary>
+	[TestMethod]
+	public async Task ScavengeKeepsEveryEntryWrittenIntoKeyItRemoves()
+	{
+		const int writers = 8;
+		const int iterations = 100_000;
+
+		using var scope = new CacheScope(false);
+		using var done = new CancellationTokenSource();
+		var lost = 0;
+
+		var scavengers = Enumerable.Range(0, 2).Select(_ => Task.Factory.StartNew(() =>
+		{
+			while (!done.IsCancellationRequested)
+				scope.Scavenge();
+		}, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default)).ToArray();
+
+		var tasks = Enumerable.Range(0, writers).Select(w => Task.Factory.StartNew(() =>
+		{
+			var key = $"key-{w % 2}";
+
+			for (var i = 0; i < iterations; i++)
+			{
+				var id = $"{w}-{i}";
+
+				if (i % 2 == 0)
+					scope.Set(key, id, (object)id);
+				else
+					scope.CopyTo(key, id, new Entry(id, id, TimeSpan.Zero, false, CacheEntryMergeBehavior.Merge));
+
+				if (!scope.Ids(key).Contains(id))
+					Interlocked.Increment(ref lost);
+
+				scope.Remove(key, id).GetAwaiter().GetResult();
+			}
+		}, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default)).ToArray();
+
+		await Task.WhenAll(tasks);
+		done.Cancel();
+		await Task.WhenAll(scavengers);
+
+		Assert.AreEqual(0, lost, $"{lost} of {writers * iterations} entries lost to the cleanup.");
+	}
+
 	private static async Task Hammer(Action<CacheScope, string, int> write)
 	{
 		using var scope = new CacheScope(false);
