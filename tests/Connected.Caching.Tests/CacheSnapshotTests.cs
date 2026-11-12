@@ -205,6 +205,84 @@ public sealed class CacheSnapshotTests
 	}
 
 	/// <summary>
+	/// A list a query handed out stays exactly as it was, item for item, while other threads keep writing to and
+	/// removing from the bucket, and it refuses to be changed by its holder.
+	/// </summary>
+	[TestMethod]
+	public async Task HeldListsNeverChangeWhileOtherThreadsWrite()
+	{
+		const int writers = 4;
+		const int holders = 8;
+		const int iterations = 20_000;
+
+		using var scope = Fill(50);
+		using var done = new CancellationTokenSource();
+		var errors = new ConcurrentQueue<string>();
+		var checks = 0L;
+
+		var holderTasks = Enumerable.Range(0, holders).Select(h => Run(() =>
+		{
+			while (!done.IsCancellationRequested)
+			{
+				try
+				{
+					var held = h % 2 == 0 ? scope.All<string>(Key) : scope.Where<string>(Key, f => f.Length > 0);
+					var frozen = held.ToArray();
+
+					if (held is IList<string> list)
+					{
+						try
+						{
+							list.Add("intruder");
+							errors.Enqueue("A held list accepted Add.");
+						}
+						catch (NotSupportedException)
+						{
+						}
+					}
+
+					for (var i = 0; i < 20; i++)
+					{
+						Thread.SpinWait(200);
+
+						if (held.Count != frozen.Length || !held.SequenceEqual(frozen))
+						{
+							errors.Enqueue($"Holder {h}: a held list changed from {frozen.Length} to {held.Count} items.");
+							break;
+						}
+
+						Interlocked.Increment(ref checks);
+					}
+				}
+				catch (Exception ex)
+				{
+					errors.Enqueue(ex.ToString());
+				}
+			}
+		})).ToArray();
+
+		var writerTasks = Enumerable.Range(0, writers).Select(w => Run(() =>
+		{
+			for (var i = 0; i < iterations; i++)
+			{
+				scope.Set(Key, $"w{w}-{i}", $"w{w}-{i}");
+
+				if (i % 2 == 1)
+					scope.Remove(Key, $"w{w}-{i - 1}").GetAwaiter().GetResult();
+			}
+		})).ToArray();
+
+		await Task.WhenAll(writerTasks);
+		done.Cancel();
+		await Task.WhenAll(holderTasks);
+
+		TestContext.WriteLine($"{checks} checks of held lists.");
+
+		Assert.AreEqual(0, errors.Count, string.Join(Environment.NewLine, errors.Take(5)));
+		Assert.IsTrue(checks > 0);
+	}
+
+	/// <summary>
 	/// Not asserted: prints how long 1,000 queries over a 40,000 entry bucket take, copying the bucket on every query
 	/// (the old All) against handing out the snapshot.
 	/// </summary>
