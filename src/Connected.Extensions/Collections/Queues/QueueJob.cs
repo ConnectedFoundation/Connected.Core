@@ -1,9 +1,11 @@
+using Connected.Authentication;
 using Connected.Collections.Concurrent;
 using Connected.Entities;
 using Connected.Reflection;
 using Connected.Services;
 using Connected.Storage;
 using Connected.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 
@@ -82,7 +84,7 @@ internal sealed class QueueJob<TEntity, TCache>(IStorageProvider storage, TCache
 		 * Start the periodic timeout guard that extends visibility every n seconds.
 		 * This prevents the message from becoming visible again if processing exceeds the default window.
 		 */
-		Timeout = new TaskTimeout(Update, TimeSpan.FromSeconds(Math.Max(5, Dto.PopInterval / 2)), Cancel);
+		Timeout = new TaskTimeout(ExtendVisibility, TimeSpan.FromSeconds(Math.Max(5, Dto.PopInterval / 2)), Cancel);
 
 		/*
 		 * Start the guard task.
@@ -358,7 +360,10 @@ internal sealed class QueueJob<TEntity, TCache>(IStorageProvider storage, TCache
 		 * Synchronize the cache with the updated message state.
 		 */
 		if (modified is not null)
+		{
 			await cache.Refresh(modified.Id);
+			await Publish(modified.Id);
+		}
 	}
 
 	/// <summary>
@@ -417,7 +422,44 @@ internal sealed class QueueJob<TEntity, TCache>(IStorageProvider storage, TCache
 		 * Synchronize the cache with the updated message state.
 		 */
 		if (modified is not null)
+		{
 			await cache.Refresh(modified.Id);
+			await Publish(modified.Id);
+		}
+	}
+
+	/// <summary>
+	/// Extends the message's visibility for the timeout guard. A failure is logged and the guard goes on: an exception
+	/// would end the guard's loop, and the message would then reappear while it is still being processed.
+	/// </summary>
+	private async Task ExtendVisibility()
+	{
+		try
+		{
+			await Update();
+		}
+		catch (Exception ex) when (ex is not OperationCanceledException)
+		{
+			logger.LogWarning(ex, "The visibility of queue message {popReceipt} could not be extended: {message}", Dto.PopReceipt, ex.Message);
+		}
+	}
+
+	/// <summary>
+	/// Puts the message's new visibility into the shared cache at once.
+	/// </summary>
+	/// <remarks>
+	/// The job runs in a scope of its own, and the scope's cache entries reach the shared cache only when the scope
+	/// completes, at the end of the job. The queue host picks its candidates from the shared cache, so it would see the
+	/// message visible again after its pop interval, take it over with a new pop receipt and hand it to another worker
+	/// while this one still processes it; this job could then no longer find, extend or delete the message. The refresh
+	/// therefore runs in a scope that completes right away.
+	/// </remarks>
+	private static async Task Publish(long id)
+	{
+		await using var scope = await Connected.Services.Scope.Create().WithSystemIdentity();
+
+		await scope.ServiceProvider.GetRequiredService<TCache>().Refresh(id);
+		await scope.Commit();
 	}
 
 	private async Task<TEntity?> Select()
