@@ -15,6 +15,11 @@ internal class Entries
 	private ConcurrentDictionary<string, IEntry> Items { get; }
 	private ConcurrentQueue<object?> HitList { get; }
 	public IImmutableList<string> Keys => [.. Items.Keys];
+	/// <summary>
+	/// Set under the bucket's lock when the cleanup takes the bucket out of the cache, so a writer holding it
+	/// knows to fetch the key's bucket again instead of writing into one that is gone.
+	/// </summary>
+	public bool Retired { get; set; }
 	public int Count => Items.Count;
 
 	public bool Any()

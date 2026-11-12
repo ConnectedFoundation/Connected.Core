@@ -33,17 +33,53 @@ internal sealed class CacheScope : ICache, IDisposable
 		{
 			try
 			{
-				foreach (var i in Items)
-					i.Value.Scave();
-
-				var empties = Items.Where(f => f.Value.Count == 0).Select(f => f.Key);
-
-				foreach (var i in empties)
-					Items.TryRemove(i, out _);
+				Scavenge();
 
 				token.WaitHandle.WaitOne(TimeSpan.FromMinutes(1));
 			}
 			catch { }
+		}
+	}
+
+	internal void Scavenge()
+	{
+		foreach (var i in Items)
+			i.Value.Scave();
+
+		foreach (var i in Items)
+		{
+			if (i.Value.Count != 0)
+				continue;
+
+			lock (i.Value)
+			{
+				if (i.Value.Count != 0)
+					continue;
+
+				i.Value.Retired = true;
+				Items.TryRemove(i);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Writes into the key's bucket, creating it if needed. The write and the cleanup's removal of an empty bucket
+	/// both hold the bucket's lock, so a write never lands in a bucket the cleanup has already taken out.
+	/// </summary>
+	private void Write(string key, Action<Entries> write)
+	{
+		while (true)
+		{
+			var value = Items.GetOrAdd(key, _ => new Entries());
+
+			lock (value)
+			{
+				if (value.Retired)
+					continue;
+
+				write(value);
+				return;
+			}
 		}
 	}
 
@@ -219,15 +255,7 @@ internal sealed class CacheScope : ICache, IDisposable
 
 	public void CopyTo(string key, object id, IEntry instance)
 	{
-		if (!Items.TryGetValue(key, out Entries? value))
-		{
-			value = new Entries();
-
-			if (!Items.TryAdd(key, value))
-				return;
-		}
-
-		value.Set(ResolveId(id), instance.Instance, instance.Duration, instance.SlidingExpiration, instance.Merge);
+		Write(key, value => value.Set(ResolveId(id), instance.Instance, instance.Duration, instance.SlidingExpiration, instance.Merge));
 	}
 
 	public T? Set<T>(string key, object id, T? instance)
@@ -247,15 +275,7 @@ internal sealed class CacheScope : ICache, IDisposable
 
 	public T? Set<T>(string key, object id, T? instance, TimeSpan duration, bool slidingExpiration, CacheEntryMergeBehavior merge)
 	{
-		if (!Items.TryGetValue(key, out Entries? value))
-		{
-			value = new Entries();
-
-			if (!Items.TryAdd(key, value))
-				return default;
-		}
-
-		value.Set(ResolveId(id), instance, duration, slidingExpiration, merge);
+		Write(key, value => value.Set(ResolveId(id), instance, duration, slidingExpiration, merge));
 
 		return instance;
 	}
