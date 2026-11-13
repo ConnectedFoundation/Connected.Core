@@ -7,6 +7,33 @@ namespace Connected.Identities;
 public static class TwoFactorExtensions
 {
 	/// <summary>
+	/// The length in bytes of the key that encrypts two-factor secrets.
+	/// </summary>
+	public const int KeyLength = 32;
+
+	/// <summary>
+	/// Reads the key that encrypts two-factor secrets, as <see cref="ITwoFactorConfiguration.Key"/> holds it.
+	/// </summary>
+	/// <param name="value">The key, encoded in Base64.</param>
+	/// <param name="key">The key's <see cref="KeyLength"/> bytes, or an empty array when the value is not such a key.</param>
+	/// <returns><see langword="true"/> when the value is a 256-bit key encoded in Base64.</returns>
+	public static bool TryParseKey(string? value, out byte[] key)
+	{
+		var buffer = new byte[KeyLength];
+
+		if (value is null || !Convert.TryFromBase64String(value, buffer, out var written) || written != KeyLength)
+		{
+			key = [];
+
+			return false;
+		}
+
+		key = buffer;
+
+		return true;
+	}
+
+	/// <summary>
 	/// Determines whether a user must complete the sign-in with a code.
 	/// </summary>
 	/// <param name="service">The two-factor service.</param>

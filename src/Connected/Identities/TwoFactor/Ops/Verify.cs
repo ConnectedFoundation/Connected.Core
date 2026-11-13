@@ -26,7 +26,7 @@ internal sealed class Verify(IStorageProvider storage, IUserService users, IIden
 		if (challenge is null)
 			return null;
 
-		var user = SetState(await users.Select(new PrimaryKeyDto<long> { Id = challenge.User }));
+		var user = await users.Select(new PrimaryKeyDto<long> { Id = challenge.User });
 
 		if (user is null || user.Status != UserStatus.Active)
 			return null;
@@ -40,6 +40,11 @@ internal sealed class Verify(IStorageProvider storage, IUserService users, IIden
 		 */
 		if (factor is null || factor.Status != expected)
 			return null;
+
+		/*
+		 * From here the code is checked, so a middleware that finds the user in the state can count a wrong code.
+		 */
+		SetState(user);
 
 		var secret = TwoFactorSecrets.Unprotect(TwoFactorSecrets.Key(settings), user.Id, factor.Secret);
 

@@ -62,8 +62,9 @@ public interface ITwoFactorService
 	/// <remarks>
 	/// A wrong code counts against the challenge, which stops working after
 	/// <see cref="Configuration.Authentication.ITwoFactorConfiguration.MaxAttempts"/> wrong codes. Completing a setup
-	/// challenge enables two-factor sign-in. When the challenge is known, the operation's state carries its user, so a
-	/// middleware can count the user's wrong codes.
+	/// challenge enables two-factor sign-in. When the code is checked against the user's secret, the operation's state
+	/// carries the user, so a middleware can count the user's wrong codes; it is empty when the challenge is unknown or
+	/// expired, the user is not active or has no secret to check.
 	/// </remarks>
 	[ServiceOperation(ServiceOperationVerbs.Post)]
 	Task<string?> Verify(IVerifyTwoFactorDto dto);

@@ -14,7 +14,6 @@ namespace Connected.Identities.TwoFactor;
 /// </remarks>
 internal static class TwoFactorSecrets
 {
-	private const int KeyLength = 32;
 	private const int NonceLength = 12;
 	private const int TagLength = 16;
 	private const int ChallengeLength = 32;
@@ -25,9 +24,7 @@ internal static class TwoFactorSecrets
 	/// <exception cref="InvalidOperationException">Thrown when no 256-bit key is configured.</exception>
 	public static byte[] Key(ITwoFactorConfiguration configuration)
 	{
-		var key = new byte[KeyLength];
-
-		if (configuration.Key is null || !Convert.TryFromBase64String(configuration.Key, key, out var written) || written != KeyLength)
+		if (!TwoFactorExtensions.TryParseKey(configuration.Key, out var key))
 			throw new InvalidOperationException(SR.ErrTwoFactorKey);
 
 		return key;
