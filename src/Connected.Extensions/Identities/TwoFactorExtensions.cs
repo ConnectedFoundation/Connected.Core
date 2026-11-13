@@ -1,0 +1,26 @@
+using Connected.Configuration.Authentication;
+using Connected.Identities.TwoFactor;
+using Connected.Services;
+
+namespace Connected.Identities;
+
+public static class TwoFactorExtensions
+{
+	/// <summary>
+	/// Determines whether a user must complete the sign-in with a code.
+	/// </summary>
+	/// <param name="service">The two-factor service.</param>
+	/// <param name="configuration">The two-factor configuration.</param>
+	/// <param name="user">The user who entered valid credentials.</param>
+	/// <returns>
+	/// <see langword="true"/> when two-factor sign-in is required for every user or the user has enabled it; such a user
+	/// cannot sign in with credentials alone.
+	/// </returns>
+	public static async Task<bool> IsTwoFactorRequired(this ITwoFactorService service, ITwoFactorConfiguration configuration, IUser user)
+	{
+		if (configuration.Required)
+			return true;
+
+		return await service.Status(new PrimaryKeyDto<long> { Id = user.Id }) == TwoFactorStatus.Enabled;
+	}
+}

@@ -1,5 +1,7 @@
+using Connected.Configuration;
 using Connected.Identities;
 using Connected.Identities.Dtos;
+using Connected.Identities.TwoFactor;
 using Connected.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -59,6 +61,15 @@ internal sealed class BasicAuthentication(IHttpContextAccessor http)
 		var user = await users.Select(dto);
 
 		if (user is null)
+			return;
+
+		/*
+		 * A user who must enter a code cannot authenticate with credentials alone.
+		 */
+		var twoFactor = scope.ServiceProvider.GetService<ITwoFactorService>();
+		var configuration = scope.ServiceProvider.GetService<IConfigurationService>();
+
+		if (twoFactor is not null && configuration is not null && await twoFactor.IsTwoFactorRequired(configuration.Authentication.TwoFactor, user))
 			return;
 
 		var httpIdentity = new HttpIdentity(user)

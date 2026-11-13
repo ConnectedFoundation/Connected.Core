@@ -2,10 +2,12 @@ using Connected.Authentication;
 using Connected.Configuration;
 using Connected.Identities.Authentication;
 using Connected.Identities.Dtos;
+using Connected.Identities.TwoFactor;
 using Connected.Services;
 
 namespace Connected.Identities.Ops;
-internal sealed class Validate(IUserService users, IIdentityAuthenticationTokenService tokens, IAuthenticationService authentication, IConfigurationService configuration)
+internal sealed class Validate(IUserService users, IIdentityAuthenticationTokenService tokens, ITwoFactorService twoFactor, IAuthenticationService authentication,
+	IConfigurationService configuration)
 	 : ServiceFunction<IValidateUserDto, string?>
 {
 	protected override async Task<string?> OnInvoke()
@@ -18,14 +20,11 @@ internal sealed class Validate(IUserService users, IIdentityAuthenticationTokenS
 			return null;
 
 		/*
-		 * A token that is about to reach the end of its maximum lifetime is not returned, since it could
-		 * not be extended. Ensure replaces it with a new one.
+		 * A user who must enter a code signs in with SignIn, which returns a challenge instead of a token.
 		 */
-		var token = await user.SignInToken(configuration.Authentication.Tokens);
+		if (await twoFactor.IsTwoFactorRequired(configuration.Authentication.TwoFactor, user))
+			return null;
 
-		if (token is not null)
-			return token;
-
-		return await tokens.Ensure(configuration.Authentication.Tokens, user.Token, Guid.NewGuid().ToString(), Dto.Permanent);
+		return await tokens.IssueSignInToken(configuration.Authentication.Tokens, user, Dto.Permanent);
 	}
 }
