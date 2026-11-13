@@ -102,23 +102,29 @@ internal class DataCopy(ExistingSchema existing, string temporaryName)
 	/// <param name="column">The column to generate conversion string for.</param>
 	/// <returns>The SQL type name with precision and scale if applicable.</returns>
 	/// <exception cref="NotSupportedException">Thrown when the data type is not supported for conversion.</exception>
-	private static string ConversionString(ISchemaColumn column)
+	private static string ConversionString(ISchemaColumn column) => ConversionString(column.DataType, column.Precision, column.Scale);
+
+	/// <summary>
+	/// The SQL type a value of <paramref name="type"/> is converted to while it is copied: the type the column is
+	/// created with (see TableTransaction), so a <see cref="DbType.Double"/> stays a float and is not narrowed to real.
+	/// </summary>
+	internal static string ConversionString(DbType type, int precision, int scale)
 	{
-		return column.DataType switch
+		return type switch
 		{
 			DbType.Byte => "tinyint",
 			DbType.Currency => "money",
-			DbType.Decimal => $"decimal({column.Precision}, {column.Scale})",
-			DbType.Double => "real",
+			DbType.Decimal => $"decimal({precision}, {scale})",
+			DbType.Double => "float",
 			DbType.Int16 => "smallint",
 			DbType.Int32 => "int",
 			DbType.Int64 => "bigint",
 			DbType.SByte => "smallint",
-			DbType.Single => "float",
+			DbType.Single => "real",
 			DbType.UInt16 => "int",
 			DbType.UInt32 => "bigint",
 			DbType.UInt64 => "float",
-			DbType.VarNumeric => $"numeric({column.Precision}, {column.Scale})",
+			DbType.VarNumeric => $"numeric({precision}, {scale})",
 			_ => throw new NotSupportedException(),
 		};
 	}

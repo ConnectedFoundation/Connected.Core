@@ -112,15 +112,18 @@ internal class Columns(ExistingSchema existing)
 	/// <value>
 	/// A SQL query that retrieves all columns for the target table from INFORMATION_SCHEMA.COLUMNS.
 	/// </value>
-	private string CommandText
+	private string CommandText => CommandTextFor(Context.Schema.Schema, Context.Schema.Name);
+
+	/// <summary>
+	/// The query for a table's columns, in their order in the table: the schema comparison pairs columns by position,
+	/// and SQL Server does not guarantee any order without ORDER BY.
+	/// </summary>
+	internal static string CommandTextFor(string? schema, string? name)
 	{
-		get
-		{
-			var text = new StringBuilder();
+		var text = new StringBuilder();
 
-			text.AppendLine($"SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{Context.Schema.Schema}' AND TABLE_NAME = '{Context.Schema.Name}'");
+		text.AppendLine($"SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{schema}' AND TABLE_NAME = '{name}' ORDER BY ORDINAL_POSITION");
 
-			return text.ToString();
-		}
+		return text.ToString();
 	}
 }

@@ -281,6 +281,19 @@ internal static class SchemaExtensions
 	}
 
 	/// <summary>
+	/// Reverses <see cref="ParseDefaultValue"/> for a literal value read back from the database: <c>N'1'</c> becomes
+	/// <c>1</c>, and a quote doubled inside it a single one. Anything else, such as a function call, is returned as it is.
+	/// </summary>
+	/// <param name="value">The default value expression without its outer parentheses.</param>
+	public static string? UnquoteDefaultValue(string? value)
+	{
+		if (value is null || value.Length < 3 || !value.StartsWith("N'", StringComparison.Ordinal) || !value.EndsWith('\''))
+			return value;
+
+		return value[2..^1].Replace("''", "'", StringComparison.Ordinal);
+	}
+
+	/// <summary>
 	/// Converts a SQL Server data type name to a DbType enumeration value.
 	/// </summary>
 	/// <param name="value">The SQL Server data type name.</param>
@@ -336,6 +349,8 @@ internal static class SchemaExtensions
 			return DbType.DateTime;
 		else if (string.Equals(value, "smallmoney", StringComparison.OrdinalIgnoreCase))
 			return DbType.Currency;
+		else if (string.Equals(value, "smallint", StringComparison.OrdinalIgnoreCase))
+			return DbType.Int16;
 		else if (string.Equals(value, "sql_variant", StringComparison.OrdinalIgnoreCase))
 			return DbType.Object;
 		else if (string.Equals(value, "text", StringComparison.OrdinalIgnoreCase))
