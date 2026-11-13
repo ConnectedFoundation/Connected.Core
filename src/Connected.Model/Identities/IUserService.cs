@@ -54,6 +54,11 @@ public interface IUserService
 	/// </summary>
 	/// <param name="dto">The data transfer object containing the credentials for user selection.</param>
 	/// <returns>A task that represents the asynchronous operation. The task result contains the user if credentials are valid, or null otherwise.</returns>
+	/// <remarks>
+	/// The operation checks the credentials only. An authentication provider that authenticates a caller with it must
+	/// also refuse users who must enter a code (<c>TwoFactorExtensions.IsTwoFactorRequired</c>), as Validate and Basic
+	/// authentication do.
+	/// </remarks>
 	[ServiceOperation(ServiceOperationVerbs.Get), ServiceUrl(IdentitiesUrls.SelectByCredentialsOperation)]
 	Task<IUser?> Select(ISelectUserDto dto);
 
