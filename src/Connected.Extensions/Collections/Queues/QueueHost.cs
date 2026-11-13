@@ -180,41 +180,56 @@ public abstract class QueueHost<TEntity, TCache>
 			/*
 			 * Queues use isolated storages which means they are not part of the shared transaction context.
 			 */
-			entity = await storage.Open<TEntity>().Update(typed, async (f) =>
+			try
 			{
-				var cloned = f.Clone();
+				entity = await storage.Open<TEntity>().Update(typed, async (f) =>
+				{
+					var cloned = f.Clone();
 
-				cloned.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(cloned, DateTimeOffset.UtcNow.Add(TimeSpan.FromSeconds(entity.PopInterval)));
-				cloned.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(cloned, State.Update);
+					cloned.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(cloned, DateTimeOffset.UtcNow.Add(TimeSpan.FromSeconds(entity.PopInterval)));
+					cloned.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(cloned, State.Update);
 
-				await Task.CompletedTask;
-				/*
-				 * Do the manual merge
-				 */
-				return cloned;
-			}, async () =>
+					await Task.CompletedTask;
+					/*
+					 * Do the manual merge
+					 */
+					return cloned;
+				}, async () =>
+				{
+					/*
+					 * Concurrency failed. refresh the cache to read it from a database.
+					 */
+					await cache.Refresh(entity.Id);
+
+					var cached = (await cache.Select(entity.Id)).Required();
+
+					/*
+					 * The message changed since it was selected. If it is reserved by a job that still processes it, which
+					 * extends its visibility, it is left to that job instead of being taken over with a new pop receipt.
+					 */
+					if (IsReserved(cached.PopReceipt, cached.NextVisible, DateTimeOffset.UtcNow))
+						throw new QueueMessageReservedException();
+
+					var cloned = cached.Clone();
+
+					cloned.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(cloned, DateTimeOffset.UtcNow.Add(TimeSpan.FromSeconds(cloned.PopInterval)));
+					cloned.GetType().GetProperty(nameof(IQueueMessage.DequeueTimestamp))?.SetValue(cloned, DateTimeOffset.UtcNow);
+					cloned.GetType().GetProperty(nameof(IQueueMessage.DequeueCount))?.SetValue(cloned, cached.DequeueCount + 1);
+					cloned.GetType().GetProperty(nameof(IQueueMessage.PopReceipt))?.SetValue(cloned, Guid.NewGuid());
+					cloned.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(cloned, State.Update);
+
+					await Task.CompletedTask;
+
+					if (cloned is TEntity ce)
+						return ce;
+
+					return default;
+				}, new CallerContext());
+			}
+			catch (QueueMessageReservedException)
 			{
-				/*
-				 * Concurrency failed. refresh the cache to read it from a database.
-				 */
-				await cache.Refresh(entity.Id);
-
-				var cached = (await cache.Select(entity.Id)).Required();
-				var cloned = cached.Clone();
-
-				cloned.GetType().GetProperty(nameof(IQueueMessage.NextVisible))?.SetValue(cloned, DateTimeOffset.UtcNow.Add(TimeSpan.FromSeconds(cloned.PopInterval)));
-				cloned.GetType().GetProperty(nameof(IQueueMessage.DequeueTimestamp))?.SetValue(cloned, DateTimeOffset.UtcNow);
-				cloned.GetType().GetProperty(nameof(IQueueMessage.DequeueCount))?.SetValue(cloned, cached.DequeueCount + 1);
-				cloned.GetType().GetProperty(nameof(IQueueMessage.PopReceipt))?.SetValue(cloned, Guid.NewGuid());
-				cloned.GetType().GetProperty(nameof(IQueueMessage.State))?.SetValue(cloned, State.Update);
-
-				await Task.CompletedTask;
-
-				if (cloned is TEntity ce)
-					return ce;
-
-				return default;
-			}, new CallerContext());
+				continue;
+			}
 
 			if (entity is null)
 				continue;
@@ -229,6 +244,16 @@ public abstract class QueueHost<TEntity, TCache>
 
 		return [.. result];
 	}
+
+	/// <summary>
+	/// Whether a message is reserved by a job that still processes it: it has a pop receipt and is not visible yet.
+	/// </summary>
+	internal static bool IsReserved(Guid? popReceipt, DateTimeOffset nextVisible, DateTimeOffset now) => popReceipt is not null && nextVisible > now;
+
+	/// <summary>
+	/// Ends the reservation of a candidate that another job holds; the candidate is skipped.
+	/// </summary>
+	private sealed class QueueMessageReservedException() : Exception("The queue message is reserved by another job.");
 
 	/// <summary>
 	/// Selects eligible dequeue candidates based on visibility, priority, and dispatcher capacity.
