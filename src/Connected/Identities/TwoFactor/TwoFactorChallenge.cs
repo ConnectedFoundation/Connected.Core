@@ -34,14 +34,8 @@ internal sealed record TwoFactorChallenge : ConsistentEntity<long>
 	public DateTimeOffset Expire { get; init; }
 
 	/// <summary>
-	/// Gets the number of wrong codes entered for the challenge.
-	/// </summary>
-	[Ordinal(4)]
-	public int Attempts { get; init; }
-
-	/// <summary>
 	/// Gets whether the authentication token issued at the end of the sign-in never expires.
 	/// </summary>
-	[Ordinal(5)]
+	[Ordinal(4)]
 	public bool Permanent { get; init; }
 }

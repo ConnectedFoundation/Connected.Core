@@ -24,7 +24,8 @@ internal sealed class Challenge(IStorageProvider storage, IUserService users, IC
 		var stage = factor?.Status == TwoFactorStatus.Enabled ? SignInStage.TwoFactor : SignInStage.TwoFactorSetup;
 
 		/*
-		 * A user has one open challenge, so starting the sign-in again does not add attempts to guess a code.
+		 * Only the latest sign-in's challenge works. Wrong codes are counted per user, not per challenge, so starting the
+		 * sign-in again does not add attempts to guess a code.
 		 */
 		await TwoFactorStore.DeleteChallenges(storage, user.Id);
 

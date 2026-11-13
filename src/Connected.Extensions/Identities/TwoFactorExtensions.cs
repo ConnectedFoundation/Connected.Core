@@ -48,6 +48,12 @@ public static class TwoFactorExtensions
 		if (configuration.Required)
 			return true;
 
+		/*
+		 * Without a key no user can have set up two-factor sign-in, so the store is not read.
+		 */
+		if (string.IsNullOrWhiteSpace(configuration.Key))
+			return false;
+
 		return await service.Status(new PrimaryKeyDto<long> { Id = user.Id }) == TwoFactorStatus.Enabled;
 	}
 }

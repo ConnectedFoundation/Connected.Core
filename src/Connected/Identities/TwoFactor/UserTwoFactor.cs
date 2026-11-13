@@ -41,4 +41,16 @@ internal sealed record UserTwoFactor : ConsistentEntity<long>
 	/// </summary>
 	[Ordinal(4), Date(DateKind.DateTime2, 7)]
 	public DateTimeOffset Created { get; init; }
+
+	/// <summary>
+	/// Gets the number of codes entered since the last right code or lockout; each code is counted before it is checked.
+	/// </summary>
+	[Ordinal(5), Default(0)]
+	public int Failures { get; init; }
+
+	/// <summary>
+	/// Gets the time, in UTC, until which the user's codes are refused after too many wrong ones.
+	/// </summary>
+	[Ordinal(6), Date(DateKind.DateTime2, 7)]
+	public DateTimeOffset? BlockedUntil { get; init; }
 }

@@ -66,10 +66,10 @@ internal sealed class BasicAuthentication(IHttpContextAccessor http)
 		/*
 		 * A user who must enter a code cannot authenticate with credentials alone.
 		 */
-		var twoFactor = scope.ServiceProvider.GetService<ITwoFactorService>();
-		var configuration = scope.ServiceProvider.GetService<IConfigurationService>();
+		var twoFactor = scope.ServiceProvider.GetRequiredService<ITwoFactorService>();
+		var configuration = scope.ServiceProvider.GetRequiredService<IConfigurationService>();
 
-		if (twoFactor is not null && configuration is not null && await twoFactor.IsTwoFactorRequired(configuration.Authentication.TwoFactor, user))
+		if (await twoFactor.IsTwoFactorRequired(configuration.Authentication.TwoFactor, user))
 			return;
 
 		var httpIdentity = new HttpIdentity(user)

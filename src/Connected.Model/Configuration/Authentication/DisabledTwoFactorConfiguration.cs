@@ -27,4 +27,7 @@ internal sealed class DisabledTwoFactorConfiguration
 
 	/// <inheritdoc/>
 	public int MaxAttempts => ITwoFactorConfiguration.DefaultMaxAttempts;
+
+	/// <inheritdoc/>
+	public int LockoutDuration => ITwoFactorConfiguration.DefaultLockoutDuration;
 }

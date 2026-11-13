@@ -6,6 +6,7 @@ using Connected.Identities.Authentication;
 using Connected.Identities.TwoFactor.Dtos;
 using Connected.Services;
 using Connected.Storage;
+using System.Data;
 
 namespace Connected.Identities.TwoFactor.Ops;
 
@@ -46,19 +47,39 @@ internal sealed class Verify(IStorageProvider storage, IUserService users, IIden
 		 */
 		SetState(user);
 
-		var secret = TwoFactorSecrets.Unprotect(TwoFactorSecrets.Key(settings), user.Id, factor.Secret);
+		var now = DateTimeOffset.UtcNow;
 
-		if (secret is null || Totp.Match(secret, Dto.Code, DateTimeOffset.UtcNow, factor.LastStep) is not long step)
-			return await Fail(challenge, settings);
+		if (await Reserve(factor, now) is not UserTwoFactor current || current.BlockedUntil > now || current.Status != expected)
+			return null;
+
+		var secret = TwoFactorSecrets.Unprotect(TwoFactorSecrets.Key(settings), user.Id, current.Secret);
+
+		if (secret is null || Totp.Match(secret, Dto.Code, now, current.LastStep) is not long step)
+		{
+			var maxAttempts = settings.MaxAttempts > 0 ? settings.MaxAttempts : ITwoFactorConfiguration.DefaultMaxAttempts;
+			var lockout = settings.LockoutDuration > 0 ? settings.LockoutDuration : ITwoFactorConfiguration.DefaultLockoutDuration;
+
+			if (current.Failures >= maxAttempts)
+			{
+				await storage.Open<UserTwoFactor>().Update(current with
+				{
+					Failures = 0,
+					BlockedUntil = now.AddMinutes(lockout)
+				});
+			}
+
+			return null;
+		}
 
 		/*
-		 * The row's ETag lets only one of two sign-ins with the same code, or with codes of neighbouring steps, through;
-		 * the other fails on the update. The step is remembered, so the code cannot be used again.
+		 * The step is remembered, so the code cannot be used again, and the count of codes starts over.
 		 */
-		await storage.Open<UserTwoFactor>().Update(factor with
+		await storage.Open<UserTwoFactor>().Update(current with
 		{
 			Status = TwoFactorStatus.Enabled,
-			LastStep = step
+			LastStep = step,
+			Failures = 0,
+			BlockedUntil = null
 		});
 
 		await TwoFactorStore.Delete(storage, challenge);
@@ -67,22 +88,33 @@ internal sealed class Verify(IStorageProvider storage, IUserService users, IIden
 	}
 
 	/// <summary>
-	/// Counts a wrong code against the challenge and removes the challenge when it has no attempts left.
+	/// Counts the code against the user before it is checked.
 	/// </summary>
-	private async Task<string?> Fail(TwoFactorChallenge challenge, ITwoFactorConfiguration settings)
+	/// <returns>The user's secret as it is now, or <see langword="null"/> when it was removed meanwhile.</returns>
+	/// <remarks>
+	/// <para>
+	/// The count is added to the stored value, read again when another sign-in changed it first. The update locks the row
+	/// until the sign-in's transaction ends, so codes entered at the same time are checked one after another, each against
+	/// the count, lockout and last used step the previous one left: a burst of codes cannot exceed the limit, and of two
+	/// sign-ins with the same code only the first gets through.
+	/// </para>
+	/// <para>
+	/// During a lockout the count is not raised, so it starts over when the lockout ends.
+	/// </para>
+	/// </remarks>
+	private async Task<UserTwoFactor?> Reserve(UserTwoFactor factor, DateTimeOffset now)
 	{
-		/*
-		 * The attempts are added to the stored value, read again when another sign-in changed it first, so codes
-		 * entered at the same time are all counted.
-		 */
-		var updated = await storage.Open<TwoFactorChallenge>().Update(challenge, f => Task.FromResult(f with { Attempts = f.Attempts + 1 }),
-			async () => await storage.Open<TwoFactorChallenge>().AsEntity(f => f.Id == challenge.Id), Caller);
-
-		var maxAttempts = settings.MaxAttempts > 0 ? settings.MaxAttempts : ITwoFactorConfiguration.DefaultMaxAttempts;
-
-		if (updated is not null && updated.Attempts >= maxAttempts)
-			await TwoFactorStore.Delete(storage, updated);
-
-		return null;
+		try
+		{
+			return await storage.Open<UserTwoFactor>().Update(factor, f => Task.FromResult(f.BlockedUntil > now ? f : f with { Failures = f.Failures + 1 }),
+				async () => await TwoFactorStore.Factor(storage, factor.User) ?? factor, Caller);
+		}
+		catch (DBConcurrencyException)
+		{
+			/*
+			 * The secret was removed, for example by a reset, while the code was being entered.
+			 */
+			return null;
+		}
 	}
 }

@@ -14,4 +14,5 @@ internal class TwoFactorConfiguration : ITwoFactorConfiguration
 	public string? Issuer { get; set; }
 	public int ChallengeLifetime { get; set; } = ITwoFactorConfiguration.DefaultChallengeLifetime;
 	public int MaxAttempts { get; set; } = ITwoFactorConfiguration.DefaultMaxAttempts;
+	public int LockoutDuration { get; set; } = ITwoFactorConfiguration.DefaultLockoutDuration;
 }

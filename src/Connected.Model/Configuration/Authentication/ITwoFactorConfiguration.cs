@@ -14,9 +14,14 @@ public interface ITwoFactorConfiguration
 	const int DefaultChallengeLifetime = 10;
 
 	/// <summary>
-	/// The number of wrong codes a sign-in challenge accepts when none is configured.
+	/// The number of wrong codes in a row a user may enter when none is configured.
 	/// </summary>
 	const int DefaultMaxAttempts = 5;
+
+	/// <summary>
+	/// The number of minutes a user's codes are refused after too many wrong ones when none is configured.
+	/// </summary>
+	const int DefaultLockoutDuration = 15;
 
 	/// <summary>
 	/// Gets the 256-bit key, encoded in Base64, that encrypts the users' secrets with AES-GCM.
@@ -43,7 +48,16 @@ public interface ITwoFactorConfiguration
 	int ChallengeLifetime { get; }
 
 	/// <summary>
-	/// Gets the number of wrong codes after which a sign-in challenge stops working.
+	/// Gets the number of wrong codes in a row after which a user's codes are refused for <see cref="LockoutDuration"/>.
 	/// </summary>
+	/// <remarks>
+	/// The codes are counted per user, across sign-ins and challenges, so signing in again does not give more attempts.
+	/// A right code resets the count.
+	/// </remarks>
 	int MaxAttempts { get; }
+
+	/// <summary>
+	/// Gets the number of minutes a user's codes are refused after <see cref="MaxAttempts"/> wrong codes in a row.
+	/// </summary>
+	int LockoutDuration { get; }
 }

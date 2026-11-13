@@ -60,8 +60,10 @@ public interface ITwoFactorService
 	/// wrong or already used.
 	/// </returns>
 	/// <remarks>
-	/// A wrong code counts against the challenge, which stops working after
-	/// <see cref="Configuration.Authentication.ITwoFactorConfiguration.MaxAttempts"/> wrong codes. Completing a setup
+	/// Every code counts against the user before it is checked, across sign-ins and challenges; after
+	/// <see cref="Configuration.Authentication.ITwoFactorConfiguration.MaxAttempts"/> wrong codes in a row the user's codes
+	/// are refused for <see cref="Configuration.Authentication.ITwoFactorConfiguration.LockoutDuration"/>. Codes entered at
+	/// the same time are checked one after another, so a burst cannot exceed the limit. Completing a setup
 	/// challenge enables two-factor sign-in. When the code is checked against the user's secret, the operation's state
 	/// carries the user, so a middleware can count the user's wrong codes; it is empty when the challenge is unknown or
 	/// expired, the user is not active or has no secret to check.

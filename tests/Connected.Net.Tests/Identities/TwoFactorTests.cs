@@ -19,6 +19,7 @@ public sealed class TwoFactorTests
 		public string? Issuer => null;
 		public int ChallengeLifetime => ITwoFactorConfiguration.DefaultChallengeLifetime;
 		public int MaxAttempts => ITwoFactorConfiguration.DefaultMaxAttempts;
+		public int LockoutDuration => ITwoFactorConfiguration.DefaultLockoutDuration;
 	}
 
 	/// <summary>
