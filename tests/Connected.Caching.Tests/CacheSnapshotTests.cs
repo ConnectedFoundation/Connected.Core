@@ -324,6 +324,195 @@ public sealed class CacheSnapshotTests
 	}
 
 	/// <summary>
+	/// Once a type's snapshot is built, every change is applied to it in place. A list handed out before a new key, a
+	/// replaced instance, a removal (which moves the last item into the removed slot) or an expiry stays exactly as it was,
+	/// for every type it was asked for, and the next query shows the change.
+	/// </summary>
+	[TestMethod]
+	public async Task HeldListsStayUnchangedThroughEveryKindOfChange()
+	{
+		using var scope = Fill(5);
+
+		scope.Set(Key, "short", "short", TimeSpan.FromMilliseconds(1));
+
+		var steps = new List<(string Name, Func<Task> Change, string[] Expected)>
+		{
+			("set a new key", () => { scope.Set(Key, "new", "new"); return Task.CompletedTask; }, ["0", "1", "2", "3", "4", "short", "new"]),
+			("replace", () => { scope.Set(Key, "2", "two"); return Task.CompletedTask; }, ["0", "1", "two", "3", "4", "short", "new"]),
+			("remove a middle key", () => scope.Remove(Key, "0"), ["1", "two", "3", "4", "short", "new"]),
+			("remove the last key", () => scope.Remove(Key, "new"), ["1", "two", "3", "4", "short"]),
+			("expire", () => { Thread.Sleep(20); scope.Scavenge(); return Task.CompletedTask; }, ["1", "two", "3", "4"]),
+			("clear", () => scope.Clear(Key), [])
+		};
+
+		foreach (var (name, change, expected) in steps)
+		{
+			var heldStrings = scope.All<string>(Key);
+			var heldObjects = scope.All<object>(Key);
+			var frozenStrings = heldStrings.ToArray();
+			var frozenObjects = heldObjects.ToArray();
+
+			await change();
+
+			CollectionAssert.AreEqual(frozenStrings, heldStrings.ToArray(), $"{name}: a held list of strings changed.");
+			CollectionAssert.AreEqual(frozenObjects, heldObjects.ToArray(), $"{name}: a held list of objects changed.");
+			CollectionAssert.AreEquivalent(expected, scope.All<string>(Key).ToArray(), $"{name}: strings.");
+			CollectionAssert.AreEquivalent(expected, scope.All<object>(Key).Cast<string>().ToArray(), $"{name}: objects.");
+			Assert.AreEqual(expected.Length, scope.Where<string>(Key, f => true).Count, $"{name}: Where.");
+
+			foreach (var i in expected)
+				Assert.AreEqual(i, scope.Get<string>(Key, f => f == i), $"{name}: Get {i}.");
+		}
+	}
+
+	/// <summary>
+	/// An instance of another type, or null, in a bucket whose snapshot is built: the query as that type throws while the
+	/// instance is there, as it always has, and works again once it is gone.
+	/// </summary>
+	[TestMethod]
+	public async Task ForeignAndNullInstancesBehaveAsBefore()
+	{
+		using var scope = Fill(3);
+
+		Assert.AreEqual(3, scope.All<string>(Key).Count);
+		Assert.AreEqual(3, scope.All<object>(Key).Count);
+
+		scope.Set<object>(Key, "number", 42);
+
+		Assert.ThrowsException<InvalidCastException>(() => scope.All<string>(Key));
+		Assert.AreEqual(4, scope.All<object>(Key).Count);
+
+		await scope.Remove(Key, "number");
+
+		Assert.AreEqual(3, scope.All<string>(Key).Count);
+
+		scope.Set<string>(Key, "nothing", null);
+
+		Assert.ThrowsException<InvalidCastException>(() => scope.All<string>(Key));
+		Assert.ThrowsException<InvalidCastException>(() => scope.All<object>(Key));
+		Assert.AreEqual(1, scope.Where<object>(Key, f => f is null).Count);
+
+		scope.Set(Key, "nothing", "something");
+
+		Assert.AreEqual(4, scope.All<string>(Key).Count);
+		Assert.AreEqual(4, scope.All<object>(Key).Count);
+	}
+
+	/// <summary>
+	/// A long random run of new keys, replacements, removals and expiries: after every step the snapshot of each type
+	/// holds exactly the bucket's instances, as many as there are entries.
+	/// </summary>
+	[TestMethod]
+	public void SnapshotsMatchTheBucketThroughARandomRunOfChanges()
+	{
+		const int steps = 20_000;
+		const int keys = 300;
+
+		var random = new Random(480);
+		using var scope = Fill(50);
+		var version = 0;
+
+		scope.All<string>(Key);
+		scope.All<object>(Key);
+
+		for (var step = 0; step < steps; step++)
+		{
+			var key = random.Next(keys).ToString();
+
+			switch (random.Next(10))
+			{
+				case < 5:
+					scope.Set(Key, key, $"{key}-{version++}");
+					break;
+				case < 8:
+					scope.Remove(Key, key).GetAwaiter().GetResult();
+					break;
+				case 8:
+					scope.Set(Key, key, $"{key}-{version++}", TimeSpan.FromTicks(1));
+					break;
+				default:
+					scope.Scavenge();
+					break;
+			}
+
+			if (step % 10 != 0 && step != steps - 1)
+				continue;
+
+			var actual = scope.Ids(Key).Select(f => scope.Get<string>(Key, f)!).Order(StringComparer.Ordinal).ToList();
+			var strings = scope.All<string>(Key).Order(StringComparer.Ordinal).ToList();
+			var objects = scope.All<object>(Key).Cast<string>().Order(StringComparer.Ordinal).ToList();
+
+			Assert.AreEqual(scope.Count(Key), strings.Count, $"Step {step}: count.");
+			CollectionAssert.AreEqual(actual, strings, $"Step {step}: strings.");
+			CollectionAssert.AreEqual(actual, objects, $"Step {step}: objects.");
+			Assert.AreEqual(actual.Count, scope.Where<string>(Key, f => true).Count, $"Step {step}: Where.");
+		}
+	}
+
+	/// <summary>
+	/// Not asserted: the write-heavy pattern from the profile (RA-480). A 40,000 entry bucket, then 10,000 times a write
+	/// followed by a query; then 10,000 writes followed by 10,000 queries. Written to ra480-timing.txt in the temp folder.
+	/// </summary>
+	[TestMethod]
+	public void TimingOfWritesBetweenQueries()
+	{
+		const int entries = 40_000;
+		const int iterations = 10_000;
+
+		using var scope = Fill(entries);
+		var total = 0L;
+
+		scope.All<string>(Key);
+
+		var watch = Stopwatch.StartNew();
+
+		for (var i = 0; i < iterations; i++)
+		{
+			scope.Set(Key, (i % entries).ToString(), $"v{i}");
+			total += scope.All<string>(Key).Count;
+		}
+
+		var interleaved = watch.Elapsed;
+
+		watch.Restart();
+
+		for (var i = 0; i < iterations; i++)
+			scope.Set(Key, $"n{i}", $"n{i}");
+
+		var writes = watch.Elapsed;
+
+		watch.Restart();
+
+		for (var i = 0; i < iterations; i++)
+			total += scope.All<string>(Key).Count;
+
+		var reads = watch.Elapsed;
+
+		watch.Restart();
+
+		var none = (Func<string, bool>)(f => ReferenceEquals(f, Key));
+
+		for (var i = 0; i < 1_000; i++)
+		{
+			scope.Set(Key, (i % entries).ToString(), $"w{i}");
+			total += scope.Get(Key, none) is null ? 0 : 1;
+		}
+
+		var scans = watch.Elapsed;
+
+		watch.Restart();
+
+		for (var i = 0; i < 1_000; i++)
+			total += scope.Where(Key, none).Count;
+
+		var readScans = watch.Elapsed;
+		var line = $"{entries} entries: {iterations} x (Set, All) {interleaved.TotalMilliseconds:F0} ms; {iterations} Set {writes.TotalMilliseconds:F0} ms then {iterations} All {reads.TotalMilliseconds:F0} ms; 1000 x (Set, Get(predicate), full scan) {scans.TotalMilliseconds:F0} ms; 1000 x Where (full scan, no writes) {readScans.TotalMilliseconds:F0} ms ({total}).";
+
+		TestContext.WriteLine(line);
+		File.AppendAllText(Path.Combine(Path.GetTempPath(), "ra480-timing.txt"), line + Environment.NewLine);
+	}
+
+	/// <summary>
 	/// The old Entries.All: a new list from every entry, then a new immutable list, on every call.
 	/// </summary>
 	private static IImmutableList<T> CopyEveryEntry<T>(ConcurrentDictionary<string, IEntry> items)
