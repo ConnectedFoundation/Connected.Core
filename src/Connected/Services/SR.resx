@@ -123,6 +123,9 @@
   <data name="ValEnumValueNotDefined" xml:space="preserve">
     <value>Property value not defined</value>
   </data>
+  <data name="ValRequiredMember" xml:space="preserve">
+    <value>The {0} field is required.</value>
+  </data>
   <data name="ValScriptTagNotAllowed" xml:space="preserve">
     <value>Script tag is not allowed</value>
   </data>

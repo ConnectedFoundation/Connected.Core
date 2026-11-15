@@ -24,11 +24,30 @@ Every service call validates its request (`IDto`) before the operation runs
 - **Known limit:** two distinct records of the same type that refer to each other in a loop overflow the stack inside the
   compiler-generated record `Equals`, as they did before this walk was changed.
 
+## Required members of a caller's request
+
+C# `required` is enforced by the compiler only. A request bound from a caller (REST) is created by the DTO factory and
+filled by the binder, so a member the caller left out arrives null, and the operation used to fail later with a null
+reference that named nothing: the caller got "Object reference not set to an instance of an object" instead of the name
+of the member it left out.
+
+- The REST binder (`ServiceRequestDelegate`) gives every DTO it fills, also an empty one, to the request's `IValidationContext.Bound`. The validation context is scoped, so it holds them for that request only.
+- When the request being validated is marked, each DTO in it (the request and DTOs nested in it) is refused when a
+  `required` member whose type does not allow null is null: `The {member} field is required.`, the member in camel case
+  as the request spells it. This runs after the attribute checks of the same object, before nested members are walked.
+- Not checked: members whose type allows null (`required string?`, `required int?`), value types (`required int`: left
+  out cannot be told from the default), empty strings (a value; attributes or the operation decide), objects in the
+  request that are not DTOs (entities, models the server built), and DTOs built by code through `DtoFactory` (not
+  marked), so no internal call starts failing.
+- gRPC calls (`GrpcExtensions.Invoke`) are not marked: they are calls between an application's own services, not from outside callers.
+
+Tests: `tests/Connected.Net.Tests/Validation/RequiredMembersTests.cs`.
+
 ## Large requests
 
 A request carrying large in-memory data the server built itself (a projected view, a snapshot) should mark that member
 `[SkipValidation]`. Walking it finds nothing and costs time in proportion to its size.
 
-History: RA-480 (2026-11-15). The visited check was a list searched item by item, O(n²) over the objects of the request;
-a Pulse discovery job carrying 104k runs did not finish validating in an hour.
+History: the visited check was a list searched item by item, O(n²) over the objects of the request; a request carrying
+about 100k objects did not finish validating in an hour.
 Tests: `tests/Connected.Net.Tests/Validation/ValidationContextTests.cs`.

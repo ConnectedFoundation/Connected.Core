@@ -1,15 +1,33 @@
 using Connected.Annotations;
 using Connected.Reflection;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Web;
 
 namespace Connected.Services.Validation;
 
 internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforgery antiforgery, */IMiddlewareService middleware, IServiceProvider services) : IValidationContext
 {
+	/// <summary>
+	/// The DTOs a binder filled from the caller's request in this scope (<see cref="Bound"/>), by reference: a DTO's own
+	/// <c>Equals</c> is never called, so an equal DTO built by code is not mistaken for the caller's.
+	/// </summary>
+	/// <remarks>
+	/// The context is scoped, so this holds the few DTOs of one request and goes with its scope.
+	/// </remarks>
+	private readonly HashSet<object> _bound = new(ReferenceEqualityComparer.Instance);
+
+	/// <inheritdoc/>
+	public void Bound(IDto value)
+	{
+		if (value is not null)
+			_bound.Add(value);
+	}
+
 	public async Task Validate<TDto>(ICallerContext context, TDto dto)
 		where TDto : IDto
 	{
@@ -21,7 +39,7 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 		 * One walk over the whole request: every complex member and every collection item, each object once.
 		 * See Visited for how the walk ends on cycles and on members that hand back new equal copies.
 		 */
-		Validate(results, dto, new Visited());
+		Validate(results, dto, new Visited { FromRequest = _bound.Contains(dto) });
 
 		if (results.Count > 0)
 			throw new ValidationException(results[0].ErrorMessage);
@@ -89,6 +107,12 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 		/// so neither a record that holds itself nor a type with an expensive hash costs anything here.
 		/// </remarks>
 		public HashSet<object> Seen { get; } = new(ReferenceEqualityComparer.Instance);
+
+		/// <summary>
+		/// Whether the request being walked was bound from a caller (<see cref="Bound"/>). Only then are its DTOs,
+		/// and the DTOs nested in it, held to their required members.
+		/// </summary>
+		public bool FromRequest { get; init; }
 
 		/// <summary>
 		/// The objects from the request down to the one being walked, outermost first.
@@ -197,6 +221,15 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 		foreach (var property in publicProps)
 			ValidateProperty(results, value, property);
 		/*
+		 * A request's required members: only in a request a caller sent, and only on objects that are DTOs, so
+		 * neither a DTO built by code nor data the server built and carries in a request is refused for them.
+		 */
+		if (results.Count == 0 && visited.FromRequest && value is IDto)
+		{
+			foreach (var property in publicProps)
+				ValidateRequiredMember(results, value, property);
+		}
+		/*
 		 * If root validation failed we won't go deep because this would probably cause
 	    * duplicate and/or confusing validation messages
 		 */
@@ -241,6 +274,73 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 		 */
 		foreach (var property in nonPublicProps)
 			ValidateProperty(results, value, property);
+	}
+
+	/// <summary>
+	/// Whether each property is a <c>required</c> member whose type does not allow null, worked out once per property.
+	/// </summary>
+	/// <remarks>
+	/// Reflection over attributes and nullability costs more than the check itself, and a request type's properties never
+	/// change, so the answer is kept for the life of the process.
+	/// </remarks>
+	private static readonly ConcurrentDictionary<PropertyInfo, bool> RequiredNotNull = new();
+
+	/// <summary>
+	/// Refuses a request that left a <c>required</c> member null when the member's type does not allow null.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// C# <c>required</c> is enforced by the compiler only. A request bound from JSON, or a DTO made by a factory, can
+	/// arrive with the member null; the operation then fails later with a null reference, which reaches the caller as an
+	/// error that names nothing ("Object reference not set to an instance of an object" instead of the member the caller
+	/// left out).
+	/// </para>
+	/// <para>
+	/// Not checked: members whose type allows null (<c>required string?</c>, <c>required int?</c>), because null is a value
+	/// their contract admits; and value types (<c>required int</c>), because a member left out cannot be told from its
+	/// default. An empty string is a value: whether it is allowed is for an attribute or the operation to decide.
+	/// </para>
+	/// <para>
+	/// Only requests a binder gave to <see cref="Bound"/> are checked: a DTO built by code through
+	/// the factory is not refused for what it leaves unset, so no internal call starts failing because of this check.
+	/// </para>
+	/// <para>
+	/// The member is named as a request spells it (camel case), so the caller can find it in what it sent.
+	/// </para>
+	/// </remarks>
+	/// <param name="results">Where a refusal is collected.</param>
+	/// <param name="value">The request being validated.</param>
+	/// <param name="property">One of its public properties.</param>
+	private static void ValidateRequiredMember(List<ValidationResult> results, object value, PropertyInfo property)
+	{
+		if (!RequiredNotNull.GetOrAdd(property, IsRequiredNotNull))
+			return;
+
+		if (GetValue(value, property) is not null)
+			return;
+
+		var name = property.Name.ToCamelCase();
+
+		results.Add(new ValidationResult(string.Format(SR.ValRequiredMember, name), [property.Name]));
+	}
+
+	/// <summary>
+	/// Whether <paramref name="property"/> is declared <c>required</c> and its type does not allow null.
+	/// </summary>
+	/// <remarks>
+	/// The compiler marks a <c>required</c> member with <see cref="RequiredMemberAttribute"/> on the declaring type's
+	/// property, which <see cref="Type.GetProperties(BindingFlags)"/> returns for derived types too. A
+	/// <see cref="NullabilityInfoContext"/> is not safe to share between threads, so each answer uses its own.
+	/// </remarks>
+	private static bool IsRequiredNotNull(PropertyInfo property)
+	{
+		if (!property.IsDefined(typeof(RequiredMemberAttribute), inherit: true))
+			return false;
+
+		if (property.PropertyType.IsValueType)
+			return false;
+
+		return new NullabilityInfoContext().Create(property).WriteState == NullabilityState.NotNull;
 	}
 
 	private void ValidateProperty(List<ValidationResult> results, object value, PropertyInfo property)

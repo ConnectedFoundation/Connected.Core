@@ -3,6 +3,7 @@ using Connected.Net.Rest.Dtos;
 using Connected.Net.Rest.Formatters;
 using Connected.Reflection;
 using Connected.Services;
+using Connected.Services.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -183,7 +184,13 @@ internal sealed class ServiceRequestDelegate : RestRequest
 						if (parameter.HasNonNullableProperties())
 							throw new ValidationException($"{RestStrings.ValParseRequestArguments} ('{parameter.ParameterType.ShortName()}')");
 
-						arguments.Add(Dto.Factory.Create(parameter.ParameterType));
+						var empty = Dto.Factory.Create(parameter.ParameterType);
+						/*
+						 * An empty request is still the caller's: its required members are checked like any other's.
+						 */
+						if (empty is IDto boundEmpty)
+							Scope?.ServiceProvider.GetService<IValidationContext>()?.Bound(boundEmpty);
+						arguments.Add(empty);
 					}
 					else
 						arguments.Add(null);
@@ -203,7 +210,11 @@ internal sealed class ServiceRequestDelegate : RestRequest
 							binder.Invoke(argument, requestArgs);
 						else
 							Serializer.Merge(argument, requestArgs);
-
+						/*
+						 * Bound from the caller's request: validation holds it to its required members.
+						 */
+						if (argument is IDto bound)
+							Scope?.ServiceProvider.GetService<IValidationContext>()?.Bound(bound);
 						arguments.Add(argument);
 					}
 					catch

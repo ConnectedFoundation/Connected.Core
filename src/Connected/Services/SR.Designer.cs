@@ -79,6 +79,15 @@ namespace Connected.Services {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The {0} field is required..
+        /// </summary>
+        internal static string ValRequiredMember {
+            get {
+                return ResourceManager.GetString("ValRequiredMember", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Script tag is not allowed.
         /// </summary>
         internal static string ValScriptTagNotAllowed {
