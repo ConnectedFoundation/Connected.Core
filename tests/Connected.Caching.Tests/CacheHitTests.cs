@@ -93,6 +93,65 @@ public sealed class CacheHitTests
 		Assert.AreEqual(expiration, entry.ExpirationDate);
 	}
 
+	/// <summary>
+	/// A hit taken while the entry slid, on an entry since rewritten in place to expire never: the renewal is checked
+	/// against the entry as it is now, under the bucket's lock, so it does not give the rewritten entry an expiration.
+	/// </summary>
+	[TestMethod]
+	public void A_hit_does_not_give_an_entry_rewritten_to_never_expire_an_expiration()
+	{
+		var item = new Item("a", 1);
+		var (entries, entry) = Sliding(item);
+
+		_ = entries.Where<Item>(f => f.Value == 1);
+		entries.Set(item.Id, item, TimeSpan.Zero, slidingExpiration: false, CacheEntryMergeBehavior.Merge);
+		entries.Scave();
+
+		Assert.AreEqual(DateTime.MinValue, entry.ExpirationDate);
+		Assert.IsFalse(entry.Expired);
+	}
+
+	/// <summary>
+	/// Reads, writes and scavenges from several threads at once end without an exception, and every entry is still in
+	/// the bucket with the instance last written.
+	/// </summary>
+	[TestMethod]
+	public async Task Concurrent_reads_writes_and_scavenges_leave_the_bucket_consistent()
+	{
+		var entries = new Entries();
+
+		for (var i = 0; i < 100; i++)
+			entries.Set(i.ToString(), new Item(i.ToString(), i), TimeSpan.FromMinutes(10), true, CacheEntryMergeBehavior.Merge);
+
+		using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+		var readers = Enumerable.Range(0, 4).Select(reader => Task.Run(() =>
+		{
+			while (!stop.IsCancellationRequested)
+				_ = entries.Where<Item>(f => f.Value % 2 == 0);
+		}));
+		var writer = Task.Run(() =>
+		{
+			var round = 0;
+
+			while (!stop.IsCancellationRequested)
+			{
+				round++;
+
+				for (var i = 0; i < 100; i++)
+					entries.Set(i.ToString(), new Item(i.ToString(), i), TimeSpan.FromMinutes(round % 2 == 0 ? 10 : 0), round % 2 == 0, CacheEntryMergeBehavior.Merge);
+			}
+		});
+		var scavenger = Task.Run(() =>
+		{
+			while (!stop.IsCancellationRequested)
+				entries.Scave();
+		});
+
+		await Task.WhenAll([.. readers, writer, scavenger]);
+
+		Assert.AreEqual(100, entries.Count);
+	}
+
 	[TestMethod]
 	public void A_hit_on_an_entry_removed_since_is_dropped()
 	{

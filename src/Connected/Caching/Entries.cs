@@ -49,9 +49,18 @@ internal class Entries
 			 * The entry under the hit's key, as long as it still holds the instance that was read: a hit on an instance
 			 * replaced or removed since does not renew what took its place.
 			 */
-			if (Items.TryGetValue(hit.Key, out var read) && read is Entry entry && InstanceEquals(entry.Instance, hit.Instance))
+			if (!Items.TryGetValue(hit.Key, out var read) || read is not Entry entry || !entry.SlidingExpiration)
+				continue;
+			/*
+			 * A write replaces an entry's instance, duration and expiration in place under the bucket's lock. The check
+			 * and the renewal are made under the same lock, so a renewal never lands on an instance written after the
+			 * check, nor mixes the old duration with the new instance. Only sliding entries get here: most entries do
+			 * not slide, and their hits take no lock.
+			 */
+			lock (this)
 			{
-				if (entry.SlidingExpiration && entry.Duration > TimeSpan.Zero)
+				if (entry.SlidingExpiration && entry.Duration > TimeSpan.Zero && InstanceEquals(entry.Instance, hit.Instance)
+					&& Items.TryGetValue(hit.Key, out var current) && ReferenceEquals(current, entry))
 					entry.ExpirationDate = DateTime.UtcNow.AddTicks(entry.Duration.Ticks);
 			}
 		}
