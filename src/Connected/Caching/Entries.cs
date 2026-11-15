@@ -13,7 +13,12 @@ internal class Entries
 	}
 
 	private ConcurrentDictionary<string, IEntry> Items { get; }
-	private ConcurrentQueue<object?> HitList { get; }
+	/*
+	 * Each read of an entry, by its key and the instance read, so the scavenger renews its sliding expiration. The key
+	 * lets the scavenger find the entry directly; finding it by its instance scanned the bucket once per hit, which with
+	 * a large bucket read often kept a core busy (quadratic in the bucket).
+	 */
+	private ConcurrentQueue<(string Key, object? Instance)> HitList { get; }
 	public IImmutableList<string> Keys => [.. Items.Keys];
 	/// <summary>
 	/// Set under the bucket's lock when the cleanup takes the bucket out of the cache, so a writer holding it
@@ -36,14 +41,15 @@ internal class Entries
 
 	public void Scave()
 	{
-		while (HitList.TryDequeue(out object? instance))
+		while (HitList.TryDequeue(out var hit))
 		{
-			if (instance is null)
+			if (hit.Instance is null)
 				continue;
-
-			var target = Items.FirstOrDefault(f => f.Value.Instance == instance);
-
-			if (target.Value is not null && target.Value is Entry entry)
+			/*
+			 * The entry under the hit's key, as long as it still holds the instance that was read: a hit on an instance
+			 * replaced or removed since does not renew what took its place.
+			 */
+			if (Items.TryGetValue(hit.Key, out var read) && read is Entry entry && InstanceEquals(entry.Instance, hit.Instance))
 			{
 				if (entry.SlidingExpiration && entry.Duration > TimeSpan.Zero)
 					entry.ExpirationDate = DateTime.UtcNow.AddTicks(entry.Duration.Ticks);
@@ -246,21 +252,25 @@ internal class Entries
 			return ImmutableList<T>.Empty;
 
 		var filtered = ImmutableList.CreateBuilder<T>();
+		var hits = new List<(string, object?)>();
 
 		for (var page = 0; page < slots.PageCount; page++)
 		{
 			foreach (var i in slots.Page(page))
 			{
 				if (predicate(i.Item))
+				{
 					filtered.Add(i.Item);
+					hits.Add((i.Key, i.Item));
+				}
 			}
 		}
 
 		if (filtered.Count == 0)
 			return ImmutableList<T>.Empty;
 
-		foreach (var i in filtered)
-			HitList.Enqueue(i);
+		foreach (var hit in hits)
+			HitList.Enqueue(hit);
 
 		return filtered.ToImmutable();
 	}
@@ -294,7 +304,7 @@ internal class Entries
 				if (i.Item is not T instance)
 					return default;
 
-				HitList.Enqueue(instance);
+				HitList.Enqueue((i.Key, instance));
 				/*
 				 * The entry under the matched key, as long as it still holds the instance the predicate matched.
 				 */
@@ -318,7 +328,7 @@ internal class Entries
 			if (d is null)
 				return default;
 
-			HitList.Enqueue(d.Instance);
+			HitList.Enqueue((key, d.Instance));
 
 			return d;
 		}
