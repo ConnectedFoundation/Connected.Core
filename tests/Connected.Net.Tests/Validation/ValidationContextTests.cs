@@ -21,21 +21,25 @@ public sealed class ValidationContextTests
 		return context.Validate(null!, dto);
 	}
 
+	/// <summary>An item with one required member.</summary>
 	private sealed class Item
 	{
 		[Required]
 		public string? Name { get; set; } = "item";
 	}
 
+	/// <summary>A request holding a list of items.</summary>
 	private sealed class ItemsDto : Dto
 	{
 		public List<Item> Items { get; set; } = [];
 	}
 
+	/// <summary>A request whose collection items are all valid passes.</summary>
 	[TestMethod]
 	public async Task A_graph_of_valid_items_passes() =>
 		await Validate(new ItemsDto { Items = [new(), new(), new()] });
 
+	/// <summary>An invalid item inside a collection fails the whole request, naming the member.</summary>
 	[TestMethod]
 	public async Task An_invalid_item_deep_in_a_collection_fails()
 	{
@@ -44,6 +48,7 @@ public sealed class ValidationContextTests
 		StringAssert.Contains(ex.Message, "name");
 	}
 
+	/// <summary>A node that can point at another, so two can form a cycle.</summary>
 	private sealed class Node
 	{
 		[Required]
@@ -52,11 +57,13 @@ public sealed class ValidationContextTests
 		public Node? Next { get; set; }
 	}
 
+	/// <summary>A request holding the first node.</summary>
 	private sealed class NodeDto : Dto
 	{
 		public Node? Head { get; set; }
 	}
 
+	/// <summary>Two objects that refer to each other are each walked once and the walk ends.</summary>
 	[TestMethod]
 	public async Task A_reference_cycle_ends()
 	{
@@ -68,6 +75,7 @@ public sealed class ValidationContextTests
 		await Validate(new NodeDto { Head = a });
 	}
 
+	/// <summary>Ending a cycle does not skip validating the objects in it.</summary>
 	[TestMethod]
 	public async Task An_invalid_object_inside_a_cycle_still_fails()
 	{
@@ -91,26 +99,31 @@ public sealed class ValidationContextTests
 		public Echo Copy => this with { };
 	}
 
+	/// <summary>A request holding an echo.</summary>
 	private sealed class EchoDto : Dto
 	{
 		public Echo? Echo { get; set; }
 	}
 
+	/// <summary>A member handing back a new equal copy of its owner is not walked again (the copy equals an object above it).</summary>
 	[TestMethod]
 	public async Task A_member_that_returns_an_equal_copy_ends() =>
 		await Validate(new EchoDto { Echo = new Echo() });
 
+	/// <summary>An object whose member throws when read.</summary>
 	private sealed class Unreadable
 	{
 		public string Value => throw new InvalidOperationException("read");
 	}
 
+	/// <summary>A request holding an unreadable object behind SkipValidation.</summary>
 	private sealed class SkippedDto : Dto
 	{
 		[SkipValidation]
 		public Unreadable Skipped { get; set; } = new();
 	}
 
+	/// <summary>A member marked SkipValidation is not read at all: reading this one would throw.</summary>
 	[TestMethod]
 	public async Task A_member_marked_to_be_skipped_is_not_read() =>
 		await Validate(new SkippedDto());
@@ -121,6 +134,7 @@ public sealed class ValidationContextTests
 		public long Count;
 	}
 
+	/// <summary>An object that counts how often it is compared, with a distinct hash per id.</summary>
 	private sealed class Counted(int id, Comparisons comparisons)
 	{
 		public int Id { get; } = id;
@@ -135,11 +149,13 @@ public sealed class ValidationContextTests
 		public override int GetHashCode() => Id;
 	}
 
+	/// <summary>A request holding counted objects.</summary>
 	private sealed class CountedDto : Dto
 	{
 		public List<Counted> Items { get; set; } = [];
 	}
 
+	/// <summary>Telling whether an object was seen costs no comparison with the objects before it: failed before the change with 12,497,500 comparisons for 5,000 objects.</summary>
 	[TestMethod]
 	public async Task Deciding_whether_an_object_was_seen_does_not_compare_it_with_every_other()
 	{
@@ -165,11 +181,13 @@ public sealed class ValidationContextTests
 		public Loop? Self { get; set; }
 	}
 
+	/// <summary>A request holding a self-holding record.</summary>
 	private sealed class LoopDto : Dto
 	{
 		public Loop? Loop { get; set; }
 	}
 
+	/// <summary>A record that holds itself is walked once; hashing it by value would never end.</summary>
 	[TestMethod]
 	public async Task A_record_that_holds_itself_ends()
 	{
@@ -189,16 +207,19 @@ public sealed class ValidationContextTests
 		public Pong Pong => new();
 	}
 
+	/// <summary>The other half of the ping-pong pair.</summary>
 	private sealed record Pong
 	{
 		public Ping Ping => new();
 	}
 
+	/// <summary>A request holding a ping.</summary>
 	private sealed class PingDto : Dto
 	{
 		public Ping? Ping { get; set; }
 	}
 
+	/// <summary>Records handing back new copies of each other end once a copy equals an object above it.</summary>
 	[TestMethod]
 	public async Task Copies_handed_back_in_turn_end() =>
 		await Validate(new PingDto { Ping = new Ping() });
@@ -209,6 +230,7 @@ public sealed class ValidationContextTests
 		public List<Echo> Echoes { get; set; } = [];
 	}
 
+	/// <summary>Equal-looking items are each validated, so an invalid one among them still fails the request.</summary>
 	[TestMethod]
 	public async Task Equal_items_in_a_collection_are_all_valid_or_the_request_fails()
 	{
@@ -224,11 +246,13 @@ public sealed class ValidationContextTests
 		public string? Name { get; init; } = "row";
 	}
 
+	/// <summary>A request holding many records.</summary>
 	private sealed class RowsDto : Dto
 	{
 		public List<Row> Rows { get; set; } = [];
 	}
 
+	/// <summary>100,000 distinct records are walked within the timeout: before the change this took over 10 s.</summary>
 	[TestMethod]
 	[Timeout(10_000)]
 	public async Task A_large_collection_of_records_is_walked_in_time() =>

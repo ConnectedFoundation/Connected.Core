@@ -17,6 +17,10 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 		//await ValidateAntiforgery(dto);
 
 		var results = new List<ValidationResult>();
+		/*
+		 * One walk over the whole request: every complex member and every collection item, each object once.
+		 * See Visited for how the walk ends on cycles and on members that hand back new equal copies.
+		 */
 		Validate(results, dto, new Visited());
 
 		if (results.Count > 0)
@@ -77,9 +81,34 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 	/// </remarks>
 	private sealed class Visited
 	{
+		/// <summary>
+		/// Every object walked so far in this request, by reference.
+		/// </summary>
+		/// <remarks>
+		/// <see cref="ReferenceEqualityComparer"/> hashes by identity: an object's own <c>GetHashCode</c> is never called,
+		/// so neither a record that holds itself nor a type with an expensive hash costs anything here.
+		/// </remarks>
 		public HashSet<object> Seen { get; } = new(ReferenceEqualityComparer.Instance);
+
+		/// <summary>
+		/// The objects from the request down to the one being walked, outermost first.
+		/// </summary>
 		public List<object> Path { get; } = [];
 
+		/// <summary>
+		/// Decides whether <paramref name="value"/> is walked, and if so records it as seen and as the deepest object on
+		/// the path.
+		/// </summary>
+		/// <param name="value">The object about to be walked. Never null and never a primitive.</param>
+		/// <returns>
+		/// False when the object equals one of the objects above it (a new copy handed back by a member: walking it would
+		/// never end) or when this very object was already walked (a cycle, or the same object reached twice). True
+		/// otherwise; the caller must then call <see cref="Leave"/> once the object is walked.
+		/// </returns>
+		/// <remarks>
+		/// The path is compared by <c>Equals</c>, as the list this replaced compared every object; only the path, so the
+		/// comparisons per object are as many as the walk is deep, not as many as the objects before it.
+		/// </remarks>
 		public bool Enter(object value)
 		{
 			foreach (var above in Path)
@@ -96,9 +125,18 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 			return true;
 		}
 
+		/// <summary>
+		/// Takes the object last entered off the path once it and everything beneath it was walked. It stays seen.
+		/// </summary>
 		public void Leave() => Path.RemoveAt(Path.Count - 1);
 	}
 
+	/// <summary>
+	/// Validates one object of the request and, through <see cref="Walk"/>, everything beneath it.
+	/// </summary>
+	/// <param name="results">Where failed validations are collected.</param>
+	/// <param name="value">The object; null, types and primitives (value types included) are not walked.</param>
+	/// <param name="visited">What this request's walk has been through.</param>
 	private void Validate(List<ValidationResult> results, object? value, Visited visited)
 	{
 		if (value is null || value is Type)
@@ -120,6 +158,14 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 		}
 	}
 
+	/// <summary>
+	/// Validates the members of an object already entered: first the attributes of its public members, then its complex
+	/// members and collection items, then its non-public members.
+	/// </summary>
+	/// <remarks>
+	/// Members marked <see cref="SkipValidationAttribute"/> are neither validated nor read. A request carrying large
+	/// in-memory data the server built itself should mark it so; walking it costs time and finds nothing.
+	/// </remarks>
 	private void Walk(List<ValidationResult> results, object value, Visited visited)
 	{
 		var properties = value.GetType().GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
