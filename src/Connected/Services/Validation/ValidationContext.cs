@@ -17,7 +17,13 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 		//await ValidateAntiforgery(dto);
 
 		var results = new List<ValidationResult>();
-		var refs = new List<object>();
+		/*
+		 * The objects already walked. A set, so telling whether an object was seen does not compare it with every object
+		 * before it (a request carrying 100k objects spent hours here). The default comparer keeps what a list's Contains
+		 * did: an object equal to one already walked (a record's copy of itself) is not walked again, which is what ends
+		 * a member that hands back a new equal copy.
+		 */
+		var refs = new HashSet<object>();
 
 		Validate(results, dto, refs);
 
@@ -61,7 +67,7 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 	//	throw new ValidationException(SR.ValAntiForgery);
 	//}
 
-	private void Validate(List<ValidationResult> results, object? value, List<object> references)
+	private void Validate(List<ValidationResult> results, object? value, HashSet<object> references)
 	{
 		if (value is null || value is Type)
 			return;
