@@ -183,7 +183,12 @@ internal sealed class ServiceRequestDelegate : RestRequest
 						if (parameter.HasNonNullableProperties())
 							throw new ValidationException($"{RestStrings.ValParseRequestArguments} ('{parameter.ParameterType.ShortName()}')");
 
-						arguments.Add(Dto.Factory.Create(parameter.ParameterType));
+						var empty = Dto.Factory.Create(parameter.ParameterType);
+						/*
+						 * An empty request is still the caller's: its required members are checked like any other's.
+						 */
+						RequestDtos.MarkBound(empty);
+						arguments.Add(empty);
 					}
 					else
 						arguments.Add(null);
@@ -203,7 +208,10 @@ internal sealed class ServiceRequestDelegate : RestRequest
 							binder.Invoke(argument, requestArgs);
 						else
 							Serializer.Merge(argument, requestArgs);
-
+						/*
+						 * Bound from the caller's request: validation holds it to its required members.
+						 */
+						RequestDtos.MarkBound(argument);
 						arguments.Add(argument);
 					}
 					catch
