@@ -17,15 +17,7 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 		//await ValidateAntiforgery(dto);
 
 		var results = new List<ValidationResult>();
-		/*
-		 * The objects already walked. A set, so telling whether an object was seen does not compare it with every object
-		 * before it (a request carrying 100k objects spent hours here). The default comparer keeps what a list's Contains
-		 * did: an object equal to one already walked (a record's copy of itself) is not walked again, which is what ends
-		 * a member that hands back a new equal copy.
-		 */
-		var refs = new HashSet<object>();
-
-		Validate(results, dto, refs);
+		Validate(results, dto, new Visited());
 
 		if (results.Count > 0)
 			throw new ValidationException(results[0].ErrorMessage);
@@ -67,7 +59,47 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 	//	throw new ValidationException(SR.ValAntiForgery);
 	//}
 
-	private void Validate(List<ValidationResult> results, object? value, HashSet<object> references)
+	/// <summary>
+	/// What the walk has been through, so that it ends.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The objects already walked are remembered by reference, in a set: telling whether one was seen is then one lookup,
+	/// where a list searched item by item compared it with every object before it (a request carrying 100k objects spent
+	/// hours there). Nothing is hashed by value, so a record that holds itself does not hash forever.
+	/// </para>
+	/// <para>
+	/// The objects on the way down to the current one are also compared by value. A member that hands back a new copy
+	/// equal to an object above it (a record's <c>this with { }</c>, or two records handing back each other) is a new
+	/// reference every time and would otherwise be walked without end. Only the path is compared, a few objects deep,
+	/// so the cost stays linear in the size of the request.
+	/// </para>
+	/// </remarks>
+	private sealed class Visited
+	{
+		public HashSet<object> Seen { get; } = new(ReferenceEqualityComparer.Instance);
+		public List<object> Path { get; } = [];
+
+		public bool Enter(object value)
+		{
+			foreach (var above in Path)
+			{
+				if (above.Equals(value))
+					return false;
+			}
+
+			if (!Seen.Add(value))
+				return false;
+
+			Path.Add(value);
+
+			return true;
+		}
+
+		public void Leave() => Path.RemoveAt(Path.Count - 1);
+	}
+
+	private void Validate(List<ValidationResult> results, object? value, Visited visited)
 	{
 		if (value is null || value is Type)
 			return;
@@ -75,11 +107,21 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 		if (value.GetType().IsTypePrimitive())
 			return;
 
-		if (value is null || references.Contains(value))
+		if (!visited.Enter(value))
 			return;
 
-		references.Add(value);
+		try
+		{
+			Walk(results, value, visited);
+		}
+		finally
+		{
+			visited.Leave();
+		}
+	}
 
+	private void Walk(List<ValidationResult> results, object value, Visited visited)
+	{
 		var properties = value.GetType().GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 
 		if (properties.Length == 0)
@@ -131,7 +173,7 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 					if (en.Current is null)
 						continue;
 
-					Validate(results, en.Current, references);
+					Validate(results, en.Current, visited);
 				}
 			}
 			else
@@ -139,7 +181,7 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 				if (GetValue(value, property) is not object val)
 					continue;
 
-				Validate(results, val, references);
+				Validate(results, val, visited);
 			}
 		}
 		/*

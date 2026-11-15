@@ -156,14 +156,81 @@ public sealed class ValidationContextTests
 		Assert.IsTrue(comparisons.Count <= count, $"{comparisons.Count} comparisons for {count} objects.");
 	}
 
-	[TestMethod]
-	public async Task Equal_objects_are_still_walked_once()
+	/// <summary>A record that holds itself: hashing it by value would never end.</summary>
+	private sealed record Loop
 	{
-		var comparisons = new Comparisons();
-		var dto = new CountedDto { Items = [new(1, comparisons), new(1, comparisons), new(2, comparisons)] };
+		[Required]
+		public string? Name { get; set; } = "loop";
 
-		await Validate(dto);
-
-		Assert.IsTrue(comparisons.Count >= 1, "The second equal object was not compared with the first.");
+		public Loop? Self { get; set; }
 	}
+
+	private sealed class LoopDto : Dto
+	{
+		public Loop? Loop { get; set; }
+	}
+
+	[TestMethod]
+	public async Task A_record_that_holds_itself_ends()
+	{
+		var loop = new Loop();
+
+		loop.Self = loop;
+
+		await Validate(new LoopDto { Loop = loop });
+	}
+
+	/// <summary>Two records that hand back new equal copies of each other, a chain with a period of two.</summary>
+	private sealed record Ping
+	{
+		[Required]
+		public string? Name { get; init; } = "ping";
+
+		public Pong Pong => new();
+	}
+
+	private sealed record Pong
+	{
+		public Ping Ping => new();
+	}
+
+	private sealed class PingDto : Dto
+	{
+		public Ping? Ping { get; set; }
+	}
+
+	[TestMethod]
+	public async Task Copies_handed_back_in_turn_end() =>
+		await Validate(new PingDto { Ping = new Ping() });
+
+	/// <summary>Equal records are each walked: an invalid one after a valid equal-looking one is not let through.</summary>
+	private sealed class EchoesDto : Dto
+	{
+		public List<Echo> Echoes { get; set; } = [];
+	}
+
+	[TestMethod]
+	public async Task Equal_items_in_a_collection_are_all_valid_or_the_request_fails()
+	{
+		await Validate(new EchoesDto { Echoes = [new(), new(), new()] });
+
+		await Assert.ThrowsExceptionAsync<ValidationException>(() => Validate(new EchoesDto { Echoes = [new(), new() { Name = null }] }));
+	}
+
+	/// <summary>Many distinct records, each with value equality: the walk stays linear.</summary>
+	private sealed record Row(int Id)
+	{
+		[Required]
+		public string? Name { get; init; } = "row";
+	}
+
+	private sealed class RowsDto : Dto
+	{
+		public List<Row> Rows { get; set; } = [];
+	}
+
+	[TestMethod]
+	[Timeout(10_000)]
+	public async Task A_large_collection_of_records_is_walked_in_time() =>
+		await Validate(new RowsDto { Rows = [.. Enumerable.Range(0, 100_000).Select(f => new Row(f))] });
 }
