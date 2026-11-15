@@ -451,7 +451,7 @@ public sealed class CacheSnapshotTests
 
 	/// <summary>
 	/// Not asserted: the write-heavy pattern from the profile. A 40,000 entry bucket, then 10,000 times a write
-	/// followed by a query; then 10,000 writes followed by 10,000 queries. Written to ra480-timing.txt in the temp folder.
+	/// followed by a query; then 10,000 writes followed by 10,000 queries. Written to cache-snapshot-timing.txt in the temp folder.
 	/// </summary>
 	[TestMethod]
 	public void TimingOfWritesBetweenQueries()
@@ -509,7 +509,7 @@ public sealed class CacheSnapshotTests
 		var line = $"{entries} entries: {iterations} x (Set, All) {interleaved.TotalMilliseconds:F0} ms; {iterations} Set {writes.TotalMilliseconds:F0} ms then {iterations} All {reads.TotalMilliseconds:F0} ms; 1000 x (Set, Get(predicate), full scan) {scans.TotalMilliseconds:F0} ms; 1000 x Where (full scan, no writes) {readScans.TotalMilliseconds:F0} ms ({total}).";
 
 		TestContext.WriteLine(line);
-		File.AppendAllText(Path.Combine(Path.GetTempPath(), "ra480-timing.txt"), line + Environment.NewLine);
+		File.AppendAllText(Path.Combine(Path.GetTempPath(), "cache-snapshot-timing.txt"), line + Environment.NewLine);
 	}
 
 	/// <summary>
