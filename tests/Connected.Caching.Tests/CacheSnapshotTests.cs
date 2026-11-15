@@ -6,7 +6,7 @@ namespace Connected.Caching.Tests;
 
 /// <summary>
 /// Holds that a bucket's snapshot is built once and handed out until the bucket changes, that a change is seen by the
-/// next query, and that a snapshot already handed out never changes (RA-480).
+/// next query, and that a snapshot already handed out never changes.
 /// </summary>
 [TestClass]
 public sealed class CacheSnapshotTests
@@ -450,7 +450,7 @@ public sealed class CacheSnapshotTests
 	}
 
 	/// <summary>
-	/// Not asserted: the write-heavy pattern from the profile (RA-480). A 40,000 entry bucket, then 10,000 times a write
+	/// Not asserted: the write-heavy pattern from the profile. A 40,000 entry bucket, then 10,000 times a write
 	/// followed by a query; then 10,000 writes followed by 10,000 queries. Written to ra480-timing.txt in the temp folder.
 	/// </summary>
 	[TestMethod]
