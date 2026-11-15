@@ -2,7 +2,7 @@ namespace Connected.Caching.Tests;
 
 /// <summary>
 /// Holds that entries written from many threads at once into a key that does not exist yet are all kept,
-/// including those written by the threads that lost the race to create the key's bucket (RA-496).
+/// including those written by the threads that lost the race to create the key's bucket.
 /// </summary>
 [TestClass]
 public sealed class CacheScopeConcurrencyTests

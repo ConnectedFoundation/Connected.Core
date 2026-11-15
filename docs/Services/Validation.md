@@ -29,6 +29,6 @@ Every service call validates its request (`IDto`) before the operation runs
 A request carrying large in-memory data the server built itself (a projected view, a snapshot) should mark that member
 `[SkipValidation]`. Walking it finds nothing and costs time in proportion to its size.
 
-History: RA-480 (2026-11-15). The visited check was a list searched item by item, O(n²) over the objects of the request;
-a Pulse discovery job carrying 104k runs did not finish validating in an hour.
+History: the visited check was a list searched item by item, O(n²) over the objects of the request; a request carrying
+about 100k objects did not finish validating in an hour.
 Tests: `tests/Connected.Net.Tests/Validation/ValidationContextTests.cs`.
