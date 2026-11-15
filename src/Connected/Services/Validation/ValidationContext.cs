@@ -17,9 +17,11 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 		//await ValidateAntiforgery(dto);
 
 		var results = new List<ValidationResult>();
-		var refs = new List<object>();
-
-		Validate(results, dto, refs);
+		/*
+		 * One walk over the whole request: every complex member and every collection item, each object once.
+		 * See Visited for how the walk ends on cycles and on members that hand back new equal copies.
+		 */
+		Validate(results, dto, new Visited());
 
 		if (results.Count > 0)
 			throw new ValidationException(results[0].ErrorMessage);
@@ -61,7 +63,81 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 	//	throw new ValidationException(SR.ValAntiForgery);
 	//}
 
-	private void Validate(List<ValidationResult> results, object? value, List<object> references)
+	/// <summary>
+	/// What the walk has been through, so that it ends.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The objects already walked are remembered by reference, in a set: telling whether one was seen is then one lookup,
+	/// where a list searched item by item compared it with every object before it (a request carrying 100k objects spent
+	/// hours there). Nothing is hashed by value, so a record that holds itself does not hash forever.
+	/// </para>
+	/// <para>
+	/// The objects on the way down to the current one are also compared by value. A member that hands back a new copy
+	/// equal to an object above it (a record's <c>this with { }</c>, or two records handing back each other) is a new
+	/// reference every time and would otherwise be walked without end. Only the path is compared, a few objects deep,
+	/// so the cost stays linear in the size of the request.
+	/// </para>
+	/// </remarks>
+	private sealed class Visited
+	{
+		/// <summary>
+		/// Every object walked so far in this request, by reference.
+		/// </summary>
+		/// <remarks>
+		/// <see cref="ReferenceEqualityComparer"/> hashes by identity: an object's own <c>GetHashCode</c> is never called,
+		/// so neither a record that holds itself nor a type with an expensive hash costs anything here.
+		/// </remarks>
+		public HashSet<object> Seen { get; } = new(ReferenceEqualityComparer.Instance);
+
+		/// <summary>
+		/// The objects from the request down to the one being walked, outermost first.
+		/// </summary>
+		public List<object> Path { get; } = [];
+
+		/// <summary>
+		/// Decides whether <paramref name="value"/> is walked, and if so records it as seen and as the deepest object on
+		/// the path.
+		/// </summary>
+		/// <param name="value">The object about to be walked. Never null and never a primitive.</param>
+		/// <returns>
+		/// False when the object equals one of the objects above it (a new copy handed back by a member: walking it would
+		/// never end) or when this very object was already walked (a cycle, or the same object reached twice). True
+		/// otherwise; the caller must then call <see cref="Leave"/> once the object is walked.
+		/// </returns>
+		/// <remarks>
+		/// The path is compared by <c>Equals</c>, as the list this replaced compared every object; only the path, so the
+		/// comparisons per object are as many as the walk is deep, not as many as the objects before it.
+		/// </remarks>
+		public bool Enter(object value)
+		{
+			foreach (var above in Path)
+			{
+				if (above.Equals(value))
+					return false;
+			}
+
+			if (!Seen.Add(value))
+				return false;
+
+			Path.Add(value);
+
+			return true;
+		}
+
+		/// <summary>
+		/// Takes the object last entered off the path once it and everything beneath it was walked. It stays seen.
+		/// </summary>
+		public void Leave() => Path.RemoveAt(Path.Count - 1);
+	}
+
+	/// <summary>
+	/// Validates one object of the request and, through <see cref="Walk"/>, everything beneath it.
+	/// </summary>
+	/// <param name="results">Where failed validations are collected.</param>
+	/// <param name="value">The object; null, types and primitives (value types included) are not walked.</param>
+	/// <param name="visited">What this request's walk has been through.</param>
+	private void Validate(List<ValidationResult> results, object? value, Visited visited)
 	{
 		if (value is null || value is Type)
 			return;
@@ -69,11 +145,29 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 		if (value.GetType().IsTypePrimitive())
 			return;
 
-		if (value is null || references.Contains(value))
+		if (!visited.Enter(value))
 			return;
 
-		references.Add(value);
+		try
+		{
+			Walk(results, value, visited);
+		}
+		finally
+		{
+			visited.Leave();
+		}
+	}
 
+	/// <summary>
+	/// Validates the members of an object already entered: first the attributes of its public members, then its complex
+	/// members and collection items, then its non-public members.
+	/// </summary>
+	/// <remarks>
+	/// Members marked <see cref="SkipValidationAttribute"/> are neither validated nor read. A request carrying large
+	/// in-memory data the server built itself should mark it so; walking it costs time and finds nothing.
+	/// </remarks>
+	private void Walk(List<ValidationResult> results, object value, Visited visited)
+	{
 		var properties = value.GetType().GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 
 		if (properties.Length == 0)
@@ -125,7 +219,7 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 					if (en.Current is null)
 						continue;
 
-					Validate(results, en.Current, references);
+					Validate(results, en.Current, visited);
 				}
 			}
 			else
@@ -133,7 +227,7 @@ internal sealed class ValidationContext(/*IHttpContextAccessor http, IAntiforger
 				if (GetValue(value, property) is not object val)
 					continue;
 
-				Validate(results, val, references);
+				Validate(results, val, visited);
 			}
 		}
 		/*
