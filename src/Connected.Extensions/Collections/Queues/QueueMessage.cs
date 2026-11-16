@@ -24,6 +24,12 @@ public abstract record QueueMessage
 	: ConcurrentEntity<long>, IQueueMessage
 {
 	/// <summary>
+	/// The storage length of the <see cref="Dto"/> column. A value of -1 means the maximum length the storage
+	/// provider supports (VARBINARY(MAX) on SQL Server).
+	/// </summary>
+	public const int DtoLength = -1;
+
+	/// <summary>
 	/// Gets the timestamp when the message was created and enqueued.
 	/// </summary>
 	[Ordinal(0), Date(DateKind.DateTime)]
@@ -59,10 +65,13 @@ public abstract record QueueMessage
 	/// Gets the data transfer object containing the message payload.
 	/// </summary>
 	/// <remarks>
-	/// The DTO is serialized to binary format using JSON and stored in a VARBINARY column.
+	/// The DTO is serialized to binary format using JSON and stored in a VARBINARY(MAX) column, so the payload
+	/// size is not limited by the queue (see <see cref="DtoLength"/>).
 	/// Deserialization uses the DtoTypeName property to resolve the concrete type.
+	/// Tables created with the previous VARBINARY(1024) definition are widened by schema synchronization,
+	/// which recreates the table and copies the existing rows.
 	/// </remarks>
-	[Ordinal(4), Length(1024), DataType(DbType.Binary)]
+	[Ordinal(4), Length(DtoLength), DataType(DbType.Binary)]
 	[Serializer(typeof(DtoSerializer))]
 	public IDto Dto { get; init; } = default!;
 
