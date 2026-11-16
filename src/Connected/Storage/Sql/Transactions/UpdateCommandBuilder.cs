@@ -56,6 +56,13 @@ internal sealed class UpdateCommandBuilder<TEntity>(IStorage<TEntity> storage)
 		{
 			if (property.GetCustomAttribute<PrimaryKeyAttribute>() is not null || IsVersion(property))
 			{
+				/*
+				 * An entity that carries no version (built from a dto, or returned by an insert, which does not return one) has nothing to
+				 * compare: it is updated as before, without the check. A comparison with NULL would match no row and refuse every update.
+				 */
+				if (IsVersion(property) && string.IsNullOrWhiteSpace(property.GetValue(Entity) as string))
+					continue;
+
 				if (IsVersion(property))
 					SupportsConcurrency = true;
 
