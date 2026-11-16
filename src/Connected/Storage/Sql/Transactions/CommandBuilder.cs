@@ -65,7 +65,8 @@ internal abstract class CommandBuilder<TEntity>(IStorage<TEntity> storage)
 						},
 						Name = parameter.Name,
 						Type = parameter.Type,
-						Direction = parameter.Direction
+						Direction = parameter.Direction,
+						Size = parameter.Size
 					});
 				}
 			}
@@ -119,14 +120,31 @@ internal abstract class CommandBuilder<TEntity>(IStorage<TEntity> storage)
 
 		foreach (var property in props)
 		{
-			var persistence = property.FindAttribute<PersistenceAttribute>();
-
-			if (persistence is not null && persistence.Mode.HasFlag(PersistenceMode.InMemory))
+			if (!property.IsCommandMember())
 				continue;
 
 			Properties.Add(property);
 		}
 	}
+
+	/// <summary>
+	/// Whether the entity carries a version: a member marked as the version that has a value. An entity that does not (built from a dto, say)
+	/// is updated without the check.
+	/// </summary>
+	protected bool HasVersion()
+	{
+		return _hasVersion ??= Properties.Any(f => IsVersion(f) && !string.IsNullOrWhiteSpace(f.GetValue(Entity) as string));
+	}
+
+	/// <summary>
+	/// Whether the provider hands the version a write produced back to the entity: only a version marked to take a returned value is read.
+	/// </summary>
+	protected static bool ReturnsVersion(PropertyInfo property)
+	{
+		return IsVersion(property) && property.GetCustomAttribute<ReturnValueAttribute>() is not null;
+	}
+
+	private bool? _hasVersion;
 
 	protected static bool IsVersion(PropertyInfo property)
 	{
@@ -224,7 +242,11 @@ internal abstract class CommandBuilder<TEntity>(IStorage<TEntity> storage)
 			Direction = direction,
 			Name = parameterName,
 			Type = ResolveDbType(property),
-			Value = await GetValue(property, cancel)
+			Value = await GetValue(property, cancel),
+			/*
+			 * The version the database writes comes back as the eight bytes of its column.
+			 */
+			Size = IsVersion(property) && direction != ParameterDirection.Input ? 8 : 0
 		};
 
 		Parameters.Add(parameter);
@@ -271,7 +293,10 @@ internal abstract class CommandBuilder<TEntity>(IStorage<TEntity> storage)
 
 	protected string CreateCacheKey()
 	{
-		var value = $"{ResolveEntityTypeName()}:{(UpdatedProperties is null ? string.Empty : string.Join(',', UpdatedProperties))}";
+		/*
+		 * An entity without a version is updated without the check, so its command is not the one of an entity that has one.
+		 */
+		var value = $"{ResolveEntityTypeName()}:{(UpdatedProperties is null ? string.Empty : string.Join(',', UpdatedProperties))}:{(HasVersion() ? "v" : string.Empty)}";
 		var hash = SHA256.HashData(Encoding.UTF8.GetBytes(value));
 
 		return Convert.ToHexString(hash);

@@ -26,7 +26,11 @@ public abstract class SqlStorageConnection(ICancellationContext context) : Stora
 				ParameterName = i.Name,
 				DbType = i.Type,
 				Direction = i.Direction,
-				IsNullable = i.Value is null
+				IsNullable = i.Value is null,
+				/*
+				 * An output of variable length has no value to size it from: the builders say how large it is (the version is eight bytes).
+				 */
+				Size = i.Size
 			});
 		}
 	}

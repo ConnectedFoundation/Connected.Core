@@ -159,12 +159,7 @@ internal class FieldMappings<TEntity>
 			 */
 			if (prop.FindAttribute<ETagAttribute>() is not null)
 			{
-				var versionValue = (EntityVersion?)bv;
-
-				if (versionValue is null)
-					value = Convert.ToBase64String(bv);
-				else
-					value = versionValue.ToString();
+				value = EntityVersion.ToEntityText(bv);
 			}
 			else
 				value = Convert.ToBase64String(bv);

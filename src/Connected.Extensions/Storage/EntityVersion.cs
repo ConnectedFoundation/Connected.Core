@@ -24,6 +24,16 @@ public sealed class EntityVersion : IComparable, IEquatable<EntityVersion>, ICom
 		return new EntityVersion(Convert.ToUInt64(converted, 16));
 	}
 
+	/// <summary>
+	/// The text of a version column's bytes the way an entity carries it, as a read and as a write hand it over.
+	/// </summary>
+	/// <param name="bytes">The bytes of the version column.</param>
+	/// <returns>The hexadecimal version; the bytes as base64 where they are not a version.</returns>
+	public static string ToEntityText(byte[] bytes)
+	{
+		return ((EntityVersion?)bytes)?.ToString() ?? Convert.ToBase64String(bytes);
+	}
+
 	public static implicit operator EntityVersion(ulong value)
 	{
 		return new EntityVersion(value);

@@ -28,6 +28,7 @@ internal class InsertCommandBuilder<TEntity>(IStorage<TEntity> storage)
 		WriteValues();
 		WriteLine(");");
 		WriteOutput();
+		await WriteVersionOutput(cancel);
 
 		var result = new SqlStorageOperation { CommandText = CommandText };
 
@@ -89,5 +90,25 @@ internal class InsertCommandBuilder<TEntity>(IStorage<TEntity> storage)
 	protected override bool TryGetExisting(out SqlStorageOperation? result)
 	{
 		return Cache.TryGetValue(CreateCacheKey(), out result);
+	}
+
+	/// <summary>
+	/// Reads the version the database gave the new row into an output parameter, so that the entity returned by the insert carries it.
+	/// </summary>
+	private async Task WriteVersionOutput(CancellationToken cancel)
+	{
+		var version = Properties.FirstOrDefault(ReturnsVersion);
+
+		if (version is null)
+			return;
+
+		var keys = Properties.Where(f => f.GetCustomAttribute<PrimaryKeyAttribute>() is not null).Select(f => $"[{ColumnName(f)}] = @{ColumnName(f)}").ToList();
+
+		if (keys.Count == 0)
+			return;
+
+		var parameter = await CreateParameter(version, ParameterDirection.Output, cancel);
+
+		WriteLine($"SET {parameter.Name} = (SELECT [{ColumnName(version)}] FROM [{Schema!.Schema}].[{Schema.Name}] WHERE {string.Join(" AND ", keys)});");
 	}
 }
