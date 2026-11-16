@@ -28,9 +28,9 @@ public abstract class SqlStorageConnection(ICancellationContext context) : Stora
 				Direction = i.Direction,
 				IsNullable = i.Value is null,
 				/*
-				 * A binary output has no value to size it from. The only one is the version, which is eight bytes.
+				 * An output of variable length has no value to size it from: the builders say how large it is (the version is eight bytes).
 				 */
-				Size = i.Type == DbType.Binary && i.Direction != ParameterDirection.Input ? 8 : 0
+				Size = i.Size
 			});
 		}
 	}

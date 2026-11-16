@@ -97,7 +97,7 @@ internal class InsertCommandBuilder<TEntity>(IStorage<TEntity> storage)
 	/// </summary>
 	private async Task WriteVersionOutput(CancellationToken cancel)
 	{
-		var version = Properties.FirstOrDefault(IsVersion);
+		var version = Properties.FirstOrDefault(ReturnsVersion);
 
 		if (version is null)
 			return;

@@ -9,4 +9,5 @@ internal sealed class SqlStorageParameter
 	public object? Value { get; set; }
 	public ParameterDirection Direction { get; init; } = ParameterDirection.Input;
 	public DbType Type { get; init; } = DbType.String;
+	public int Size { get; init; }
 }

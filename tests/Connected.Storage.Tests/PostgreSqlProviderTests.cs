@@ -444,7 +444,8 @@ public sealed class PostgreSqlProviderTests
 			await Execute(setup, "DROP TABLE IF EXISTS \"test\".\"unnamedRow\"");
 			await Execute(setup, $"""CREATE TABLE "test"."unnamedRow" ("id" int GENERATED ALWAYS AS IDENTITY PRIMARY KEY, "first" varchar(32), "second" int, {Ddl.Column(new Column { Name = "eTag", DataType = DbType.Binary, IsVersion = true })})""");
 
-			var connection = new PostgreSqlDataConnection(null!);
+			// Disposed before the table is dropped, whatever happens in between: an open transaction would hold the table's locks.
+			await using var connection = new PostgreSqlDataConnection(null!);
 
 			await connection.Initialize(new TestConnectionDto { ConnectionString = TestConfiguration.From(Variable) });
 
@@ -475,8 +476,11 @@ public sealed class PostgreSqlProviderTests
 			Assert.AreEqual(DataConcurrencyMode.Disabled, unversioned.Operation.Concurrency);
 			Assert.IsFalse(string.IsNullOrEmpty(unversioned.Entity.ETag), "the update of an entity without a version returned none");
 
+			var again = await Run(connection, unversioned.Entity with { State = State.Update, First = "e" });
+
+			Assert.AreEqual(1, again.Affected);
+
 			await connection.Commit();
-			await connection.DisposeAsync();
 		}
 		finally
 		{

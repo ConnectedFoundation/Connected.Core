@@ -89,11 +89,11 @@ internal static class ReturnValueBinder
 
 			/*
 			 * The version comes back from a provider as the bytes of its own column. It is the entity's version as a string the way a read
-			 * gives it (see FieldMappings), whichever provider produced it.
+			 * gives it (EntityVersion.ToEntityText, which FieldMappings uses too), whichever provider produced it.
 			 */
 			if (parameter.Value is byte[] version && property.PropertyType == typeof(string) && property.FindAttribute<ETagAttribute>() is not null)
 			{
-				property.SetValue(entity, ((EntityVersion?)version)?.ToString());
+				property.SetValue(entity, EntityVersion.ToEntityText(version));
 
 				continue;
 			}

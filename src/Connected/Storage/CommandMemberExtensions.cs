@@ -13,8 +13,8 @@ public static class CommandMemberExtensions
 	/// Whether a member is part of the commands built for its entity.
 	/// </summary>
 	/// <param name="property">The member of the entity.</param>
-	/// <returns><c>true</c> for a member without a <see cref="PersistenceAttribute"/> and for the version (<see cref="ETagAttribute"/>);
-	/// <c>false</c> for every other member that carries one.</returns>
+	/// <returns><c>true</c> for a member without a <see cref="PersistenceAttribute"/> and for the version (<see cref="ETagAttribute"/>) that is
+	/// read from the database (<see cref="PersistenceMode.Read"/>); <c>false</c> for every other member that carries one.</returns>
 	/// <remarks>
 	/// A member that carries a persistence attribute is kept out of the commands, as it always was. The version is the exception: it is
 	/// read only (<see cref="PersistenceMode.Read"/>) and the provider keeps it, but an update names it in its WHERE so that a change made
@@ -23,6 +23,8 @@ public static class CommandMemberExtensions
 	/// </remarks>
 	public static bool IsCommandMember(this PropertyInfo property)
 	{
-		return property.FindAttribute<PersistenceAttribute>() is null || property.FindAttribute<ETagAttribute>() is not null;
+		var persistence = property.FindAttribute<PersistenceAttribute>();
+
+		return persistence is null || (property.FindAttribute<ETagAttribute>() is not null && persistence.Mode.HasFlag(PersistenceMode.Read));
 	}
 }

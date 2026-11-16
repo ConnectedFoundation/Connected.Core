@@ -85,7 +85,7 @@ internal sealed class UpdateCommandBuilder
 				 * An entity that carries no version (built from a dto, or returned by an insert before the version was returned) has nothing
 				 * to compare: it is updated as before, without the check. A comparison with NULL would match no row and refuse every update.
 				 */
-				if (IsVersion(property) && string.IsNullOrWhiteSpace(property.GetValue(Entity) as string))
+				if (IsVersion(property) && !HasVersion())
 					continue;
 
 				if (IsVersion(property))
@@ -129,7 +129,7 @@ internal sealed class UpdateCommandBuilder
 			/*
 			 * The version goes in with the value the entity was read with and comes back, through RETURNING, with the one the update wrote.
 			 */
-			var parameter = await CreateParameter(property, IsVersion(property) ? ParameterDirection.InputOutput : ParameterDirection.Input, cancel);
+			var parameter = await CreateParameter(property, ReturnsVersion(property) ? ParameterDirection.InputOutput : ParameterDirection.Input, cancel);
 
 			if (i == 0)
 				WriteLine($" WHERE \"{ColumnName(property)}\" = {parameter.Name}");
@@ -143,7 +143,7 @@ internal sealed class UpdateCommandBuilder
 	/// </summary>
 	private async Task WriteReturning(CancellationToken cancel)
 	{
-		var version = Properties.FirstOrDefault(IsVersion);
+		var version = Properties.FirstOrDefault(ReturnsVersion);
 
 		if (version is null)
 			return;

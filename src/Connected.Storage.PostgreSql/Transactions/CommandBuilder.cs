@@ -405,7 +405,17 @@ internal abstract class CommandBuilder
 	/// </summary>
 	protected bool HasVersion()
 	{
-		return Properties.Any(f => IsVersion(f) && !string.IsNullOrWhiteSpace(f.GetValue(Entity) as string));
+		return _hasVersion ??= Properties.Any(f => IsVersion(f) && !string.IsNullOrWhiteSpace(f.GetValue(Entity) as string));
+	}
+
+	private bool? _hasVersion;
+
+	/// <summary>
+	/// Whether the provider hands the version a write produced back to the entity: only a version marked to take a returned value is read.
+	/// </summary>
+	protected static bool ReturnsVersion(PropertyInfo property)
+	{
+		return IsVersion(property) && property.GetCustomAttribute<ReturnValueAttribute>() is not null;
 	}
 
 	/// <summary>

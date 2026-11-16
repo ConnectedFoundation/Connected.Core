@@ -35,7 +35,7 @@ internal sealed class UpdateCommandBuilder<TEntity>(IStorage<TEntity> storage)
 
 		Trim();
 		Write(';');
-		WriteVersionOutput();
+		await WriteVersionOutput(cancel);
 
 		var result = new SqlStorageOperation
 		{
@@ -62,7 +62,7 @@ internal sealed class UpdateCommandBuilder<TEntity>(IStorage<TEntity> storage)
 				 * An entity that carries no version (built from a dto, or returned by an insert, which does not return one) has nothing to
 				 * compare: it is updated as before, without the check. A comparison with NULL would match no row and refuse every update.
 				 */
-				if (IsVersion(property) && string.IsNullOrWhiteSpace(property.GetValue(Entity) as string))
+				if (IsVersion(property) && !HasVersion())
 					continue;
 
 				if (IsVersion(property))
@@ -113,7 +113,7 @@ internal sealed class UpdateCommandBuilder<TEntity>(IStorage<TEntity> storage)
 			 * The version goes in with the value the entity was read with and comes back with the one the update wrote, which the database
 			 * produces; it is bound to the entity's version once the command has run.
 			 */
-			var parameter = await CreateParameter(property, IsVersion(property) ? ParameterDirection.InputOutput : ParameterDirection.Input, cancel);
+			var parameter = await CreateParameter(property, ReturnsVersion(property) ? ParameterDirection.InputOutput : ParameterDirection.Input, cancel);
 
 			if (i == 0)
 				WriteLine($" WHERE [{ColumnName(property)}] = {parameter.Name}");
@@ -123,19 +123,26 @@ internal sealed class UpdateCommandBuilder<TEntity>(IStorage<TEntity> storage)
 	}
 
 	/// <summary>
-	/// Reads the version the update produced into the version parameter, when the update was conditional on one and changed a row.
+	/// Reads the version the update produced into the version parameter, when the update changed a row.
 	/// </summary>
 	/// <remarks>
-	/// A SET leaves the number of rows the command affects as the update reported it.
+	/// A SET leaves the number of rows the command affects as the update reported it. An entity that carries no version took no part in the
+	/// WHERE, so the version goes out through a parameter of its own and the entity the storage returns carries the one the update wrote.
 	/// </remarks>
-	private void WriteVersionOutput()
+	private async Task WriteVersionOutput(CancellationToken cancel)
 	{
-		var version = WhereProperties.FirstOrDefault(IsVersion);
+		var version = Properties.FirstOrDefault(ReturnsVersion);
 
 		if (version is null)
 			return;
 
-		var keys = WhereProperties.Where(f => !IsVersion(f)).Select(f => $"[{ColumnName(f)}] = @{ColumnName(f)}");
+		var keys = WhereProperties.Where(f => !IsVersion(f)).Select(f => $"[{ColumnName(f)}] = @{ColumnName(f)}").ToList();
+
+		if (keys.Count == 0)
+			return;
+
+		if (!WhereProperties.Contains(version))
+			await CreateParameter(version, ParameterDirection.Output, cancel);
 
 		WriteLine(string.Empty);
 		Write($"IF @@ROWCOUNT > 0 SET @{ColumnName(version)} = (SELECT [{ColumnName(version)}] FROM [{Schema!.Schema}].[{Schema.Name}] WHERE {string.Join(" AND ", keys)});");

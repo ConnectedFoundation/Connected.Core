@@ -76,7 +76,7 @@ internal sealed class InsertCommandBuilder
 		 * The version the database gave the new row, so that the entity the insert returns carries it. It follows the key: output
 		 * parameters take the values of the returned row in the order they were added.
 		 */
-		if (Properties.FirstOrDefault(IsVersion) is { } version)
+		if (Properties.FirstOrDefault(ReturnsVersion) is { } version)
 		{
 			await CreateParameter(version, ParameterDirection.Output, cancel);
 
