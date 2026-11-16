@@ -101,6 +101,17 @@ internal sealed record TestUser
 	public string Token { get; init; } = default!;
 }
 
+internal sealed record TestToken
+	: Entity<long>, Connected.Identities.Authentication.IIdentityAuthenticationToken
+{
+	public string Key { get; init; } = default!;
+	public string? Token { get; init; }
+	public string Identity { get; init; } = default!;
+	public Connected.Identities.Authentication.AuthenticationTokenStatus Status { get; init; }
+	public DateTimeOffset? Expire { get; init; }
+	public DateTimeOffset? Created { get; init; }
+}
+
 internal sealed class TestValidateUserDto
 	: Dto, IValidateUserDto
 {

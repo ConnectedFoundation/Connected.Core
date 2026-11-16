@@ -11,7 +11,8 @@ using Connected.Identities.TwoFactor.Ops;
 using Connected.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using System.Reflection;
+using Connected.Identities.Authentication.Dtos;
+using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -36,6 +37,7 @@ public sealed class TwoFactorSignInTests
 		Email = "user@example.com"
 	};
 
+	private readonly List<TestToken> _tokens = [];
 	private TwoFactorStatus _status;
 	private int _challenges;
 	private InMemoryStorage _storage = default!;
@@ -48,6 +50,10 @@ public sealed class TwoFactorSignInTests
 		services.AddTransient<IUpdateIdentityDto, Connected.Authentication.Dtos.UpdateIdentityDto>();
 		services.AddTransient<ISelectUserDto, TestValidateUserDto>();
 		services.AddTransient<IChallengeTwoFactorDto, ChallengeTwoFactorDto>();
+		services.AddTransient<IQueryIdentityAuthenticationTokensDto, Connected.Identities.Authentication.Dtos.QueryIdentityAuthenticationTokensDto>();
+		services.AddTransient<IInsertIdentityAuthenticationTokenDto, Connected.Identities.Authentication.Dtos.InsertIdentityAuthenticationTokenDto>();
+		services.AddTransient(typeof(IPrimaryKeyDto<>), typeof(PrimaryKeyDto<>));
+		services.AddSingleton(Tokens());
 		services.AddSingleton(Stub.Create<IAuthenticationService>());
 		services.AddSingleton(Users());
 		services.AddSingleton(TwoFactorService());
@@ -281,6 +287,71 @@ public sealed class TwoFactorSignInTests
 		Assert.AreEqual(TwoFactorStatus.Pending, Factor().Status);
 	}
 
+	/// <summary>
+	/// A code entered with a space, as authenticator apps show it, is accepted.
+	/// </summary>
+	[TestMethod]
+	public async Task VerifyAcceptsACodeWithASpace()
+	{
+		var step = Totp.Step(DateTimeOffset.UtcNow);
+
+		SeedFactor(0);
+		_tokens.Add(Token("current"));
+
+		var code = Totp.Code(Secret, step);
+
+		Assert.AreEqual("current", await Verify(SeedChallenge(), $"{code[..3]} {code[3..]}"));
+		Assert.IsTrue(Factor().LastStep >= step - 1);
+		Assert.AreEqual(0, Factor().Failures);
+	}
+
+	/// <summary>
+	/// Something that is not a code is refused without counting against the user.
+	/// </summary>
+	[TestMethod]
+	[DataRow("12a456")]
+	[DataRow("12345")]
+	[DataRow("1234567")]
+	public async Task VerifyRefusesMalformedCodesWithoutCounting(string code)
+	{
+		SeedFactor(0);
+
+		Assert.IsNull(await Verify(SeedChallenge(), code));
+		Assert.AreEqual(0, Factor().Failures);
+		Assert.AreEqual(0, _storage.Table<UserTwoFactor>().Writes);
+	}
+
+	/// <summary>
+	/// Confirming the setup revokes the tokens issued with credentials alone and returns a new one.
+	/// </summary>
+	[TestMethod]
+	public async Task VerifyRevokesEarlierTokensWhenSetupIsConfirmed()
+	{
+		SeedFactor(0, TwoFactorStatus.Pending);
+		_tokens.Add(Token("password-only"));
+
+		var token = await Verify(SeedChallenge(SignInStage.TwoFactorSetup), Totp.Code(Secret, Totp.Step(DateTimeOffset.UtcNow)));
+
+		Assert.IsNotNull(token);
+		Assert.AreNotEqual("password-only", token);
+		Assert.IsFalse(_tokens.Any(f => f.Token == "password-only"));
+		Assert.IsTrue(_tokens.Any(f => f.Token == token));
+		Assert.AreEqual(TwoFactorStatus.Enabled, Factor().Status);
+	}
+
+	/// <summary>
+	/// A failed insert that is not a lost race is reported, not hidden as a refused setup.
+	/// </summary>
+	[TestMethod]
+	public async Task SetupReportsOtherInsertFailures()
+	{
+		var challenge = SeedChallenge(SignInStage.TwoFactorSetup);
+
+		_storage.Table<UserTwoFactor>().BeforeNextWrite = () => throw new DuplicateKeyException();
+
+		await Assert.ThrowsExceptionAsync<DuplicateKeyException>(() => Setup(challenge));
+	}
+
 	private async Task<string?> Validate(ITwoFactorConfiguration twoFactor)
 	{
 		var operation = new Validate(Users(), Stub.Create<IIdentityAuthenticationTokenService>(), TwoFactorService(), Stub.Create<IAuthenticationService>(),
@@ -313,7 +384,7 @@ public sealed class TwoFactorSignInTests
 
 	private async Task<string?> Verify(string challenge, string code)
 	{
-		var operation = new Verify(_storage, Users(), Stub.Create<IIdentityAuthenticationTokenService>(), Configuration(Settings()), Stub.Create<IAuthenticationService>());
+		var operation = new Verify(_storage, Users(), Tokens(), Configuration(Settings()), Stub.Create<IAuthenticationService>());
 
 		return await operation.Invoke(new VerifyTwoFactorDto { Challenge = challenge, Code = code });
 	}
@@ -365,6 +436,46 @@ public sealed class TwoFactorSignInTests
 		var valid = new[] { step - 1, step, step + 1, step + 2 }.Select(f => Totp.Code(Secret, f)).ToHashSet();
 
 		return Enumerable.Range(0, 10).Select(f => new string((char)('0' + f), 6)).First(f => !valid.Contains(f));
+	}
+
+	private TestToken Token(string value) => new()
+	{
+		Id = _tokens.Count + 1,
+		Key = IdentityAuthenticationTokens.AuthenticationToken,
+		Token = value,
+		Identity = _user.Token,
+		Status = AuthenticationTokenStatus.Enabled,
+		Created = DateTimeOffset.UtcNow
+	};
+
+	/// <summary>
+	/// The user's tokens, held in <see cref="_tokens"/>.
+	/// </summary>
+	private IIdentityAuthenticationTokenService Tokens()
+	{
+		return Stub.Create<IIdentityAuthenticationTokenService>((method, args) =>
+		{
+			switch (method.Name)
+			{
+				case nameof(IIdentityAuthenticationTokenService.Query):
+					var query = (IQueryIdentityAuthenticationTokensDto)args[0]!;
+
+					return Stub.Result(method, _tokens.Where(f => f.Identity == query.Identity && f.Key == query.Key).ToImmutableList<IIdentityAuthenticationToken>());
+				case nameof(IIdentityAuthenticationTokenService.Delete):
+					_tokens.RemoveAll(f => f.Id == ((IPrimaryKeyDto<long>)args[0]!).Id);
+
+					return Task.CompletedTask;
+				case nameof(IIdentityAuthenticationTokenService.Insert):
+					var insert = (IInsertIdentityAuthenticationTokenDto)args[0]!;
+					var token = Token(insert.Token!) with { Identity = insert.Identity!, Key = insert.Key! };
+
+					_tokens.Add(token);
+
+					return Task.FromResult<long?>(token.Id);
+				default:
+					return null;
+			}
+		});
 	}
 
 	private IUserService Users()

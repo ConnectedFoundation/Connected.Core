@@ -74,8 +74,18 @@ internal sealed class Setup(IStorageProvider storage, IUserService users, IConfi
 				});
 			}
 		}
-		catch (Exception ex) when (ex is DBConcurrencyException || (factor is null && ex is DbException))
+		catch (DBConcurrencyException)
 		{
+			return null;
+		}
+		catch (DbException) when (factor is null)
+		{
+			/*
+			 * Only a secret stored meanwhile by another setup is the lost race; any other failure is reported.
+			 */
+			if (await TwoFactorStore.Factor(storage, user.Id) is null)
+				throw;
+
 			return null;
 		}
 

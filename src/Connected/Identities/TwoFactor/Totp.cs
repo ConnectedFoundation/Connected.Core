@@ -59,6 +59,21 @@ internal static class Totp
 	}
 
 	/// <summary>
+	/// Reads a code as the user entered it.
+	/// </summary>
+	/// <param name="code">The code, possibly with spaces, as authenticator apps show it ("123 456").</param>
+	/// <returns>The code's digits, or <see langword="null"/> when it is not a code of <see cref="Digits"/> digits.</returns>
+	public static string? Normalize(string? code)
+	{
+		if (code is null)
+			return null;
+
+		var digits = string.Concat(code.Where(f => !char.IsWhiteSpace(f)));
+
+		return digits.Length == Digits && digits.All(char.IsAsciiDigit) ? digits : null;
+	}
+
+	/// <summary>
 	/// Finds the time step of a code that is valid now.
 	/// </summary>
 	/// <param name="secret">The shared secret.</param>

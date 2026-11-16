@@ -36,6 +36,11 @@ public interface ITwoFactorConfiguration
 	/// <summary>
 	/// Gets whether every user must sign in with a code.
 	/// </summary>
+	/// <remarks>
+	/// This covers every credential sign-in, Basic authentication included, so accounts that cannot enter a code, such
+	/// as those of integrations, can no longer authenticate with credentials. Tokens issued before it was set stay valid
+	/// until the user confirms two-factor sign-in, which revokes them; revoke them earlier to end such sessions at once.
+	/// </remarks>
 	bool Required { get; }
 
 	/// <summary>

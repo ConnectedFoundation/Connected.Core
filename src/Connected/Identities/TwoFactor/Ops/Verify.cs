@@ -2,6 +2,7 @@ using Connected.Authentication;
 using Connected.Configuration;
 using Connected.Entities;
 using Connected.Identities.Authentication;
+using Connected.Identities.Authentication.Dtos;
 using Connected.Identities.TwoFactor.Dtos;
 using Connected.Services;
 using Connected.Storage;
@@ -20,6 +21,12 @@ internal sealed class Verify(IStorageProvider storage, IUserService users, IIden
 		 * system identity.
 		 */
 		await authentication.WithSystemIdentity();
+
+		/*
+		 * Something that is not a code cannot be right, so it is refused without counting against the user.
+		 */
+		if (Totp.Normalize(Dto.Code) is not string code)
+			return null;
 
 		var challenge = await TwoFactorStore.Challenge(storage, Dto.Challenge);
 
@@ -60,7 +67,7 @@ internal sealed class Verify(IStorageProvider storage, IUserService users, IIden
 
 		var secret = TwoFactorSecrets.Unprotect(TwoFactorSecrets.Key(settings), user.Id, current.Secret);
 
-		if (secret is null || Totp.Match(secret, Dto.Code, now, current.LastStep) is not long step)
+		if (secret is null || Totp.Match(secret, code, now, current.LastStep) is not long step)
 		{
 			if (current.Failures >= settings.MaxAttempts)
 			{
@@ -87,7 +94,33 @@ internal sealed class Verify(IStorageProvider storage, IUserService users, IIden
 
 		await TwoFactorStore.Delete(storage, challenge);
 
+		if (expected == TwoFactorStatus.Pending)
+		{
+			/*
+			 * The first code confirms the setup. Tokens issued before it were signed in with credentials alone, so they
+			 * are revoked and the user gets a new one.
+			 */
+			await RevokeTokens(user);
+
+			return await tokens.Ensure(configuration.Authentication.Tokens, user.Token, Guid.NewGuid().ToString(), challenge.Permanent);
+		}
+
 		return await tokens.IssueSignInToken(configuration.Authentication.Tokens, user, challenge.Permanent);
+	}
+
+	/// <summary>
+	/// Revokes the user's sign-in tokens.
+	/// </summary>
+	private async Task RevokeTokens(IUser user)
+	{
+		var existing = await tokens.Query(DtoFactory.Create<IQueryIdentityAuthenticationTokensDto>(f =>
+		{
+			f.Identity = user.Token;
+			f.Key = IdentityAuthenticationTokens.AuthenticationToken;
+		}));
+
+		foreach (var token in existing)
+			await tokens.Delete(DtoFactory.Create<IPrimaryKeyDto<long>>(f => f.Id = token.Id));
 	}
 
 	/// <summary>
