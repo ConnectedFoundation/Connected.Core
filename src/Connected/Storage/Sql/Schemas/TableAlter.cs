@@ -92,28 +92,23 @@ internal class TableAlter(ILogger logger, ExistingSchema schema)
 			if (!index.Unique && existingIndex.Type == IndexType.Unique)
 				continue;
 
-			/*
-			 * Sort columns for order-independent comparison.
-			 */
-			var cols = index.Columns.OrderBy(f => f);
-			var existingCols = existingIndex.Columns.OrderBy(f => f);
-
-			if (cols.Count() != existingCols.Count())
-				continue;
-
-			/*
-			 * Compare column names element by element.
-			 */
-			for (var i = 0; i < cols.Count(); i++)
-			{
-				if (!string.Equals(cols.ElementAt(i), existingCols.ElementAt(i), StringComparison.OrdinalIgnoreCase))
-					break;
-			}
-
-			return true;
+			if (HasSameColumns(index.Columns, existingIndex.Columns))
+				return true;
 		}
 
 		return false;
+	}
+
+	/// <summary>
+	/// Whether two indexes cover the same columns, in any order and regardless of case. An index that differs in a
+	/// single column is a different index: it is created, not taken for the existing one.
+	/// </summary>
+	internal static bool HasSameColumns(IEnumerable<string> columns, IEnumerable<string> existing)
+	{
+		var target = columns.OrderBy(f => f, StringComparer.OrdinalIgnoreCase).ToList();
+		var current = existing.OrderBy(f => f, StringComparer.OrdinalIgnoreCase).ToList();
+
+		return target.SequenceEqual(current, StringComparer.OrdinalIgnoreCase);
 	}
 
 	/// <summary>
