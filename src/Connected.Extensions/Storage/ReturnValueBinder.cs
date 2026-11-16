@@ -87,6 +87,17 @@ internal static class ReturnValueBinder
 			if (overwriteAtt is null)
 				continue;
 
+			/*
+			 * The version comes back from a provider as the bytes of its own column. It is the entity's version as a string the way a read
+			 * gives it (see FieldMappings), whichever provider produced it.
+			 */
+			if (parameter.Value is byte[] version && property.PropertyType == typeof(string) && property.FindAttribute<ETagAttribute>() is not null)
+			{
+				property.SetValue(entity, ((EntityVersion?)version)?.ToString());
+
+				continue;
+			}
+
 			property.SetValue(entity, parameter.Value is null ? default : Types.Convert(parameter.Value, property.PropertyType));
 		}
 	}

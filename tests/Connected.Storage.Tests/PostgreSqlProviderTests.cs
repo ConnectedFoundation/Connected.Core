@@ -118,7 +118,56 @@ public sealed class PostgreSqlProviderTests
 	[TestMethod]
 	public async Task AnInsertLeavesTheVersionToTheColumnDefault()
 	{
-		Assert.IsFalse((await Build(State.Add)).CommandText.Contains("eTag"));
+		var text = (await Build(State.Add)).CommandText;
+
+		Assert.IsFalse(text[..text.IndexOf("VALUES", StringComparison.Ordinal)].Contains("eTag"), text);
+		Assert.IsFalse(text[text.IndexOf("VALUES", StringComparison.Ordinal)..text.IndexOf("RETURNING", StringComparison.Ordinal)].Contains("eTag"), text);
+	}
+
+	[TestMethod]
+	public async Task AnInsertReturnsTheKeyAndTheVersionTheColumnDefaultGave()
+	{
+		var operation = await Build(State.Add);
+
+		StringAssert.Contains(operation.CommandText, "RETURNING \"id\", \"eTag\"");
+		CollectionAssert.AreEqual(new[] { "@id", "@eTag" }, operation.Parameters.Where(f => f.Direction == ParameterDirection.Output).Select(f => f.Name).ToArray());
+	}
+
+	[TestMethod]
+	public async Task AnUpdateReturnsTheVersionItWroteThroughTheParameterThatCarriedTheOldOne()
+	{
+		var operation = await Build(State.Update);
+
+		StringAssert.Contains(operation.CommandText, "RETURNING \"eTag\"");
+		Assert.AreEqual(ParameterDirection.InputOutput, operation.Parameters.Single(f => f.Name == "@eTag").Direction);
+	}
+
+	[TestMethod]
+	[DataRow(null)]
+	[DataRow("")]
+	public async Task AnUpdateOfAnEntityWithoutAVersionIsNotConditionalOnItButReturnsTheOneItWrote(string? eTag)
+	{
+		var operation = await AggregatedCommandBuilder<UnnamedRow>.Build(Row(State.Update) with { ETag = eTag }, null, CancellationToken.None);
+
+		Assert.IsNotNull(operation);
+
+		var where = operation.CommandText[operation.CommandText.IndexOf("WHERE", StringComparison.Ordinal)..];
+
+		Assert.IsFalse(where.Substring(0, where.IndexOf("RETURNING", StringComparison.Ordinal)).Contains("eTag"), where);
+		StringAssert.Contains(operation.CommandText, "RETURNING \"eTag\"");
+		Assert.AreEqual(DataConcurrencyMode.Disabled, operation.Concurrency);
+		Assert.AreEqual(ParameterDirection.Output, operation.Parameters.Single(f => f.Name == "@eTag").Direction);
+	}
+
+	[TestMethod]
+	public async Task AnEntityWithoutAVersionDoesNotTakeTheCommandOfOneThatHasIt()
+	{
+		await Build(State.Update);
+
+		var unversioned = await AggregatedCommandBuilder<UnnamedRow>.Build(Row(State.Update) with { ETag = null }, null, CancellationToken.None);
+
+		Assert.AreEqual(DataConcurrencyMode.Disabled, unversioned!.Concurrency);
+		Assert.AreEqual(DataConcurrencyMode.Enabled, (await Build(State.Update)).Concurrency);
 	}
 
 	[TestMethod]
@@ -349,6 +398,89 @@ public sealed class PostgreSqlProviderTests
 		finally
 		{
 			await Execute(setup, $"DROP TABLE IF EXISTS \"{table}\"");
+		}
+	}
+
+	/// <summary>Runs one command the way the storage does and binds what it handed back to a copy of the entity.</summary>
+	private static async Task<(UnnamedRow Entity, int Affected, PostgreSqlStorageOperation Operation)> Run(PostgreSqlDataConnection connection, UnnamedRow entity)
+	{
+		var operation = await AggregatedCommandBuilder<UnnamedRow>.Build(entity, null, CancellationToken.None);
+
+		Assert.IsNotNull(operation);
+
+		var affected = await connection.Execute(new OperationCommand(connection, operation));
+		var bound = entity with { };
+
+		ReturnValueBinder.Bind(operation, bound);
+
+		return (bound, affected, operation);
+	}
+
+	private sealed class OperationCommand(IStorageConnection connection, PostgreSqlStorageOperation operation) : IStorageCommand
+	{
+		public IStorageOperation Operation { get; } = operation;
+		public IStorageConnection Connection { get; } = connection;
+
+		public void Dispose()
+		{
+		}
+
+		public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+	}
+
+	/// <summary>
+	/// The version on a real server: an insert and an update hand back the version they wrote, so that the entity they return can be written
+	/// again; a stale version is refused; an entity without one is updated as before.
+	/// </summary>
+	[TestMethod]
+	public async Task TheVersionIsNamedHandedBackAndRefusedWhenStale()
+	{
+		await using var setup = await Open();
+
+		try
+		{
+			await Execute(setup, "CREATE SCHEMA IF NOT EXISTS \"test\"");
+			await Execute(setup, PostgreSqlVersion.CreateSequence);
+			await Execute(setup, "DROP TABLE IF EXISTS \"test\".\"unnamedRow\"");
+			await Execute(setup, $"""CREATE TABLE "test"."unnamedRow" ("id" int GENERATED ALWAYS AS IDENTITY PRIMARY KEY, "first" varchar(32), "second" int, {Ddl.Column(new Column { Name = "eTag", DataType = DbType.Binary, IsVersion = true })})""");
+
+			var connection = new PostgreSqlDataConnection(null!);
+
+			await connection.Initialize(new TestConnectionDto { ConnectionString = TestConfiguration.From(Variable) });
+
+			var inserted = await Run(connection, new UnnamedRow { State = State.Add, First = "a", Second = 1 });
+
+			Assert.AreEqual(1, inserted.Affected);
+			Assert.AreNotEqual(0, inserted.Entity.Id);
+			Assert.IsFalse(string.IsNullOrEmpty(inserted.Entity.ETag), "the insert returned no version");
+
+			var first = await Run(connection, inserted.Entity with { State = State.Update, First = "b" });
+
+			Assert.AreEqual(1, first.Affected, "the update of the entity the insert returned was refused");
+			Assert.AreEqual(DataConcurrencyMode.Enabled, first.Operation.Concurrency);
+			Assert.AreNotEqual(inserted.Entity.ETag, first.Entity.ETag, "the update returned the version it replaced");
+
+			var second = await Run(connection, first.Entity with { State = State.Update, First = "c" });
+
+			Assert.AreEqual(1, second.Affected, "the update of the entity the update returned was refused");
+			Assert.AreNotEqual(first.Entity.ETag, second.Entity.ETag);
+
+			var stale = await Run(connection, inserted.Entity with { State = State.Update, First = "stale" });
+
+			Assert.AreEqual(0, stale.Affected);
+
+			var unversioned = await Run(connection, new UnnamedRow { State = State.Update, Id = inserted.Entity.Id, First = "d", Second = 1 });
+
+			Assert.AreEqual(1, unversioned.Affected);
+			Assert.AreEqual(DataConcurrencyMode.Disabled, unversioned.Operation.Concurrency);
+			Assert.IsFalse(string.IsNullOrEmpty(unversioned.Entity.ETag), "the update of an entity without a version returned none");
+
+			await connection.Commit();
+			await connection.DisposeAsync();
+		}
+		finally
+		{
+			await Execute(setup, "DROP TABLE IF EXISTS \"test\".\"unnamedRow\"");
 		}
 	}
 

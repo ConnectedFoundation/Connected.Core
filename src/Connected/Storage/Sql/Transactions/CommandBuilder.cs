@@ -119,14 +119,7 @@ internal abstract class CommandBuilder<TEntity>(IStorage<TEntity> storage)
 
 		foreach (var property in props)
 		{
-			var persistence = property.FindAttribute<PersistenceAttribute>();
-
-			/*
-			 * Members with a persistence attribute are not written, with one exception: the version. An update names it in its WHERE so
-			 * that a change made by someone else since the entity was read is refused. Without the exception the version never reached
-			 * the command, because InMemory is 0 and HasFlag(InMemory) is true for every mode.
-			 */
-			if (persistence is not null && persistence.Mode.HasFlag(PersistenceMode.InMemory) && !IsVersion(property))
+			if (!property.IsCommandMember())
 				continue;
 
 			Properties.Add(property);

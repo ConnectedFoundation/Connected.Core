@@ -1,6 +1,7 @@
 using Connected.Annotations.Entities;
 using Connected.Entities;
 using System.Collections.Concurrent;
+using System.Data;
 using System.Reflection;
 
 namespace Connected.Storage.Sql.Transactions;
@@ -34,6 +35,7 @@ internal sealed class UpdateCommandBuilder<TEntity>(IStorage<TEntity> storage)
 
 		Trim();
 		Write(';');
+		WriteVersionOutput();
 
 		var result = new SqlStorageOperation
 		{
@@ -107,12 +109,35 @@ internal sealed class UpdateCommandBuilder<TEntity>(IStorage<TEntity> storage)
 		for (var i = 0; i < WhereProperties.Count; i++)
 		{
 			var property = WhereProperties[i];
-			var parameter = await CreateParameter(property, cancel);
+			/*
+			 * The version goes in with the value the entity was read with and comes back with the one the update wrote, which the database
+			 * produces; it is bound to the entity's version once the command has run.
+			 */
+			var parameter = await CreateParameter(property, IsVersion(property) ? ParameterDirection.InputOutput : ParameterDirection.Input, cancel);
 
 			if (i == 0)
 				WriteLine($" WHERE [{ColumnName(property)}] = {parameter.Name}");
 			else
 				WriteLine($" AND [{ColumnName(property)}] = {parameter.Name}");
 		}
+	}
+
+	/// <summary>
+	/// Reads the version the update produced into the version parameter, when the update was conditional on one and changed a row.
+	/// </summary>
+	/// <remarks>
+	/// A SET leaves the number of rows the command affects as the update reported it.
+	/// </remarks>
+	private void WriteVersionOutput()
+	{
+		var version = WhereProperties.FirstOrDefault(IsVersion);
+
+		if (version is null)
+			return;
+
+		var keys = WhereProperties.Where(f => !IsVersion(f)).Select(f => $"[{ColumnName(f)}] = @{ColumnName(f)}");
+
+		WriteLine(string.Empty);
+		Write($"IF @@ROWCOUNT > 0 SET @{ColumnName(version)} = (SELECT [{ColumnName(version)}] FROM [{Schema!.Schema}].[{Schema.Name}] WHERE {string.Join(" AND ", keys)});");
 	}
 }

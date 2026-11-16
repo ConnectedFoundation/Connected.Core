@@ -213,8 +213,8 @@ internal abstract class CommandBuilder
 	/// Discovers and filters entity properties for command generation.
 	/// </summary>
 	/// <remarks>
-	/// This method identifies all properties that should be included in the command,
-	/// excluding those marked with InMemory persistence mode.
+	/// This method identifies all properties that should be included in the command: those without a persistence attribute and the
+	/// version (see <see cref="CommandMemberExtensions.IsCommandMember"/>).
 	/// </remarks>
 	protected virtual void DiscoverProperties()
 	{
@@ -225,12 +225,7 @@ internal abstract class CommandBuilder
 
 		foreach (var property in props)
 		{
-			var persistence = property.FindAttribute<PersistenceAttribute>();
-
-			/*
-			 * InMemory is 0, so HasFlag is true for every mode. The version stays: without it nothing detects a conflict.
-			 */
-			if (persistence is not null && persistence.Mode.HasFlag(PersistenceMode.InMemory) && !IsVersion(property))
+			if (!property.IsCommandMember())
 				continue;
 
 			Properties.Add(property);
@@ -399,7 +394,18 @@ internal abstract class CommandBuilder
 	/// <returns>The entity type name and the names of the updated properties.</returns>
 	protected string CreateCacheKey()
 	{
-		return $"{ResolveEntityTypeName()}:{(UpdatedProperties is null ? string.Empty : string.Join(',', UpdatedProperties))}";
+		/*
+		 * An entity without a version is updated without the check, so its command is not the one of an entity that has one.
+		 */
+		return $"{ResolveEntityTypeName()}:{(UpdatedProperties is null ? string.Empty : string.Join(',', UpdatedProperties))}:{(HasVersion() ? "v" : string.Empty)}";
+	}
+
+	/// <summary>
+	/// Whether the entity carries a version: a member marked as the version with a value.
+	/// </summary>
+	protected bool HasVersion()
+	{
+		return Properties.Any(f => IsVersion(f) && !string.IsNullOrWhiteSpace(f.GetValue(Entity) as string));
 	}
 
 	/// <summary>

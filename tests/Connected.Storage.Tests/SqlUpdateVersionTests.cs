@@ -3,6 +3,7 @@ using Connected.Annotations.Entities;
 using Connected.Entities;
 using Connected.Storage.Sql;
 using Connected.Storage.Sql.Transactions;
+using System.Data;
 
 namespace Connected.Storage.Tests;
 
@@ -81,9 +82,28 @@ public sealed class SqlUpdateVersionTests
 	{
 		var operation = await new InsertCommandBuilder<Row>(null!).Build(Entity(State.Add), null, CancellationToken.None);
 		var text = operation!.CommandText!;
+		var insert = text[..text.IndexOf(");", StringComparison.Ordinal)];
 
-		Assert.IsFalse(text.Contains("eTag"), text);
-		Assert.IsFalse(text.Contains("scratch"), text);
-		StringAssert.Contains(text, "[first]");
+		Assert.IsFalse(insert.Contains("eTag"), insert);
+		Assert.IsFalse(insert.Contains("scratch"), insert);
+		StringAssert.Contains(insert, "[first]");
+	}
+
+	[TestMethod]
+	public async Task AnInsertReadsTheVersionTheDatabaseGaveTheRowIntoAnOutputParameter()
+	{
+		var operation = await new InsertCommandBuilder<Row>(null!).Build(Entity(State.Add), null, CancellationToken.None);
+
+		StringAssert.Contains(operation!.CommandText!, "SET @eTag = (SELECT [eTag] FROM");
+		Assert.AreEqual(ParameterDirection.Output, operation.Parameters.Single(f => f.Name == "@eTag").Direction);
+	}
+
+	[TestMethod]
+	public async Task AnUpdateTakesTheVersionInAndReadsTheOneItWroteBackThroughTheSameParameter()
+	{
+		var operation = await Update();
+
+		Assert.AreEqual(ParameterDirection.InputOutput, operation.Parameters.Single(f => f.Name == "@eTag").Direction);
+		StringAssert.Contains(operation.CommandText!, "IF @@ROWCOUNT > 0 SET @eTag = (SELECT [eTag] FROM");
 	}
 }

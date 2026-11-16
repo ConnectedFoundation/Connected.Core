@@ -1,5 +1,6 @@
 using Connected.Annotations.Entities;
 using System.Collections.Concurrent;
+using System.Data;
 using System.Reflection;
 
 namespace Connected.Storage.PostgreSql.Transactions;
@@ -46,6 +47,7 @@ internal sealed class UpdateCommandBuilder
 
 		await WriteAssignments(cancel);
 		await WriteWhere(cancel);
+		await WriteReturning(cancel);
 
 		Trim();
 		Write(';');
@@ -79,6 +81,13 @@ internal sealed class UpdateCommandBuilder
 		{
 			if (property.GetCustomAttribute<PrimaryKeyAttribute>() is not null || IsVersion(property))
 			{
+				/*
+				 * An entity that carries no version (built from a dto, or returned by an insert before the version was returned) has nothing
+				 * to compare: it is updated as before, without the check. A comparison with NULL would match no row and refuse every update.
+				 */
+				if (IsVersion(property) && string.IsNullOrWhiteSpace(property.GetValue(Entity) as string))
+					continue;
+
 				if (IsVersion(property))
 					SupportsConcurrency = true;
 
@@ -117,12 +126,35 @@ internal sealed class UpdateCommandBuilder
 		for (var i = 0; i < WhereProperties.Count; i++)
 		{
 			var property = WhereProperties[i];
-			var parameter = await CreateParameter(property, cancel);
+			/*
+			 * The version goes in with the value the entity was read with and comes back, through RETURNING, with the one the update wrote.
+			 */
+			var parameter = await CreateParameter(property, IsVersion(property) ? ParameterDirection.InputOutput : ParameterDirection.Input, cancel);
 
 			if (i == 0)
 				WriteLine($" WHERE \"{ColumnName(property)}\" = {parameter.Name}");
 			else
 				WriteLine($" AND \"{ColumnName(property)}\" = {parameter.Name}");
 		}
+	}
+
+	/// <summary>
+	/// Returns the version the update wrote, so that the entity the storage hands back carries it.
+	/// </summary>
+	private async Task WriteReturning(CancellationToken cancel)
+	{
+		var version = Properties.FirstOrDefault(IsVersion);
+
+		if (version is null)
+			return;
+
+		/*
+		 * An entity without a version took no part in the WHERE, so nothing carries the value back yet.
+		 */
+		if (!WhereProperties.Contains(version))
+			await CreateParameter(version, ParameterDirection.Output, cancel);
+
+		WriteLine(string.Empty);
+		Write($" RETURNING \"{ColumnName(version)}\"");
 	}
 }

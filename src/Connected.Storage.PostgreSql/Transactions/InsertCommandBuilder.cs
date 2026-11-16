@@ -46,7 +46,7 @@ internal sealed class InsertCommandBuilder
 		Write("VALUES (");
 		WriteValues();
 		WriteLine(")");
-		WriteReturning();
+		await WriteReturning(cancel);
 
 		var result = new PostgreSqlStorageOperation { CommandText = CommandText };
 
@@ -59,21 +59,37 @@ internal sealed class InsertCommandBuilder
 	}
 
 	/// <summary>
-	/// Writes the RETURNING clause for identity columns.
+	/// Writes the RETURNING clause for the identity column and the version.
 	/// </summary>
 	/// <remarks>
 	/// PostgreSQL uses RETURNING clause instead of SQL Server's SCOPE_IDENTITY()
 	/// to retrieve auto-generated primary key values after INSERT.
 	/// </remarks>
-	private void WriteReturning()
+	private async Task WriteReturning(CancellationToken cancel)
 	{
-		if (PrimaryKeyParameter is null)
+		var returning = new List<string>();
+
+		if (PrimaryKeyParameter is not null)
+			returning.Add($"\"{PrimaryKeyParameter.Name?[1..]}\"");
+
+		/*
+		 * The version the database gave the new row, so that the entity the insert returns carries it. It follows the key: output
+		 * parameters take the values of the returned row in the order they were added.
+		 */
+		if (Properties.FirstOrDefault(IsVersion) is { } version)
+		{
+			await CreateParameter(version, ParameterDirection.Output, cancel);
+
+			returning.Add($"\"{ColumnName(version)}\"");
+		}
+
+		if (returning.Count == 0)
 			return;
 
 		/*
-		 * PostgreSQL RETURNING clause to get the generated identity value
+		 * PostgreSQL RETURNING clause to get the generated identity value and the version
 		 */
-		WriteLine($" RETURNING \"{PrimaryKeyParameter.Name?[1..]}\";");
+		WriteLine($" RETURNING {string.Join(", ", returning)};");
 	}
 
 	/// <summary>
