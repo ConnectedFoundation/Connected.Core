@@ -49,11 +49,9 @@ public static class TwoFactorExtensions
 			return true;
 
 		/*
-		 * Without a key no user can have set up two-factor sign-in, so the store is not read.
+		 * The store is read even without a key: a user who set up two-factor sign-in while a key was configured must
+		 * not sign in with credentials alone once it is removed. Such a user is stopped by the missing key instead.
 		 */
-		if (string.IsNullOrWhiteSpace(configuration.Key))
-			return false;
-
 		return await service.Status(new PrimaryKeyDto<long> { Id = user.Id }) == TwoFactorStatus.Enabled;
 	}
 }

@@ -3,6 +3,8 @@ using Connected.Configuration;
 using Connected.Entities;
 using Connected.Services;
 using Connected.Storage;
+using System.Data;
+using System.Data.Common;
 using System.Security.Cryptography;
 
 namespace Connected.Identities.TwoFactor.Ops;
@@ -45,28 +47,36 @@ internal sealed class Setup(IStorageProvider storage, IUserService users, IConfi
 		var secret = RandomNumberGenerator.GetBytes(Totp.SecretLength);
 		var encrypted = TwoFactorSecrets.Protect(key, user.Id, secret);
 
-		if (factor is null)
+		/*
+		 * Of two setups that run at the same time only one stores its secret: the other one's insert breaks the unique
+		 * index on the user, or its update the row's ETag. It returns null instead of a secret the user could never use.
+		 */
+		try
 		{
-			await storage.Open<UserTwoFactor>().Update(new UserTwoFactor
+			if (factor is null)
 			{
-				State = State.Add,
-				User = user.Id,
-				Secret = encrypted,
-				Status = TwoFactorStatus.Pending,
-				Created = DateTimeOffset.UtcNow
-			});
+				await storage.Open<UserTwoFactor>().Update(new UserTwoFactor
+				{
+					State = State.Add,
+					User = user.Id,
+					Secret = encrypted,
+					Status = TwoFactorStatus.Pending,
+					Created = DateTimeOffset.UtcNow
+				});
+			}
+			else
+			{
+				await storage.Open<UserTwoFactor>().Update(factor with
+				{
+					Secret = encrypted,
+					LastStep = 0,
+					Created = DateTimeOffset.UtcNow
+				});
+			}
 		}
-		else
+		catch (Exception ex) when (ex is DBConcurrencyException || (factor is null && ex is DbException))
 		{
-			/*
-			 * The row's ETag makes a setup that runs at the same time fail instead of leaving a secret the user never saw.
-			 */
-			await storage.Open<UserTwoFactor>().Update(factor with
-			{
-				Secret = encrypted,
-				LastStep = 0,
-				Created = DateTimeOffset.UtcNow
-			});
+			return null;
 		}
 
 		var encoded = Totp.Base32(secret);

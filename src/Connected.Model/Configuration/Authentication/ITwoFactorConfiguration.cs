@@ -27,8 +27,9 @@ public interface ITwoFactorConfiguration
 	/// Gets the 256-bit key, encoded in Base64, that encrypts the users' secrets with AES-GCM.
 	/// </summary>
 	/// <remarks>
-	/// The key is needed as soon as a user sets up two-factor sign-in. Changing it makes every existing secret
-	/// unreadable, so those users must set up two-factor sign-in again.
+	/// The key is needed as soon as a user sets up two-factor sign-in. Changing or removing it makes every existing
+	/// secret unreadable: those users cannot sign in, with credentials alone either, until their two-factor sign-in is
+	/// reset (<c>ITwoFactorService.Reset</c>). They then sign in as users who have not set it up.
 	/// </remarks>
 	string? Key { get; }
 

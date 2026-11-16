@@ -1,6 +1,5 @@
 using Connected.Authentication;
 using Connected.Configuration;
-using Connected.Configuration.Authentication;
 using Connected.Entities;
 using Connected.Identities.Authentication;
 using Connected.Identities.TwoFactor.Dtos;
@@ -52,19 +51,23 @@ internal sealed class Verify(IStorageProvider storage, IUserService users, IIden
 		if (await Reserve(factor, now) is not UserTwoFactor current || current.BlockedUntil > now || current.Status != expected)
 			return null;
 
+		/*
+		 * Reserving the code may have waited for another sign-in of the user that has meanwhile used this challenge, or
+		 * for a new sign-in that replaced it. The challenge is read again while the row is locked, so it completes once.
+		 */
+		if (await TwoFactorStore.Challenge(storage, Dto.Challenge) is null)
+			return null;
+
 		var secret = TwoFactorSecrets.Unprotect(TwoFactorSecrets.Key(settings), user.Id, current.Secret);
 
 		if (secret is null || Totp.Match(secret, Dto.Code, now, current.LastStep) is not long step)
 		{
-			var maxAttempts = settings.MaxAttempts > 0 ? settings.MaxAttempts : ITwoFactorConfiguration.DefaultMaxAttempts;
-			var lockout = settings.LockoutDuration > 0 ? settings.LockoutDuration : ITwoFactorConfiguration.DefaultLockoutDuration;
-
-			if (current.Failures >= maxAttempts)
+			if (current.Failures >= settings.MaxAttempts)
 			{
 				await storage.Open<UserTwoFactor>().Update(current with
 				{
 					Failures = 0,
-					BlockedUntil = now.AddMinutes(lockout)
+					BlockedUntil = now.AddMinutes(settings.LockoutDuration)
 				});
 			}
 
@@ -107,12 +110,13 @@ internal sealed class Verify(IStorageProvider storage, IUserService users, IIden
 		try
 		{
 			return await storage.Open<UserTwoFactor>().Update(factor, f => Task.FromResult(f.BlockedUntil > now ? f : f with { Failures = f.Failures + 1 }),
-				async () => await TwoFactorStore.Factor(storage, factor.User) ?? factor, Caller);
+				async () => await TwoFactorStore.Factor(storage, factor.User) ?? throw new DBConcurrencyException(), Caller);
 		}
 		catch (DBConcurrencyException)
 		{
 			/*
-			 * The secret was removed, for example by a reset, while the code was being entered.
+			 * The secret was removed, for example by a reset, while the code was being entered; the retry stops as soon
+			 * as the row is found missing.
 			 */
 			return null;
 		}

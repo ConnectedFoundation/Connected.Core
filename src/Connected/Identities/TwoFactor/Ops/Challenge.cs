@@ -1,5 +1,4 @@
 using Connected.Configuration;
-using Connected.Configuration.Authentication;
 using Connected.Entities;
 using Connected.Identities.TwoFactor.Dtos;
 using Connected.Services;
@@ -30,8 +29,7 @@ internal sealed class Challenge(IStorageProvider storage, IUserService users, IC
 		await TwoFactorStore.DeleteChallenges(storage, user.Id);
 
 		var value = TwoFactorSecrets.Challenge();
-		var lifetime = settings.ChallengeLifetime > 0 ? settings.ChallengeLifetime : ITwoFactorConfiguration.DefaultChallengeLifetime;
-		var expire = DateTimeOffset.UtcNow.AddMinutes(lifetime);
+		var expire = DateTimeOffset.UtcNow.AddMinutes(settings.ChallengeLifetime);
 
 		await storage.Open<TwoFactorChallenge>().Update(new TwoFactorChallenge
 		{
