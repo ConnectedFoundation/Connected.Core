@@ -37,6 +37,20 @@ public sealed class SqlVersionTests
 		return operation;
 	}
 
+	/// <summary>
+	/// The contract <see cref="ConsistentEntity{TPrimaryKey}.ETag"/> documents: the database keeps the version (read only, never
+	/// written), it is the version the update checks, and it is marked to take back a value a provider returns.
+	/// </summary>
+	[TestMethod]
+	public void TheVersionIsKeptByTheDatabaseAndMarkedForTheReturnedValue()
+	{
+		var etag = typeof(ConsistentEntity<int>).GetProperty(nameof(ConsistentEntity<int>.ETag))!;
+
+		Assert.AreEqual(PersistenceMode.Read, etag.GetCustomAttributes(typeof(PersistenceAttribute), true).Cast<PersistenceAttribute>().Single().Mode);
+		Assert.IsTrue(etag.GetCustomAttributes(typeof(ETagAttribute), true).Length == 1);
+		Assert.IsTrue(etag.GetCustomAttributes(typeof(ReturnValueAttribute), true).Length == 1);
+	}
+
 	[TestMethod]
 	public async Task AnUpdateNamesTheVersionInItsWhere()
 	{
