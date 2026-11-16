@@ -228,9 +228,11 @@ internal abstract class CommandBuilder
 			var persistence = property.FindAttribute<PersistenceAttribute>();
 
 			/*
-			 * InMemory is 0, so HasFlag is true for every mode. The version stays: without it nothing detects a conflict.
+			 * Not stored on a write: a member kept only in memory, and one that is only read. The version is the exception: it is read, and
+			 * an update names it in its WHERE so that a concurrent change is detected (RA-453). The mode is compared whole because
+			 * InMemory is 0, and HasFlag(InMemory) is true for every mode: it dropped the version from every command.
 			 */
-			if (persistence is not null && persistence.Mode.HasFlag(PersistenceMode.InMemory) && !IsVersion(property))
+			if (persistence is not null && (persistence.Mode is PersistenceMode.InMemory or PersistenceMode.Read) && !IsVersion(property))
 				continue;
 
 			Properties.Add(property);
