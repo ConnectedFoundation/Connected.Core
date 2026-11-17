@@ -12,6 +12,8 @@ internal sealed class Ping(IIdentityAuthenticationTokenService identityAuthentic
 {
 	protected override async Task OnInvoke()
 	{
+		await authentication.WithSystemIdentity();
+
 		var token = (await identityAuthenticationTokenService.Select(Dto)).Required();
 
 		if (!token.IsValid(configuration.Authentication.Tokens))
@@ -20,8 +22,6 @@ internal sealed class Ping(IIdentityAuthenticationTokenService identityAuthentic
 		// No expiry means "remember me" - pinging it must not give it one
 		if (token.Expire is null)
 			return;
-
-		await authentication.WithSystemIdentity();
 
 		await identityAuthenticationTokenService.Update(DtoFactory.Create<IUpdateIdentityAuthenticationTokenDto>(f =>
 		{
