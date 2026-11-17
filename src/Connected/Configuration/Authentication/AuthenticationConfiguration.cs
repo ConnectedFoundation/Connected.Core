@@ -6,4 +6,5 @@ internal class AuthenticationConfiguration(IConfiguration configuration) : IAuth
 {
 	public IJwTokenConfiguration JwToken { get; } = new JwTokenConfiguration(configuration);
 	public IAuthenticationTokenConfiguration Tokens { get; } = new AuthenticationTokenConfiguration(configuration.GetSection("tokens"));
+	public ITwoFactorConfiguration TwoFactor { get; } = new TwoFactorConfiguration(configuration.GetSection("twoFactor"));
 }

@@ -59,6 +59,46 @@ public static class IdentityAuthenticationTokenExtensions
 		return await AuthenticationToken(identity, configuration, true);
 	}
 
+	/// <summary>
+	/// Revokes an identity's tokens.
+	/// </summary>
+	/// <param name="service">The token service.</param>
+	/// <param name="identity">The identity's token.</param>
+	/// <param name="key">The kind of token to revoke, or <see langword="null"/> for every kind.</param>
+	public static async Task Revoke(this IIdentityAuthenticationTokenService service, string identity, string? key = null)
+	{
+		var tokens = await service.Query(DtoFactory.Create<IQueryIdentityAuthenticationTokensDto>(f =>
+		{
+			f.Identity = identity;
+			f.Key = key;
+		}));
+
+		foreach (var token in tokens)
+			await service.Delete(DtoFactory.Create<IPrimaryKeyDto<long>>(f => f.Id = token.Id));
+	}
+
+	/// <summary>
+	/// Returns the authentication token of a completed sign-in, issuing a new one when the identity has none that can be
+	/// handed out.
+	/// </summary>
+	/// <param name="service">The authentication token service.</param>
+	/// <param name="configuration">The token lifetime configuration.</param>
+	/// <param name="identity">The identity that signed in.</param>
+	/// <param name="permanent">Whether a newly issued token never expires.</param>
+	/// <returns>The value of the identity's authentication token.</returns>
+	/// <remarks>
+	/// A token that is about to reach the end of its maximum lifetime is not returned, since it could not be extended.
+	/// <see cref="Ensure(IIdentityAuthenticationTokenService, IAuthenticationTokenConfiguration, string, string, bool)"/>
+	/// replaces it with a new one.
+	/// </remarks>
+	public static async Task<string> IssueSignInToken(this IIdentityAuthenticationTokenService service, IAuthenticationTokenConfiguration configuration, IIdentity identity, bool permanent)
+	{
+		if (await identity.SignInToken(configuration) is string token)
+			return token;
+
+		return await service.Ensure(configuration, identity.Token, Guid.NewGuid().ToString(), permanent);
+	}
+
 	private static async Task<string?> AuthenticationToken(IIdentity identity, IAuthenticationTokenConfiguration? tokenConfiguration, bool excludeSpent)
 	{
 		await using var scope = await Scope.Create().WithSystemIdentity();
