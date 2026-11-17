@@ -12,10 +12,16 @@ internal sealed class Reset(IIdentityAuthenticationTokenService identityAuthenti
 {
 	protected override async Task<string?> OnInvoke()
 	{
+		await authentication.WithSystemIdentity();
+
 		var token = (await identityAuthenticationTokenService.Select(Dto)).Required();
 
-		if (token.IsValid())
-			await authentication.WithSystemIdentity();
+		/*
+		 * The authorization admits only the token the request was authenticated with, which is valid; a token that is
+		 * not is never renewed.
+		 */
+		if (!token.IsValid())
+			throw new NullReferenceException(SR.ErrInvalidToken);
 
 		await identityAuthenticationTokenService.Delete(DtoFactory.Create<IPrimaryKeyDto<long>>(f =>
 		{
