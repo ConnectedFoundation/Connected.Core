@@ -13,7 +13,7 @@ internal sealed class UserExtensions(IServiceProvider services)
 		return await Invoke(GetOperation<Validate>(), dto);
 	}
 
-	public async Task<SignInResult?> SignIn(IValidateUserDto dto)
+	public async Task<UserSignInResult?> SignIn(IValidateUserDto dto)
 	{
 		return await Invoke(GetOperation<SignIn>(), dto);
 	}

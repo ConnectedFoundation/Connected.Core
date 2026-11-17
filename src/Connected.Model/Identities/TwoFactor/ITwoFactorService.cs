@@ -38,7 +38,7 @@ public interface ITwoFactorService
 	/// <remarks>
 	/// The user's earlier challenges stop working, so a user has at most one open challenge.
 	/// </remarks>
-	Task<SignInResult> Challenge(IChallengeTwoFactorDto dto);
+	Task<UserSignInResult> Challenge(IChallengeTwoFactorDto dto);
 
 	/// <summary>
 	/// Returns a new secret for a setup challenge.

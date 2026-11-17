@@ -21,17 +21,6 @@ internal sealed  class UserDeleteListener(IIdentityAuthenticationTokenService id
 	{
 		var user = Sender.GetState<IUser>().Required();
 
-		var keys = await identityAuthenticationTokenService.Query(DtoFactory.Create<IQueryIdentityAuthenticationTokensDto>(f =>
-		{
-			f.Identity = user.Token;
-		}));
-
-		foreach (var key in keys)
-		{
-			await identityAuthenticationTokenService.Delete(DtoFactory.Create<IPrimaryKeyDto<long>>(f =>
-			{
-				f.Id = key.Id;
-			}));
-		}
+		await identityAuthenticationTokenService.Revoke(user.Token);
 	}
 }

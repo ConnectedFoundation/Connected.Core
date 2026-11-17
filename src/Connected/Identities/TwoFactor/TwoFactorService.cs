@@ -12,7 +12,7 @@ internal sealed class TwoFactorService(IServiceProvider services)
 		return await Invoke(GetOperation<Status>(), dto);
 	}
 
-	public async Task<SignInResult> Challenge(IChallengeTwoFactorDto dto)
+	public async Task<UserSignInResult> Challenge(IChallengeTwoFactorDto dto)
 	{
 		return await Invoke(GetOperation<Challenge>(), dto);
 	}

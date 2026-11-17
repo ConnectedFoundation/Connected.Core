@@ -9,9 +9,9 @@ using Connected.Services;
 namespace Connected.Identities.Ops;
 internal sealed class SignIn(IUserService users, IIdentityAuthenticationTokenService tokens, ITwoFactorService twoFactor, IAuthenticationService authentication,
 	IConfigurationService configuration)
-	 : ServiceFunction<IValidateUserDto, SignInResult?>
+	 : ServiceFunction<IValidateUserDto, UserSignInResult?>
 {
-	protected override async Task<SignInResult?> OnInvoke()
+	protected override async Task<UserSignInResult?> OnInvoke()
 	{
 		await authentication.WithSystemIdentity();
 
@@ -29,7 +29,7 @@ internal sealed class SignIn(IUserService users, IIdentityAuthenticationTokenSer
 			}));
 		}
 
-		return new SignInResult
+		return new UserSignInResult
 		{
 			Stage = SignInStage.Completed,
 			Token = await tokens.IssueSignInToken(configuration.Authentication.Tokens, user, Dto.Permanent)

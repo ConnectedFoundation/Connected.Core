@@ -2,7 +2,7 @@ namespace Connected.Identities.TwoFactor;
 /// <summary>
 /// The outcome of a sign-in with valid credentials.
 /// </summary>
-public sealed class SignInResult
+public sealed class UserSignInResult
 {
 	/// <summary>
 	/// Gets what the sign-in still needs.

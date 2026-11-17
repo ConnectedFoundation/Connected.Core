@@ -27,5 +27,5 @@ public interface IUserExtensions
 	/// when the credentials are not valid.
 	/// </returns>
 	[ServiceOperation(ServiceOperationVerbs.Post)]
-	Task<SignInResult?> SignIn(IValidateUserDto dto);
+	Task<UserSignInResult?> SignIn(IValidateUserDto dto);
 }

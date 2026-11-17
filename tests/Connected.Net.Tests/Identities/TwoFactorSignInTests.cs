@@ -360,7 +360,7 @@ public sealed class TwoFactorSignInTests
 		return await operation.Invoke(new TestValidateUserDto { User = "user", Password = "password" });
 	}
 
-	private async Task<SignInResult?> SignIn(ITwoFactorConfiguration twoFactor)
+	private async Task<UserSignInResult?> SignIn(ITwoFactorConfiguration twoFactor)
 	{
 		var operation = new SignIn(Users(), Stub.Create<IIdentityAuthenticationTokenService>(), TwoFactorService(), Stub.Create<IAuthenticationService>(),
 			Configuration(twoFactor));
@@ -492,11 +492,11 @@ public sealed class TwoFactorSignInTests
 			_ => null
 		});
 
-		Task<SignInResult> Challenge()
+		Task<UserSignInResult> Challenge()
 		{
 			_challenges++;
 
-			return Task.FromResult(new SignInResult
+			return Task.FromResult(new UserSignInResult
 			{
 				Stage = _status == TwoFactorStatus.Enabled ? SignInStage.TwoFactor : SignInStage.TwoFactorSetup,
 				Challenge = "challenge"

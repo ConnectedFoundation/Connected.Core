@@ -73,6 +73,24 @@ public static class IdentityAuthenticationTokenExtensions
 	/// <see cref="Ensure(IIdentityAuthenticationTokenService, IAuthenticationTokenConfiguration, string, string, bool)"/>
 	/// replaces it with a new one.
 	/// </remarks>
+	/// <summary>
+	/// Revokes an identity's tokens.
+	/// </summary>
+	/// <param name="service">The token service.</param>
+	/// <param name="identity">The identity's token.</param>
+	/// <param name="key">The kind of token to revoke, or <see langword="null"/> for every kind.</param>
+	public static async Task Revoke(this IIdentityAuthenticationTokenService service, string identity, string? key = null)
+	{
+		var tokens = await service.Query(DtoFactory.Create<IQueryIdentityAuthenticationTokensDto>(f =>
+		{
+			f.Identity = identity;
+			f.Key = key;
+		}));
+
+		foreach (var token in tokens)
+			await service.Delete(DtoFactory.Create<IPrimaryKeyDto<long>>(f => f.Id = token.Id));
+	}
+
 	public static async Task<string> IssueSignInToken(this IIdentityAuthenticationTokenService service, IAuthenticationTokenConfiguration configuration, IIdentity identity, bool permanent)
 	{
 		if (await identity.SignInToken(configuration) is string token)

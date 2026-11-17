@@ -7,9 +7,9 @@ using Connected.Storage;
 namespace Connected.Identities.TwoFactor.Ops;
 
 internal sealed class Challenge(IStorageProvider storage, IUserService users, IConfigurationService configuration)
-	: ServiceFunction<IChallengeTwoFactorDto, SignInResult>
+	: ServiceFunction<IChallengeTwoFactorDto, UserSignInResult>
 {
-	protected override async Task<SignInResult> OnInvoke()
+	protected override async Task<UserSignInResult> OnInvoke()
 	{
 		var settings = configuration.Authentication.TwoFactor;
 
@@ -41,7 +41,7 @@ internal sealed class Challenge(IStorageProvider storage, IUserService users, IC
 			Permanent = Dto.Permanent
 		});
 
-		return new SignInResult
+		return new UserSignInResult
 		{
 			Stage = stage,
 			Challenge = value,
