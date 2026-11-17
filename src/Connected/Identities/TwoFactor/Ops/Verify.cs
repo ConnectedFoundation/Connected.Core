@@ -47,12 +47,13 @@ internal sealed class Verify(IStorageProvider storage, IUserService users, IIden
 		if (factor is null || factor.Status != expected)
 			return null;
 
-		/*
-		 * From here the code is checked, so a middleware that finds the user in the state can count a wrong code.
-		 */
-		SetState(user);
-
 		var now = DateTimeOffset.UtcNow;
+
+		/*
+		 * During a lockout codes are refused without writing, so refused codes do not keep the user's row busy.
+		 */
+		if (factor.BlockedUntil > now)
+			return null;
 
 		if (await Reserve(factor, now) is not UserTwoFactor current || current.BlockedUntil > now || current.Status != expected)
 			return null;
@@ -63,6 +64,11 @@ internal sealed class Verify(IStorageProvider storage, IUserService users, IIden
 		 */
 		if (await TwoFactorStore.Challenge(storage, Dto.Challenge) is null)
 			return null;
+
+		/*
+		 * From here the code is checked, so a middleware that finds the user in the state can count a wrong code.
+		 */
+		SetState(user);
 
 		var secret = TwoFactorSecrets.Unprotect(TwoFactorSecrets.Key(settings), user.Id, current.Secret);
 

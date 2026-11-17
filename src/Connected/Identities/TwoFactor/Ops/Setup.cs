@@ -4,7 +4,6 @@ using Connected.Entities;
 using Connected.Services;
 using Connected.Storage;
 using System.Data;
-using System.Data.Common;
 using System.Security.Cryptography;
 
 namespace Connected.Identities.TwoFactor.Ops;
@@ -36,6 +35,20 @@ internal sealed class Setup(IStorageProvider storage, IUserService users, IConfi
 
 		var settings = configuration.Authentication.TwoFactor;
 		var key = TwoFactorSecrets.Key(settings);
+
+		/*
+		 * Writing the challenge locks it until the setup's transaction ends, so a second setup with the same challenge
+		 * waits, then finds the challenge changed and returns null instead of a secret the user could never use.
+		 */
+		try
+		{
+			await storage.Open<TwoFactorChallenge>().Update(challenge);
+		}
+		catch (DBConcurrencyException)
+		{
+			return null;
+		}
+
 		var factor = await TwoFactorStore.Factor(storage, user.Id);
 
 		/*
@@ -48,8 +61,9 @@ internal sealed class Setup(IStorageProvider storage, IUserService users, IConfi
 		var encrypted = TwoFactorSecrets.Protect(key, user.Id, secret);
 
 		/*
-		 * Of two setups that run at the same time only one stores its secret: the other one's insert breaks the unique
-		 * index on the user, or its update the row's ETag. It returns null instead of a secret the user could never use.
+		 * The challenge's lock does not order a setup with another challenge of the same user. When the other one changed
+		 * the row first, this update fails on its ETag and returns null; when both insert, the unique index on the user
+		 * refuses the second insert, which is reported.
 		 */
 		try
 		{
@@ -76,16 +90,6 @@ internal sealed class Setup(IStorageProvider storage, IUserService users, IConfi
 		}
 		catch (DBConcurrencyException)
 		{
-			return null;
-		}
-		catch (DbException) when (factor is null)
-		{
-			/*
-			 * Only a secret stored meanwhile by another setup is the lost race; any other failure is reported.
-			 */
-			if (await TwoFactorStore.Factor(storage, user.Id) is null)
-				throw;
-
 			return null;
 		}
 

@@ -242,19 +242,25 @@ public sealed class TwoFactorSignInTests
 	}
 
 	/// <summary>
-	/// Of two setups at the same time for a user without a secret, the one whose insert breaks the unique index gets
-	/// null, not an error.
+	/// Of two setups at the same time with the same challenge, the one that waited for the challenge gets null, not an
+	/// error, and stores no secret.
 	/// </summary>
 	[TestMethod]
-	public async Task SetupLosingTheInsertReturnsNull()
+	public async Task SetupWithAChallengeUsedMeanwhileReturnsNull()
 	{
 		var challenge = SeedChallenge(SignInStage.TwoFactorSetup);
+		var challenges = _storage.Table<TwoFactorChallenge>();
 		var factors = _storage.Table<UserTwoFactor>();
 
-		factors.BeforeNextWrite = () => SeedFactor(0, TwoFactorStatus.Pending);
+		challenges.BeforeNextWrite = () =>
+		{
+			SeedFactor(0, TwoFactorStatus.Pending);
+			challenges.Replace(challenges.Rows.Single());
+		};
 
 		Assert.IsNull(await Setup(challenge));
 		Assert.AreEqual(1, factors.Rows.Count);
+		Assert.AreEqual(0, factors.Writes);
 	}
 
 	/// <summary>
@@ -285,6 +291,44 @@ public sealed class TwoFactorSignInTests
 
 		Assert.IsNotNull(setup);
 		Assert.AreEqual(TwoFactorStatus.Pending, Factor().Status);
+	}
+
+	/// <summary>
+	/// During a lockout a code is refused without writing the user's row, and the user is not handed to middleware that
+	/// counts wrong codes, since the code was never checked.
+	/// </summary>
+	[TestMethod]
+	public async Task VerifyRefusesCodesDuringALockoutWithoutWriting()
+	{
+		var factors = _storage.Table<UserTwoFactor>();
+
+		factors.Replace(SeedFactor(0) with { BlockedUntil = DateTimeOffset.UtcNow.AddMinutes(10) });
+
+		var (token, operation) = await VerifyOperation(SeedChallenge(), Totp.Code(Secret, Totp.Step(DateTimeOffset.UtcNow)));
+
+		Assert.IsNull(token);
+		Assert.AreEqual(0, factors.Writes);
+		Assert.IsNull(operation.GetState<IUser>());
+	}
+
+	/// <summary>
+	/// A code for a challenge replaced meanwhile is counted against the user, but the user is not handed to middleware
+	/// that counts wrong codes, since the code was never checked.
+	/// </summary>
+	[TestMethod]
+	public async Task VerifyDoesNotHandOverTheUserForUncheckedCodes()
+	{
+		SeedFactor(0);
+
+		var challenge = SeedChallenge();
+		var factors = _storage.Table<UserTwoFactor>();
+
+		factors.BeforeNextWrite = _storage.Table<TwoFactorChallenge>().Rows.Clear;
+
+		var (token, operation) = await VerifyOperation(challenge, WrongCode());
+
+		Assert.IsNull(token);
+		Assert.IsNull(operation.GetState<IUser>());
 	}
 
 	/// <summary>
@@ -384,9 +428,14 @@ public sealed class TwoFactorSignInTests
 
 	private async Task<string?> Verify(string challenge, string code)
 	{
+		return (await VerifyOperation(challenge, code)).Token;
+	}
+
+	private async Task<(string? Token, Verify Operation)> VerifyOperation(string challenge, string code)
+	{
 		var operation = new Verify(_storage, Users(), Tokens(), Configuration(Settings()), Stub.Create<IAuthenticationService>());
 
-		return await operation.Invoke(new VerifyTwoFactorDto { Challenge = challenge, Code = code });
+		return (await operation.Invoke(new VerifyTwoFactorDto { Challenge = challenge, Code = code }), operation);
 	}
 
 	private async Task<TwoFactorSetup?> Setup(string challenge)

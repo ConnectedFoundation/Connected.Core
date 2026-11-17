@@ -60,20 +60,6 @@ public static class IdentityAuthenticationTokenExtensions
 	}
 
 	/// <summary>
-	/// Returns the authentication token of a completed sign-in, issuing a new one when the identity has none that can be
-	/// handed out.
-	/// </summary>
-	/// <param name="service">The authentication token service.</param>
-	/// <param name="configuration">The token lifetime configuration.</param>
-	/// <param name="identity">The identity that signed in.</param>
-	/// <param name="permanent">Whether a newly issued token never expires.</param>
-	/// <returns>The value of the identity's authentication token.</returns>
-	/// <remarks>
-	/// A token that is about to reach the end of its maximum lifetime is not returned, since it could not be extended.
-	/// <see cref="Ensure(IIdentityAuthenticationTokenService, IAuthenticationTokenConfiguration, string, string, bool)"/>
-	/// replaces it with a new one.
-	/// </remarks>
-	/// <summary>
 	/// Revokes an identity's tokens.
 	/// </summary>
 	/// <param name="service">The token service.</param>
@@ -91,6 +77,20 @@ public static class IdentityAuthenticationTokenExtensions
 			await service.Delete(DtoFactory.Create<IPrimaryKeyDto<long>>(f => f.Id = token.Id));
 	}
 
+	/// <summary>
+	/// Returns the authentication token of a completed sign-in, issuing a new one when the identity has none that can be
+	/// handed out.
+	/// </summary>
+	/// <param name="service">The authentication token service.</param>
+	/// <param name="configuration">The token lifetime configuration.</param>
+	/// <param name="identity">The identity that signed in.</param>
+	/// <param name="permanent">Whether a newly issued token never expires.</param>
+	/// <returns>The value of the identity's authentication token.</returns>
+	/// <remarks>
+	/// A token that is about to reach the end of its maximum lifetime is not returned, since it could not be extended.
+	/// <see cref="Ensure(IIdentityAuthenticationTokenService, IAuthenticationTokenConfiguration, string, string, bool)"/>
+	/// replaces it with a new one.
+	/// </remarks>
 	public static async Task<string> IssueSignInToken(this IIdentityAuthenticationTokenService service, IAuthenticationTokenConfiguration configuration, IIdentity identity, bool permanent)
 	{
 		if (await identity.SignInToken(configuration) is string token)
