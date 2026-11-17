@@ -12,4 +12,22 @@ public interface IAuthenticationConfiguration
 	/// Gets the JWT token configuration.
 	/// </summary>
 	IJwTokenConfiguration JwToken { get; }
+
+	/// <summary>
+	/// Gets the lifetime configuration of expiring authentication tokens.
+	/// </summary>
+	/// <remarks>
+	/// The default implementation keeps existing implementations of this interface valid; it configures no idle
+	/// timeout and no maximum lifetime.
+	/// </remarks>
+	IAuthenticationTokenConfiguration Tokens => UnboundedTokenConfiguration.Instance;
+
+	/// <summary>
+	/// Gets the configuration of two-factor sign-in.
+	/// </summary>
+	/// <remarks>
+	/// The default implementation keeps existing implementations of this interface valid; it configures no key and
+	/// requires no code.
+	/// </remarks>
+	ITwoFactorConfiguration TwoFactor => DisabledTwoFactorConfiguration.Instance;
 }

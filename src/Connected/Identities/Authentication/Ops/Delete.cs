@@ -10,7 +10,12 @@ internal sealed class Delete(IStorageProvider storage, IIdentityAuthenticationTo
 {
 	protected override async Task OnInvoke()
 	{
-		var entity = SetState(await tokens.Select(Dto)) as IdentityAuthenticationToken ?? throw new NullReferenceException(Connected.Strings.ErrEntityExpected);
+		/*
+		 * Expired tokens are deleted by token authentication and by sign-in, which can race, so deleting a token
+		 * that is already gone is not an error.
+		 */
+		if (SetState(await tokens.Select(Dto)) is not IdentityAuthenticationToken entity)
+			return;
 
 		await storage.Open<IdentityAuthenticationToken>().Update(entity.Merge(Dto, State.Delete));
 		await cache.Remove(Dto.Id);

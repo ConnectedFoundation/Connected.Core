@@ -1,0 +1,563 @@
+using Connected.Authentication;
+using Connected.Configuration;
+using Connected.Configuration.Authentication;
+using Connected.Identities;
+using Connected.Identities.Authentication;
+using Connected.Identities.Dtos;
+using Connected.Identities.Ops;
+using Connected.Identities.TwoFactor;
+using Connected.Identities.TwoFactor.Dtos;
+using Connected.Identities.TwoFactor.Ops;
+using Connected.Services;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Connected.Identities.Authentication.Dtos;
+using System.Collections.Immutable;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace Connected.Net.Tests.Identities;
+
+/// <summary>
+/// Holds the two-factor gate on every credential sign-in, and the checks of a code against the user's stored secret.
+/// </summary>
+[TestClass]
+public sealed class TwoFactorSignInTests
+{
+	private const long UserId = 7;
+
+	private static readonly byte[] Key = RandomNumberGenerator.GetBytes(TwoFactorExtensions.KeyLength);
+	private static readonly byte[] Secret = RandomNumberGenerator.GetBytes(Totp.SecretLength);
+
+	private readonly IUser _user = new TestUser
+	{
+		Id = UserId,
+		Status = UserStatus.Active,
+		Token = "user-7",
+		Email = "user@example.com"
+	};
+
+	private readonly List<TestToken> _tokens = [];
+	private TwoFactorStatus _status;
+	private int _challenges;
+	private InMemoryStorage _storage = default!;
+
+	[TestInitialize]
+	public void Initialize()
+	{
+		var services = new ServiceCollection();
+
+		services.AddTransient<IUpdateIdentityDto, Connected.Authentication.Dtos.UpdateIdentityDto>();
+		services.AddTransient<ISelectUserDto, TestValidateUserDto>();
+		services.AddTransient<IChallengeTwoFactorDto, ChallengeTwoFactorDto>();
+		services.AddTransient<IQueryIdentityAuthenticationTokensDto, Connected.Identities.Authentication.Dtos.QueryIdentityAuthenticationTokensDto>();
+		services.AddTransient<IInsertIdentityAuthenticationTokenDto, Connected.Identities.Authentication.Dtos.InsertIdentityAuthenticationTokenDto>();
+		services.AddTransient(typeof(IPrimaryKeyDto<>), typeof(PrimaryKeyDto<>));
+		services.AddSingleton(Tokens());
+		services.AddSingleton(Stub.Create<IAuthenticationService>());
+		services.AddSingleton(Users());
+		services.AddSingleton(TwoFactorService());
+		services.AddSingleton(Configuration(new TestTwoFactorConfiguration { Key = Convert.ToBase64String(Key) }));
+
+		new ServiceExtensionsStartup().ConfigureServices(services);
+
+		_storage = new InMemoryStorage();
+		_storage.Add<UserTwoFactor>((f, id, etag) => f with { Id = id, ETag = etag, State = Entities.State.Update }, f => f.User);
+		_storage.Add<TwoFactorChallenge>((f, id, etag) => f with { Id = id, ETag = etag, State = Entities.State.Update }, f => f.Hash);
+	}
+
+	[TestCleanup]
+	public async Task Cleanup()
+	{
+		await ServiceExtensionsStartup.Reset();
+	}
+
+	/// <summary>
+	/// A user who set up two-factor sign-in gets no token from a password alone.
+	/// </summary>
+	[TestMethod]
+	public async Task ValidateRefusesAnEnrolledUser()
+	{
+		_status = TwoFactorStatus.Enabled;
+
+		Assert.IsNull(await Validate(new TestTwoFactorConfiguration { Key = Convert.ToBase64String(Key) }));
+	}
+
+	/// <summary>
+	/// A user who set up two-factor sign-in gets a challenge, not a token, from a password.
+	/// </summary>
+	[TestMethod]
+	public async Task SignInChallengesAnEnrolledUser()
+	{
+		_status = TwoFactorStatus.Enabled;
+
+		var result = await SignIn(new TestTwoFactorConfiguration { Key = Convert.ToBase64String(Key) });
+
+		Assert.AreEqual(SignInStage.TwoFactor, result?.Stage);
+		Assert.IsNull(result?.Token);
+		Assert.AreEqual(1, _challenges);
+	}
+
+	/// <summary>
+	/// When two-factor sign-in is required, a user who has not set it up yet is sent to set it up.
+	/// </summary>
+	[TestMethod]
+	public async Task RequiredTwoFactorRefusesEveryUser()
+	{
+		_status = TwoFactorStatus.None;
+
+		var configuration = new TestTwoFactorConfiguration { Key = Convert.ToBase64String(Key), Required = true };
+
+		Assert.IsNull(await Validate(configuration));
+		Assert.AreEqual(SignInStage.TwoFactorSetup, (await SignIn(configuration))?.Stage);
+	}
+
+	/// <summary>
+	/// Removing the key does not let a user who set up two-factor sign-in in with a password alone.
+	/// </summary>
+	[TestMethod]
+	[DataRow(null)]
+	[DataRow("")]
+	public async Task MissingKeyFailsClosed(string? key)
+	{
+		_status = TwoFactorStatus.Enabled;
+
+		var configuration = new TestTwoFactorConfiguration { Key = key };
+
+		Assert.IsTrue(await TwoFactorService().IsTwoFactorRequired(configuration, _user));
+		Assert.IsNull(await Validate(configuration));
+		Assert.AreEqual(SignInStage.TwoFactor, (await SignIn(configuration))?.Stage);
+	}
+
+	/// <summary>
+	/// A user who has not set up two-factor sign-in, where it is not required, signs in with a password alone.
+	/// </summary>
+	[TestMethod]
+	public async Task OptionalTwoFactorLetsOtherUsersIn()
+	{
+		_status = TwoFactorStatus.None;
+
+		Assert.IsFalse(await TwoFactorService().IsTwoFactorRequired(new TestTwoFactorConfiguration(), _user));
+		Assert.IsTrue(await BasicAuthenticated());
+	}
+
+	/// <summary>
+	/// Basic authentication refuses a user who set up two-factor sign-in.
+	/// </summary>
+	[TestMethod]
+	public async Task BasicAuthenticationRefusesAnEnrolledUser()
+	{
+		_status = TwoFactorStatus.Enabled;
+
+		Assert.IsFalse(await BasicAuthenticated());
+	}
+
+	/// <summary>
+	/// A code of the step signed in with last is refused, and still counted.
+	/// </summary>
+	[TestMethod]
+	public async Task VerifyRefusesAUsedCode()
+	{
+		var step = Totp.Step(DateTimeOffset.UtcNow);
+
+		SeedFactor(step);
+
+		var challenge = SeedChallenge();
+
+		Assert.IsNull(await Verify(challenge, Totp.Code(Secret, step)));
+
+		var factor = Factor();
+
+		Assert.AreEqual(step, factor.LastStep);
+		Assert.AreEqual(1, factor.Failures);
+	}
+
+	/// <summary>
+	/// Each wrong code is stored before Verify returns, and the last allowed one locks the user's codes out, the right
+	/// code included.
+	/// </summary>
+	[TestMethod]
+	public async Task VerifyLocksOutAfterMaxAttempts()
+	{
+		SeedFactor(0);
+
+		var challenge = SeedChallenge();
+		var wrong = WrongCode();
+
+		for (var i = 1; i < ITwoFactorConfiguration.DefaultMaxAttempts; i++)
+		{
+			Assert.IsNull(await Verify(challenge, wrong));
+			Assert.AreEqual(i, Factor().Failures);
+			Assert.IsNull(Factor().BlockedUntil);
+		}
+
+		Assert.IsNull(await Verify(challenge, wrong));
+		Assert.IsTrue(Factor().BlockedUntil > DateTimeOffset.UtcNow.AddMinutes(ITwoFactorConfiguration.DefaultLockoutDuration - 1));
+		Assert.AreEqual(0, Factor().Failures);
+
+		Assert.IsNull(await Verify(challenge, Totp.Code(Secret, Totp.Step(DateTimeOffset.UtcNow))));
+		Assert.AreEqual(0, Factor().LastStep);
+	}
+
+	/// <summary>
+	/// A challenge that another sign-in used while this one waited for the user's row does not complete again, even
+	/// with a different valid code.
+	/// </summary>
+	[TestMethod]
+	public async Task VerifyRefusesAChallengeUsedMeanwhile()
+	{
+		var step = Totp.Step(DateTimeOffset.UtcNow);
+
+		SeedFactor(0);
+
+		var challenge = SeedChallenge();
+		var factors = _storage.Table<UserTwoFactor>();
+		var challenges = _storage.Table<TwoFactorChallenge>();
+
+		factors.BeforeNextWrite = () =>
+		{
+			factors.Replace(Factor() with { LastStep = step - 1 });
+			challenges.Rows.Clear();
+		};
+
+		Assert.IsNull(await Verify(challenge, Totp.Code(Secret, step)));
+		Assert.AreEqual(step - 1, Factor().LastStep);
+	}
+
+	/// <summary>
+	/// A secret removed by a reset while a code was entered ends the check at once, without retrying.
+	/// </summary>
+	[TestMethod]
+	public async Task VerifyStopsWhenTheSecretIsRemoved()
+	{
+		SeedFactor(0);
+
+		var challenge = SeedChallenge();
+		var factors = _storage.Table<UserTwoFactor>();
+
+		factors.BeforeNextWrite = factors.Rows.Clear;
+
+		Assert.IsNull(await Verify(challenge, Totp.Code(Secret, Totp.Step(DateTimeOffset.UtcNow))));
+		Assert.AreEqual(1, factors.Writes);
+	}
+
+	/// <summary>
+	/// Of two setups at the same time with the same challenge, the one that waited for the challenge gets null, not an
+	/// error, and stores no secret.
+	/// </summary>
+	[TestMethod]
+	public async Task SetupWithAChallengeUsedMeanwhileReturnsNull()
+	{
+		var challenge = SeedChallenge(SignInStage.TwoFactorSetup);
+		var challenges = _storage.Table<TwoFactorChallenge>();
+		var factors = _storage.Table<UserTwoFactor>();
+
+		challenges.BeforeNextWrite = () =>
+		{
+			SeedFactor(0, TwoFactorStatus.Pending);
+			challenges.Replace(challenges.Rows.Single());
+		};
+
+		Assert.IsNull(await Setup(challenge));
+		Assert.AreEqual(1, factors.Rows.Count);
+		Assert.AreEqual(0, factors.Writes);
+	}
+
+	/// <summary>
+	/// Of two setups at the same time for a user with an unconfirmed secret, the one whose update finds the row changed
+	/// gets null, not an error.
+	/// </summary>
+	[TestMethod]
+	public async Task SetupLosingTheUpdateReturnsNull()
+	{
+		SeedFactor(0, TwoFactorStatus.Pending);
+
+		var challenge = SeedChallenge(SignInStage.TwoFactorSetup);
+		var factors = _storage.Table<UserTwoFactor>();
+
+		factors.BeforeNextWrite = () => factors.Replace(Factor());
+
+		Assert.IsNull(await Setup(challenge));
+	}
+
+	/// <summary>
+	/// A setup that runs alone returns the secret it stored.
+	/// </summary>
+	[TestMethod]
+	public async Task SetupStoresTheSecret()
+	{
+		var challenge = SeedChallenge(SignInStage.TwoFactorSetup);
+		var setup = await Setup(challenge);
+
+		Assert.IsNotNull(setup);
+		Assert.AreEqual(TwoFactorStatus.Pending, Factor().Status);
+	}
+
+	/// <summary>
+	/// During a lockout a code is refused without writing the user's row, and the user is not handed to middleware that
+	/// counts wrong codes, since the code was never checked.
+	/// </summary>
+	[TestMethod]
+	public async Task VerifyRefusesCodesDuringALockoutWithoutWriting()
+	{
+		var factors = _storage.Table<UserTwoFactor>();
+
+		factors.Replace(SeedFactor(0) with { BlockedUntil = DateTimeOffset.UtcNow.AddMinutes(10) });
+
+		var (token, operation) = await VerifyOperation(SeedChallenge(), Totp.Code(Secret, Totp.Step(DateTimeOffset.UtcNow)));
+
+		Assert.IsNull(token);
+		Assert.AreEqual(0, factors.Writes);
+		Assert.IsNull(operation.GetState<IUser>());
+	}
+
+	/// <summary>
+	/// A code for a challenge replaced meanwhile is counted against the user, but the user is not handed to middleware
+	/// that counts wrong codes, since the code was never checked.
+	/// </summary>
+	[TestMethod]
+	public async Task VerifyDoesNotHandOverTheUserForUncheckedCodes()
+	{
+		SeedFactor(0);
+
+		var challenge = SeedChallenge();
+		var factors = _storage.Table<UserTwoFactor>();
+
+		factors.BeforeNextWrite = _storage.Table<TwoFactorChallenge>().Rows.Clear;
+
+		var (token, operation) = await VerifyOperation(challenge, WrongCode());
+
+		Assert.IsNull(token);
+		Assert.IsNull(operation.GetState<IUser>());
+	}
+
+	/// <summary>
+	/// A code entered with a space, as authenticator apps show it, is accepted.
+	/// </summary>
+	[TestMethod]
+	public async Task VerifyAcceptsACodeWithASpace()
+	{
+		var step = Totp.Step(DateTimeOffset.UtcNow);
+
+		SeedFactor(0);
+		_tokens.Add(Token("current"));
+
+		var code = Totp.Code(Secret, step);
+
+		Assert.AreEqual("current", await Verify(SeedChallenge(), $"{code[..3]} {code[3..]}"));
+		Assert.IsTrue(Factor().LastStep >= step - 1);
+		Assert.AreEqual(0, Factor().Failures);
+	}
+
+	/// <summary>
+	/// Something that is not a code is refused without counting against the user.
+	/// </summary>
+	[TestMethod]
+	[DataRow("12a456")]
+	[DataRow("12345")]
+	[DataRow("1234567")]
+	public async Task VerifyRefusesMalformedCodesWithoutCounting(string code)
+	{
+		SeedFactor(0);
+
+		Assert.IsNull(await Verify(SeedChallenge(), code));
+		Assert.AreEqual(0, Factor().Failures);
+		Assert.AreEqual(0, _storage.Table<UserTwoFactor>().Writes);
+	}
+
+	/// <summary>
+	/// Confirming the setup revokes the tokens issued with credentials alone and returns a new one.
+	/// </summary>
+	[TestMethod]
+	public async Task VerifyRevokesEarlierTokensWhenSetupIsConfirmed()
+	{
+		SeedFactor(0, TwoFactorStatus.Pending);
+		_tokens.Add(Token("password-only"));
+		_tokens.Add(Token("renewed") with { Key = Guid.NewGuid().ToString("N") });
+
+		var token = await Verify(SeedChallenge(SignInStage.TwoFactorSetup), Totp.Code(Secret, Totp.Step(DateTimeOffset.UtcNow)));
+
+		Assert.IsNotNull(token);
+		Assert.AreNotEqual("password-only", token);
+		Assert.IsFalse(_tokens.Any(f => f.Token is "password-only" or "renewed"));
+		Assert.IsTrue(_tokens.Any(f => f.Token == token));
+		Assert.AreEqual(TwoFactorStatus.Enabled, Factor().Status);
+	}
+
+	/// <summary>
+	/// A failed insert that is not a lost race is reported, not hidden as a refused setup.
+	/// </summary>
+	[TestMethod]
+	public async Task SetupReportsOtherInsertFailures()
+	{
+		var challenge = SeedChallenge(SignInStage.TwoFactorSetup);
+
+		_storage.Table<UserTwoFactor>().BeforeNextWrite = () => throw new DuplicateKeyException();
+
+		await Assert.ThrowsExceptionAsync<DuplicateKeyException>(() => Setup(challenge));
+	}
+
+	private async Task<string?> Validate(ITwoFactorConfiguration twoFactor)
+	{
+		var operation = new Validate(Users(), Stub.Create<IIdentityAuthenticationTokenService>(), TwoFactorService(), Stub.Create<IAuthenticationService>(),
+			Configuration(twoFactor));
+
+		return await operation.Invoke(new TestValidateUserDto { User = "user", Password = "password" });
+	}
+
+	private async Task<UserSignInResult?> SignIn(ITwoFactorConfiguration twoFactor)
+	{
+		var operation = new SignIn(Users(), Stub.Create<IIdentityAuthenticationTokenService>(), TwoFactorService(), Stub.Create<IAuthenticationService>(),
+			Configuration(twoFactor));
+
+		return await operation.Invoke(new TestValidateUserDto { User = "user", Password = "password" });
+	}
+
+	private async Task<bool> BasicAuthenticated()
+	{
+		var http = new HttpContextAccessor { HttpContext = new DefaultHttpContext() };
+		var provider = new BasicAuthentication(http);
+
+		await provider.Invoke(new AuthenticateDto
+		{
+			Schema = "basic",
+			Token = Convert.ToBase64String(Encoding.UTF8.GetBytes("user:password"))
+		});
+
+		return http.HttpContext.User.Identity?.IsAuthenticated == true;
+	}
+
+	private async Task<string?> Verify(string challenge, string code)
+	{
+		return (await VerifyOperation(challenge, code)).Token;
+	}
+
+	private async Task<(string? Token, Verify Operation)> VerifyOperation(string challenge, string code)
+	{
+		var operation = new Verify(_storage, Users(), Tokens(), Configuration(Settings()), Stub.Create<IAuthenticationService>());
+
+		return (await operation.Invoke(new VerifyTwoFactorDto { Challenge = challenge, Code = code }), operation);
+	}
+
+	private async Task<TwoFactorSetup?> Setup(string challenge)
+	{
+		var operation = new Setup(_storage, Users(), Configuration(Settings()), Stub.Create<IAuthenticationService>());
+
+		return await operation.Invoke(new ValueDto<string>(challenge));
+	}
+
+	private static TestTwoFactorConfiguration Settings() => new() { Key = Convert.ToBase64String(Key) };
+
+	private UserTwoFactor Factor() => _storage.Table<UserTwoFactor>().Rows.Single();
+
+	private UserTwoFactor SeedFactor(long lastStep, TwoFactorStatus status = TwoFactorStatus.Enabled)
+	{
+		return _storage.Table<UserTwoFactor>().Seed(new UserTwoFactor
+		{
+			User = UserId,
+			Secret = TwoFactorSecrets.Protect(Key, UserId, Secret),
+			Status = status,
+			LastStep = lastStep,
+			Created = DateTimeOffset.UtcNow
+		});
+	}
+
+	private string SeedChallenge(SignInStage stage = SignInStage.TwoFactor)
+	{
+		var value = TwoFactorSecrets.Challenge();
+
+		_storage.Table<TwoFactorChallenge>().Seed(new TwoFactorChallenge
+		{
+			User = UserId,
+			Hash = TwoFactorSecrets.Hash(value),
+			Stage = stage,
+			Expire = DateTimeOffset.UtcNow.AddMinutes(10)
+		});
+
+		return value;
+	}
+
+	/// <summary>
+	/// Returns a code that matches none of the steps a code is accepted for now.
+	/// </summary>
+	private static string WrongCode()
+	{
+		var step = Totp.Step(DateTimeOffset.UtcNow);
+		var valid = new[] { step - 1, step, step + 1, step + 2 }.Select(f => Totp.Code(Secret, f)).ToHashSet();
+
+		return Enumerable.Range(0, 10).Select(f => new string((char)('0' + f), 6)).First(f => !valid.Contains(f));
+	}
+
+	private TestToken Token(string value) => new()
+	{
+		Id = _tokens.Count + 1,
+		Key = IdentityAuthenticationTokens.AuthenticationToken,
+		Token = value,
+		Identity = _user.Token,
+		Status = AuthenticationTokenStatus.Enabled,
+		Created = DateTimeOffset.UtcNow
+	};
+
+	/// <summary>
+	/// The user's tokens, held in <see cref="_tokens"/>.
+	/// </summary>
+	private IIdentityAuthenticationTokenService Tokens()
+	{
+		return Stub.Create<IIdentityAuthenticationTokenService>((method, args) =>
+		{
+			switch (method.Name)
+			{
+				case nameof(IIdentityAuthenticationTokenService.Query):
+					var query = (IQueryIdentityAuthenticationTokensDto)args[0]!;
+
+					return Stub.Result(method, _tokens.Where(f => f.Identity == query.Identity && (query.Key is null || f.Key == query.Key)).ToImmutableList<IIdentityAuthenticationToken>());
+				case nameof(IIdentityAuthenticationTokenService.Delete):
+					_tokens.RemoveAll(f => f.Id == ((IPrimaryKeyDto<long>)args[0]!).Id);
+
+					return Task.CompletedTask;
+				case nameof(IIdentityAuthenticationTokenService.Insert):
+					var insert = (IInsertIdentityAuthenticationTokenDto)args[0]!;
+					var token = Token(insert.Token!) with { Identity = insert.Identity!, Key = insert.Key! };
+
+					_tokens.Add(token);
+
+					return Task.FromResult<long?>(token.Id);
+				default:
+					return null;
+			}
+		});
+	}
+
+	private IUserService Users()
+	{
+		return Stub.Create<IUserService>((method, _) => method.Name == nameof(IUserService.Select) ? Stub.Result(method, _user) : null);
+	}
+
+	private ITwoFactorService TwoFactorService()
+	{
+		return Stub.Create<ITwoFactorService>((method, args) => method.Name switch
+		{
+			nameof(ITwoFactorService.Status) => Task.FromResult(_status),
+			nameof(ITwoFactorService.Challenge) => Challenge(),
+			_ => null
+		});
+
+		Task<UserSignInResult> Challenge()
+		{
+			_challenges++;
+
+			return Task.FromResult(new UserSignInResult
+			{
+				Stage = _status == TwoFactorStatus.Enabled ? SignInStage.TwoFactor : SignInStage.TwoFactorSetup,
+				Challenge = "challenge"
+			});
+		}
+	}
+
+	private static IConfigurationService Configuration(ITwoFactorConfiguration twoFactor)
+	{
+		var authentication = new TestAuthenticationConfiguration(twoFactor);
+
+		return Stub.Create<IConfigurationService>((method, _) => method.Name == "get_Authentication" ? authentication : null);
+	}
+}
