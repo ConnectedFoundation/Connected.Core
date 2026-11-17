@@ -40,6 +40,12 @@ public interface ITwoFactorConfiguration
 	/// This covers every credential sign-in, Basic authentication included, so accounts that cannot enter a code, such
 	/// as those of integrations, can no longer authenticate with credentials. Tokens issued before it was set stay valid
 	/// until the user confirms two-factor sign-in, which revokes them; revoke them earlier to end such sessions at once.
+	/// <para>
+	/// A user who has not set up two-factor sign-in sets it up at the next credential sign-in, so whoever knows the
+	/// password first can register their own authenticator. Applications that need to know the authenticator belongs to
+	/// the account's owner enroll users through a channel that proves who they are, such as an invitation, before
+	/// relying on it.
+	/// </para>
 	/// </remarks>
 	bool Required { get; }
 

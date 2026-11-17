@@ -102,10 +102,10 @@ internal sealed class Verify(IStorageProvider storage, IUserService users, IIden
 		if (expected == TwoFactorStatus.Pending)
 		{
 			/*
-			 * The first code confirms the setup. Tokens issued before it were signed in with credentials alone, so they
-			 * are revoked and the user gets a new one.
+			 * The first code confirms the setup. Tokens issued before it were signed in with credentials alone, so all of
+			 * them are revoked, sessions renewed under their own key included, and the user gets a new one.
 			 */
-			await tokens.Revoke(user.Token, IdentityAuthenticationTokens.AuthenticationToken);
+			await tokens.Revoke(user.Token);
 
 			return await tokens.Ensure(configuration.Authentication.Tokens, user.Token, Guid.NewGuid().ToString(), challenge.Permanent);
 		}

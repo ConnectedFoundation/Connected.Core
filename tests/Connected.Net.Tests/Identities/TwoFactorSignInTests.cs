@@ -373,12 +373,13 @@ public sealed class TwoFactorSignInTests
 	{
 		SeedFactor(0, TwoFactorStatus.Pending);
 		_tokens.Add(Token("password-only"));
+		_tokens.Add(Token("renewed") with { Key = Guid.NewGuid().ToString("N") });
 
 		var token = await Verify(SeedChallenge(SignInStage.TwoFactorSetup), Totp.Code(Secret, Totp.Step(DateTimeOffset.UtcNow)));
 
 		Assert.IsNotNull(token);
 		Assert.AreNotEqual("password-only", token);
-		Assert.IsFalse(_tokens.Any(f => f.Token == "password-only"));
+		Assert.IsFalse(_tokens.Any(f => f.Token is "password-only" or "renewed"));
 		Assert.IsTrue(_tokens.Any(f => f.Token == token));
 		Assert.AreEqual(TwoFactorStatus.Enabled, Factor().Status);
 	}
@@ -509,7 +510,7 @@ public sealed class TwoFactorSignInTests
 				case nameof(IIdentityAuthenticationTokenService.Query):
 					var query = (IQueryIdentityAuthenticationTokensDto)args[0]!;
 
-					return Stub.Result(method, _tokens.Where(f => f.Identity == query.Identity && f.Key == query.Key).ToImmutableList<IIdentityAuthenticationToken>());
+					return Stub.Result(method, _tokens.Where(f => f.Identity == query.Identity && (query.Key is null || f.Key == query.Key)).ToImmutableList<IIdentityAuthenticationToken>());
 				case nameof(IIdentityAuthenticationTokenService.Delete):
 					_tokens.RemoveAll(f => f.Id == ((IPrimaryKeyDto<long>)args[0]!).Id);
 
