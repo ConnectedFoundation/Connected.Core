@@ -21,11 +21,11 @@ namespace Connected.Identities.Authorization;
 internal abstract class OwnTokenAuthorization(IHttpContextAccessor http)
 	: ServiceOperationAuthorization<IValueDto<string>>
 {
-	protected override async Task<AuthorizationResult> OnInvoke()
+	protected override Task<AuthorizationResult> OnInvoke()
 	{
 		var current = http.HttpContext?.User.Identity is HttpIdentity { IsAuthenticated: true } identity ? identity.AuthenticationToken : null;
 
-		return await Task.FromResult(!string.IsNullOrEmpty(current) && string.Equals(current, Dto.Value, StringComparison.Ordinal)
+		return Task.FromResult(!string.IsNullOrEmpty(current) && string.Equals(current, Dto.Value, StringComparison.Ordinal)
 			? AuthorizationResult.Skip
 			: AuthorizationResult.Fail);
 	}

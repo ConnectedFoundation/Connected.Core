@@ -28,7 +28,6 @@ public sealed class OwnTokenAuthorizationTests
 	private const string OtherSession = "other-session";
 	private const string Identity = "identity-7";
 
-	private readonly IUser _user = new TestUser { Id = 7, Status = UserStatus.Active, Token = Identity };
 	private List<TestToken> _tokens = [];
 	private int _updates;
 
@@ -53,9 +52,12 @@ public sealed class OwnTokenAuthorizationTests
 		[
 			Token(1, OwnToken, Identity, IdentityAuthenticationTokens.AuthenticationToken),
 			Token(2, OtherSession, Identity, IdentityAuthenticationTokens.AuthenticationToken),
-			// A session renewed by Reset is stored again under a key of its own
-			Token(3, "renewed-session", Identity, Guid.NewGuid().ToString("N")),
-			Token(4, "someone-else", "identity-8", IdentityAuthenticationTokens.AuthenticationToken)
+			// The caller's session renewed by Reset is stored again under a key of its own
+			Token(3, OwnToken, Identity, Guid.NewGuid().ToString("N")),
+			// Another session renewed by Reset, and a token of another kind
+			Token(4, "renewed-session", Identity, Guid.NewGuid().ToString("N")),
+			Token(5, "pin", Identity, IdentityAuthenticationTokens.Pin),
+			Token(6, "someone-else", "identity-8", IdentityAuthenticationTokens.AuthenticationToken)
 		];
 
 		var services = new ServiceCollection();
@@ -136,17 +138,15 @@ public sealed class OwnTokenAuthorizationTests
 	}
 
 	/// <summary>
-	/// Signing out revokes every token of the identity, a session renewed under its own key included, and no other
-	/// identity's.
+	/// Signing out ends the identity's sign-in sessions and every copy of the caller's own token, its renewed copy
+	/// included; other sessions' renewed copies, tokens of other kinds and other identities' tokens stay.
 	/// </summary>
 	[TestMethod]
-	public async Task SignOutRevokesEveryTokenOfTheIdentity()
+	public async Task SignOutEndsTheSessionsAndTheCallersRenewedCopy()
 	{
-		var tokens = Tokens();
+		await new SignOut(Tokens(), Stub.Create<IAuthenticationService>()).Invoke(new ValueDto<string>(OwnToken));
 
-		await new SignOut(tokens, Stub.Create<IAuthenticationService>()).Invoke(new ValueDto<string>(OwnToken));
-
-		CollectionAssert.AreEqual(new[] { "someone-else" }, _tokens.Select(f => f.Token).ToArray());
+		CollectionAssert.AreEqual(new long[] { 4, 5, 6 }, _tokens.Select(f => f.Id).ToArray());
 	}
 
 	/// <summary>

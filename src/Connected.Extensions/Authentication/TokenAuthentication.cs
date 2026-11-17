@@ -92,7 +92,7 @@ internal sealed class TokenAuthentication(IHttpContextAccessor http)
 				http.HttpContext.User = new DefaultPrincipal(new HttpIdentity(identityDto.Identity)
 				{
 					IsAuthenticated = true,
-					AuthenticationToken = token.Token
+					AuthenticationToken = Token
 				});
 			}
 		}

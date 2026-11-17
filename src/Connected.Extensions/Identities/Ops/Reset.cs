@@ -20,7 +20,7 @@ internal sealed class Reset(IIdentityAuthenticationTokenService identityAuthenti
 		 * The authorization admits only the token the request was authenticated with, which is valid; a token that is
 		 * not is never renewed.
 		 */
-		if (!token.IsValid())
+		if (!token.IsValid(configuration.Authentication.Tokens))
 			throw new NullReferenceException(SR.ErrInvalidToken);
 
 		await identityAuthenticationTokenService.Delete(DtoFactory.Create<IPrimaryKeyDto<long>>(f =>
