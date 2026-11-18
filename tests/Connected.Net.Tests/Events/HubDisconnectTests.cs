@@ -117,6 +117,19 @@ public sealed class HubDisconnectTests
 		Assert.IsNotNull(clients.Select(id));
 	}
 
+	[TestMethod]
+	public void RemovingAnOldConnectionKeepsTheClientThatReplacedIt()
+	{
+		var clients = new EventClients();
+		var id = Guid.NewGuid();
+
+		clients.AddOrUpdate(NewClient("first", "signed-out", id));
+		clients.AddOrUpdate(NewClient("second", "signed-in", id));
+		clients.Remove("first");
+
+		Assert.AreEqual("second", clients.Select(id)?.Connection);
+	}
+
 	private static IClient NewClient(string connection, string identity, Guid? id = null)
 	{
 		return new Client { Id = id ?? Guid.NewGuid(), Connection = connection, Identity = identity };

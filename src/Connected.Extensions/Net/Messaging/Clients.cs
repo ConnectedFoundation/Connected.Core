@@ -65,7 +65,11 @@ public abstract class Clients
 		if (Select(connectionId) is not IClient client)
 			return;
 
-		Items.TryRemove(client.Id, out _);
+		lock (client)
+		{
+			// Only the client found: one that replaced it meanwhile, for the same id, stays
+			Items.TryRemove(new KeyValuePair<Guid, IClient>(client.Id, client));
+		}
 	}
 
 	public IImmutableList<IClient> Query()

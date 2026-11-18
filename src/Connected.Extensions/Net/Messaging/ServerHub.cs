@@ -56,11 +56,13 @@ public abstract class ServerHub(IServiceProvider services, IClients clients)
 	}
 
 	/// <summary>
-	/// How long a client is kept after its connection is lost, so it can reconnect as the same client.
+	/// How long a client is kept after its connection is lost.
 	/// </summary>
 	/// <remarks>
-	/// As long as a message waits for delivery (<see cref="Message.Lifetime"/>). A client that doesn't reconnect within it
-	/// is removed by the registry's <see cref="IClients.Clean"/>.
+	/// A client reconnecting within it keeps its identity and the messages still waiting for it. Its subscriptions end
+	/// with the lost connection, so it subscribes again on reconnecting and receives no events raised meanwhile. As long
+	/// as a message waits for delivery (<see cref="Message.Lifetime"/>). A client that doesn't reconnect within it is
+	/// removed by the registry's <see cref="IClients.Clean"/>.
 	/// </remarks>
 	public static readonly TimeSpan DisconnectedRetention = Message.Lifetime;
 
