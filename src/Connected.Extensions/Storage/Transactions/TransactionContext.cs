@@ -46,7 +46,11 @@ internal class TransactionContext : ITransactionContext
 			if (!OperationsHashSet.Add(client))
 				return;
 
-			if (client is IStorageTransactionClient storage)
+			/*
+			 * Storage registered once the commit or rollback has started is too late to go first; it is handled with the
+			 * other clients, which are still being taken.
+			 */
+			if (client is IStorageTransactionClient storage && State == MiddlewareTransactionState.Active)
 			{
 				Storage.Add(storage);
 				return;
@@ -67,14 +71,7 @@ internal class TransactionContext : ITransactionContext
 		 * The data is saved before the other clients commit, so whatever they do once committed, such as
 		 * raising events, sees it.
 		 */
-		foreach (var storage in TakeStorage())
-		{
-			try
-			{
-				await storage.Commit();
-			}
-			catch { }
-		}
+		await EndStorage(f => f.Commit());
 
 		while (!Operations.IsEmpty)
 		{
@@ -94,15 +91,26 @@ internal class TransactionContext : ITransactionContext
 		ChangeState(MiddlewareTransactionState.Completed);
 	}
 
-	private List<IStorageTransactionClient> TakeStorage()
+	/*
+	 * Commits or rolls back the storage registered so far, in the order it was registered.
+	 */
+	private async Task EndStorage(Func<IStorageTransactionClient, Task> end)
 	{
+		IStorageTransactionClient[] storage;
+
 		lock (Lock)
 		{
-			var result = Storage.ToList();
-
+			storage = [.. Storage];
 			Storage.Clear();
+		}
 
-			return result;
+		foreach (var client in storage)
+		{
+			try
+			{
+				await end(client);
+			}
+			catch { }
 		}
 	}
 
@@ -113,14 +121,7 @@ internal class TransactionContext : ITransactionContext
 
 		ChangeState(MiddlewareTransactionState.Reverting);
 
-		foreach (var storage in TakeStorage())
-		{
-			try
-			{
-				await storage.Rollback();
-			}
-			catch { }
-		}
+		await EndStorage(f => f.Rollback());
 
 		while (!Operations.IsEmpty)
 		{

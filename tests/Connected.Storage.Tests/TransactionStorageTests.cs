@@ -53,6 +53,34 @@ public sealed class TransactionStorageTests
 		CollectionAssert.AreEqual(new[] { "first committed", "second committed" }, log);
 	}
 
+	[TestMethod]
+	public async Task StorageRegisteredDuringTheCommitIsStillCommitted()
+	{
+		var context = new TransactionContext();
+		var log = new List<string>();
+
+		context.Register(new Registering("operation", log, () => context.Register(new Storage("late storage", log))));
+
+		await context.Commit();
+
+		CollectionAssert.AreEqual(new[] { "operation committed", "late storage committed" }, log);
+	}
+
+	/*
+	 * Registers another client while it commits, as a first storage access during OnCommitted does.
+	 */
+	private sealed class Registering(string name, List<string> log, Action register) : ITransactionClient
+	{
+		public async Task Commit()
+		{
+			await Task.Yield();
+			log.Add($"{name} committed");
+			register();
+		}
+
+		public Task Rollback() => Task.CompletedTask;
+	}
+
 	private class Client(string name, List<string> log) : ITransactionClient
 	{
 		public async Task Commit()
