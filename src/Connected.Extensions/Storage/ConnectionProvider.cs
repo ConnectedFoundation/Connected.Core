@@ -228,22 +228,26 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 
 		var connectionString = connection.ConnectionString ?? dto.ConnectionString;
 
-		if (dto.Mode == StorageConnectionMode.Shared
-			&& Connections.FirstOrDefault(f => f.GetType() == connection.GetType()
-			&& string.Equals(f.ConnectionString, connectionString, StringComparison.Ordinal)) is IStorageConnection existing)
-		{
-			return existing;
-		}
+		if (dto.Mode != StorageConnectionMode.Shared)
+			return connection;
 
-		if (dto.Mode == StorageConnectionMode.Shared)
+		lock (Connections)
+		{
+			if (Connections.FirstOrDefault(f => f.GetType() == connection.GetType()
+				&& string.Equals(f.ConnectionString, connectionString, StringComparison.Ordinal)) is IStorageConnection existing)
+			{
+				return existing;
+			}
+
 			Connections.Add(connection);
+		}
 
 		return connection;
 	}
 
 	public async Task Commit()
 	{
-		foreach (var connection in Connections)
+		foreach (var connection in Shared())
 		{
 			try
 			{
@@ -255,7 +259,7 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 
 	public async Task Rollback()
 	{
-		foreach (var connection in Connections)
+		foreach (var connection in Shared())
 		{
 			try
 			{
@@ -263,6 +267,15 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 			}
 			catch { }
 		}
+	}
+
+	/*
+	 * The shared connections as they are now: one opened while they are committed is not looped over.
+	 */
+	private IStorageConnection[] Shared()
+	{
+		lock (Connections)
+			return [.. Connections];
 	}
 
 	public void Dispose()
