@@ -14,8 +14,16 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEv
 	: ServiceAction<IInsertEventDto<TService, TDto>>
 	where TDto : IDto
 {
+	/*
+	 * The identity the event is meant for, as it was when the event was raised: the broadcast runs at commit, when the
+	 * caller may already have reused its DTO for another event.
+	 */
+	private string? Target { get; set; }
+
 	protected override async Task OnInvoke()
 	{
+		Target = Dto.Identity;
+
 		var targetMiddleware = typeof(IEventListener<>);
 		var dto = Dto.Dto.GetType().GetImplementedDtos();
 		var gt = targetMiddleware.MakeGenericType(dto.Count == 0 ? Dto.Dto.GetType() : dto[0]);
@@ -52,6 +60,10 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEv
 		if (Dto.Service is null || Dto.Event is null)
 			return;
 
+		// A blank target names no one: the event is not sent rather than sent to everyone
+		if (Target is not null && string.IsNullOrWhiteSpace(Target))
+			return;
+
 		var url = Dto.Service.GetType().ResolveServiceUrl();
 
 		if (url is null)
@@ -60,17 +72,13 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEv
 		var key = $"{url}/{Dto.Event}".ToLowerInvariant();
 		var clients = subscriptions.Items.TryGetValue(key, out List<IClient>? list) && list is not null ? list : [];
 
-		// A blank target names no one: the event is not sent rather than sent to everyone
-		if (Dto.Identity is not null && string.IsNullOrWhiteSpace(Dto.Identity))
-			return;
-
 		var ctx = new Dto<ISendContextDto>().Value;
 
 		ctx.Method = "Notify";
 
 		foreach (var client in clients)
 		{
-			if (Dto.Identity is not null && !string.Equals(client.Identity, Dto.Identity, StringComparison.Ordinal))
+			if (Target is not null && !string.Equals(client.Identity, Target, StringComparison.Ordinal))
 				continue;
 
 			var dto = new Dto<ISendEventDto>().Value;
