@@ -57,6 +57,8 @@ public sealed class HubDisconnectTests
 
 		Assert.AreEqual("second", client.Connection);
 		Assert.AreEqual("signed-in", client.Identity);
+		// A new client: the deadline the earlier one was given doesn't carry over
+		Assert.AreEqual(DateTime.MinValue, client.RetentionDeadline);
 	}
 
 	[TestMethod]
