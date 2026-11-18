@@ -8,6 +8,20 @@ internal sealed class Unsubscribe(EventSubscriptions subscriptions)
 {
 	protected override async Task OnInvoke()
 	{
+		/*
+		 * Without a service and an event the connection leaves every event it subscribed to, as when it disconnects.
+		 */
+		if (string.IsNullOrWhiteSpace(Dto.Service) && string.IsNullOrWhiteSpace(Dto.Event))
+		{
+			foreach (var subscribed in subscriptions.Items.Values)
+			{
+				lock (subscribed)
+					subscribed.RemoveAll(f => string.Equals(f.Connection, Dto.Connection, StringComparison.OrdinalIgnoreCase));
+			}
+
+			return;
+		}
+
 		var key = $"{Dto.Service}/{Dto.Event}".ToLowerInvariant();
 
 		if (!subscriptions.Items.TryGetValue(key, out List<IClient>? clients))

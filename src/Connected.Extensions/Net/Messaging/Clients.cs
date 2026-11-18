@@ -16,8 +16,15 @@ public abstract class Clients
 			return;
 		}
 
+		/*
+		 * The same client reconnecting may have signed in as someone else meanwhile; it acts as whoever it connected as
+		 * now.
+		 */
 		existing.Connection = client.Connection;
 		existing.RetentionDeadline = DateTime.MinValue;
+
+		if (existing is Client known)
+			known.Identity = client.Identity;
 	}
 
 	public void Clean()

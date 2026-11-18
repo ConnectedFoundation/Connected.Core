@@ -55,6 +55,23 @@ public abstract class ServerHub(IServiceProvider services, IClients clients)
 		}
 	}
 
+	/// <summary>
+	/// How long a client is kept after its connection is lost, so it can reconnect as the same client.
+	/// </summary>
+	/// <remarks>
+	/// Matches how long a message waits for delivery. A client that doesn't reconnect within it is removed by the
+	/// registry's <see cref="IClients.Clean"/>.
+	/// </remarks>
+	public static readonly TimeSpan DisconnectedRetention = TimeSpan.FromMinutes(5);
+
+	public override async Task OnDisconnectedAsync(Exception? exception)
+	{
+		if (clients.Select(Context.ConnectionId) is IClient client)
+			client.RetentionDeadline = DateTime.UtcNow.Add(DisconnectedRetention);
+
+		await base.OnDisconnectedAsync(exception);
+	}
+
 	private static Client CreateClient(string connection, Guid id, string? identity)
 	{
 		return new Client
