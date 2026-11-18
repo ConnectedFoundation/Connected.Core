@@ -8,4 +8,5 @@ internal sealed class InsertEventDto<TService, TDto> : IInsertEventDto<TService,
 	public required TService Service { get; set; }
 	public required string Event { get; set; }
 	public required TDto Dto { get; set; }
+	public string? Identity { get; set; }
 }
