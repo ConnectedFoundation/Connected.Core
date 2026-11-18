@@ -11,7 +11,7 @@ using System.Collections.Immutable;
 namespace Connected.Storage;
 
 internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareService middleware, ITransactionContext transactions, IConfigurationService configuration)
-	: IConnectionProvider, IAsyncDisposable, IDisposable
+	: IConnectionProvider, IStorageTransactionClient, IAsyncDisposable, IDisposable
 {
 	private List<IStorageConnection> Connections { get; } = [];
 	private string? ConnectionString { get; set; }
@@ -44,7 +44,10 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 			Initialized = true;
 			ConnectionString = configuration.Storage.Databases.DefaultConnectionString;
 
-			transactions.StateChanged += OnTransactionStateChanged;
+			/*
+			 * The transaction commits the connections and waits for it before it commits its other clients.
+			 */
+			transactions.Register(this);
 		}
 	}
 
@@ -238,15 +241,7 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 		return connection;
 	}
 
-	private async void OnTransactionStateChanged(object? sender, EventArgs e)
-	{
-		if (transactions.State == MiddlewareTransactionState.Committing)
-			await Commit();
-		else if (transactions.State == MiddlewareTransactionState.Reverting)
-			await Rollback();
-	}
-
-	private async Task Commit()
+	public async Task Commit()
 	{
 		foreach (var connection in Connections)
 		{
@@ -258,7 +253,7 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 		}
 	}
 
-	private async Task Rollback()
+	public async Task Rollback()
 	{
 		foreach (var connection in Connections)
 		{

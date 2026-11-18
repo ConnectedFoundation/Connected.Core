@@ -1,0 +1,78 @@
+using Connected.Storage.Transactions;
+
+namespace Connected.Storage.Tests;
+
+/// <summary>
+/// Checks that a transaction waits for its storage to commit or roll back before its other clients do, so they act on
+/// data already saved or discarded.
+/// </summary>
+[TestClass]
+public sealed class TransactionStorageTests
+{
+	[TestMethod]
+	public async Task OtherClientsCommitOnceTheStorageHasCommitted()
+	{
+		var context = new TransactionContext();
+		var log = new List<string>();
+
+		// Registered first, so an ordinary client would come last
+		context.Register(new Storage("storage", log));
+		context.Register(new Client("operation", log));
+
+		await context.Commit();
+
+		CollectionAssert.AreEqual(new[] { "storage committed", "operation committed" }, log);
+	}
+
+	[TestMethod]
+	public async Task OtherClientsRollBackOnceTheStorageHasRolledBack()
+	{
+		var context = new TransactionContext();
+		var log = new List<string>();
+
+		// Registered first, so an ordinary client would come last
+		context.Register(new Storage("storage", log));
+		context.Register(new Client("operation", log));
+
+		await context.Rollback();
+
+		CollectionAssert.AreEqual(new[] { "storage rolled back", "operation rolled back" }, log);
+	}
+
+	[TestMethod]
+	public async Task StorageIsCommittedInTheOrderItWasRegistered()
+	{
+		var context = new TransactionContext();
+		var log = new List<string>();
+
+		context.Register(new Storage("first", log));
+		context.Register(new Storage("second", log));
+
+		await context.Commit();
+
+		CollectionAssert.AreEqual(new[] { "first committed", "second committed" }, log);
+	}
+
+	private class Client(string name, List<string> log) : ITransactionClient
+	{
+		public async Task Commit()
+		{
+			await Task.Yield();
+			log.Add($"{name} committed");
+		}
+
+		public async Task Rollback()
+		{
+			await Task.Yield();
+			log.Add($"{name} rolled back");
+		}
+	}
+
+	/*
+	 * Yields before it records, as a real commit does on the database, so a transaction that didn't wait for it
+	 * would let the other client run first.
+	 */
+	private sealed class Storage(string name, List<string> log) : Client(name, log), IStorageTransactionClient
+	{
+	}
+}

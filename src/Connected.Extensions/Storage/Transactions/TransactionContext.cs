@@ -14,6 +14,7 @@ internal class TransactionContext : ITransactionContext
 	public MiddlewareTransactionState State { get; private set; } = MiddlewareTransactionState.Active;
 
 	private ConcurrentStack<ITransactionClient> Operations { get; }
+	private List<IStorageTransactionClient> Storage { get; } = [];
 	private object Lock = new object();
 	private HashSet<ITransactionClient> OperationsHashSet = new();
 
@@ -44,6 +45,12 @@ internal class TransactionContext : ITransactionContext
 		{
 			if (!OperationsHashSet.Add(client))
 				return;
+
+			if (client is IStorageTransactionClient storage)
+			{
+				Storage.Add(storage);
+				return;
+			}
 		}
 
 		Operations.Push(client);
@@ -55,6 +62,19 @@ internal class TransactionContext : ITransactionContext
 			return;
 
 		ChangeState(MiddlewareTransactionState.Committing);
+
+		/*
+		 * The data is saved before the other clients commit, so whatever they do once committed, such as
+		 * raising events, sees it.
+		 */
+		foreach (var storage in TakeStorage())
+		{
+			try
+			{
+				await storage.Commit();
+			}
+			catch { }
+		}
 
 		while (!Operations.IsEmpty)
 		{
@@ -74,12 +94,33 @@ internal class TransactionContext : ITransactionContext
 		ChangeState(MiddlewareTransactionState.Completed);
 	}
 
+	private List<IStorageTransactionClient> TakeStorage()
+	{
+		lock (Lock)
+		{
+			var result = Storage.ToList();
+
+			Storage.Clear();
+
+			return result;
+		}
+	}
+
 	public async Task Rollback()
 	{
 		if (State != MiddlewareTransactionState.Active)
 			return;
 
 		ChangeState(MiddlewareTransactionState.Reverting);
+
+		foreach (var storage in TakeStorage())
+		{
+			try
+			{
+				await storage.Rollback();
+			}
+			catch { }
+		}
 
 		while (!Operations.IsEmpty)
 		{
