@@ -11,7 +11,7 @@ using System.Collections.Immutable;
 namespace Connected.Storage;
 
 internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareService middleware, ITransactionContext transactions, IConfigurationService configuration)
-	: IConnectionProvider, IAsyncDisposable, IDisposable
+	: IConnectionProvider, IStorageTransactionClient, IAsyncDisposable, IDisposable
 {
 	private List<IStorageConnection> Connections { get; } = [];
 	private string? ConnectionString { get; set; }
@@ -44,7 +44,10 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 			Initialized = true;
 			ConnectionString = configuration.Storage.Databases.DefaultConnectionString;
 
-			transactions.StateChanged += OnTransactionStateChanged;
+			/*
+			 * The transaction commits the connections and waits for it before it commits its other clients.
+			 */
+			transactions.Register(this);
 		}
 	}
 
@@ -225,30 +228,26 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 
 		var connectionString = connection.ConnectionString ?? dto.ConnectionString;
 
-		if (dto.Mode == StorageConnectionMode.Shared
-			&& Connections.FirstOrDefault(f => f.GetType() == connection.GetType()
-			&& string.Equals(f.ConnectionString, connectionString, StringComparison.Ordinal)) is IStorageConnection existing)
-		{
-			return existing;
-		}
+		if (dto.Mode != StorageConnectionMode.Shared)
+			return connection;
 
-		if (dto.Mode == StorageConnectionMode.Shared)
+		lock (Connections)
+		{
+			if (Connections.FirstOrDefault(f => f.GetType() == connection.GetType()
+				&& string.Equals(f.ConnectionString, connectionString, StringComparison.Ordinal)) is IStorageConnection existing)
+			{
+				return existing;
+			}
+
 			Connections.Add(connection);
+		}
 
 		return connection;
 	}
 
-	private async void OnTransactionStateChanged(object? sender, EventArgs e)
+	public async Task Commit()
 	{
-		if (transactions.State == MiddlewareTransactionState.Committing)
-			await Commit();
-		else if (transactions.State == MiddlewareTransactionState.Reverting)
-			await Rollback();
-	}
-
-	private async Task Commit()
-	{
-		foreach (var connection in Connections)
+		foreach (var connection in Shared())
 		{
 			try
 			{
@@ -258,9 +257,9 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 		}
 	}
 
-	private async Task Rollback()
+	public async Task Rollback()
 	{
-		foreach (var connection in Connections)
+		foreach (var connection in Shared())
 		{
 			try
 			{
@@ -268,6 +267,15 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 			}
 			catch { }
 		}
+	}
+
+	/*
+	 * The shared connections as they are now: one opened while they are committed is not looped over.
+	 */
+	private IStorageConnection[] Shared()
+	{
+		lock (Connections)
+			return [.. Connections];
 	}
 
 	public void Dispose()
@@ -280,7 +288,7 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 		if (transactions?.State == MiddlewareTransactionState.Active)
 			await transactions.Rollback();
 
-		foreach (var connection in Connections)
+		foreach (var connection in Shared())
 			await connection.DisposeAsync();
 
 		OnDisposing(false);
@@ -295,7 +303,7 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 		if (transactions?.State == MiddlewareTransactionState.Active)
 			transactions.Rollback().Wait();
 
-		foreach (var connection in Connections)
+		foreach (var connection in Shared())
 			connection.Dispose();
 	}
 }
