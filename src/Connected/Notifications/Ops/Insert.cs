@@ -11,7 +11,7 @@ using System.Reflection;
 
 namespace Connected.Notifications.Ops;
 
-internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, EventSubscriptions subscriptions,
+internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, EventSubscriptions subscriptions, IServiceScopeFactory scopes,
 	ILogger<Insert<TService, TDto>> logger)
 	: ServiceAction<IInsertEventDto<TService, TDto>>
 	where TDto : IDto
@@ -78,26 +78,45 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, Eve
 		 * user - and the event server would refuse the send. Who receives the event is decided by the
 		 * subscriptions, not by the identity that raised it.
 		 */
-		await using var scope = await Scope.Create().WithSystemIdentity();
-		var server = scope.ServiceProvider.GetRequiredService<IEventServer>();
+		await using var scope = await scopes.CreateAsyncScope().WithSystemIdentity();
 
-		var ctx = new Dto<ISendContextDto>().Value;
-
-		ctx.Method = "Notify";
-
-		foreach (var client in clients)
+		try
 		{
-			var dto = new Dto<ISendEventDto>().Value;
+			var server = scope.ServiceProvider.GetRequiredService<IEventServer>();
+			var ctx = new Dto<ISendContextDto>().Value;
 
-			dto.Client = client;
-			dto.Event = Dto.Event;
-			dto.Service = url;
-			dto.Dto = Dto.Dto;
-			dto.Context = ctx;
+			ctx.Method = "Notify";
 
-			await server.Send(dto);
+			foreach (var client in clients)
+			{
+				var dto = new Dto<ISendEventDto>().Value;
+
+				dto.Client = client;
+				dto.Event = Dto.Event;
+				dto.Service = url;
+				dto.Dto = Dto.Dto;
+				dto.Context = ctx;
+
+				/*
+				 * One connection that can't be reached doesn't hold back the others.
+				 */
+				try
+				{
+					await server.Send(dto);
+				}
+				catch (Exception ex)
+				{
+					logger.LogError(ex, "Event '{key}' could not be sent to connection {connection}.", key, client.Connection);
+				}
+			}
+
+			await scope.Commit();
 		}
+		catch
+		{
+			await scope.Rollback();
 
-		await scope.Commit();
+			throw;
+		}
 	}
 }
