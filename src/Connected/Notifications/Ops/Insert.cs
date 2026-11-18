@@ -16,7 +16,8 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEv
 {
 	/*
 	 * The event as it was raised: the broadcast runs at commit, when the caller may already have reused its DTO for
-	 * another event, so its service, name, payload and target are taken together now.
+	 * another event, so its service, name, payload and target are taken together now. The payload is the object passed,
+	 * not a copy: a caller must not change it before the transaction commits.
 	 */
 	private (TService Service, string Event, TDto Payload, string? Target)? Raised { get; set; }
 
