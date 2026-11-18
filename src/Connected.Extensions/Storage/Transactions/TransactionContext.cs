@@ -28,11 +28,21 @@ internal class TransactionContext : ITransactionContext
 
 		State = state;
 
-		try
+		if (StateChanged is not EventHandler handlers)
+			return;
+
+		/*
+		 * Each handler is called on its own, so one that throws doesn't keep the ones after it from hearing of
+		 * the change; storage and caches rely on it to commit or discard their work.
+		 */
+		foreach (var handler in handlers.GetInvocationList().Cast<EventHandler>())
 		{
-			StateChanged?.Invoke(this, EventArgs.Empty);
+			try
+			{
+				handler(this, EventArgs.Empty);
+			}
+			catch { }
 		}
-		catch { }
 	}
 
 	public void Register(ITransactionClient client)
