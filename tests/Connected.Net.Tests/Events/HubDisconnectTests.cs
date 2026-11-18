@@ -74,7 +74,7 @@ public sealed class HubDisconnectTests
 	}
 
 	[TestMethod]
-	public void ClientReconnectingAsTheSameIdentityKeepsItsSubscriptions()
+	public void ClientReconnectingAsTheSameIdentityStaysTheSameClient()
 	{
 		var clients = new EventClients();
 		var id = Guid.NewGuid();

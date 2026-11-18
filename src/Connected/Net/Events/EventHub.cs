@@ -12,10 +12,14 @@ internal sealed class EventHub(IServiceProvider services, EventClients clients, 
 {
 	public override async Task OnDisconnectedAsync(Exception? ex)
 	{
+		/*
+		 * The client starts its retention and the connection leaves its subscriptions whoever it was signed in as, so
+		 * the cleanup runs as the system and never depends on authenticating the connection that is gone.
+		 */
+		await base.OnDisconnectedAsync(ex);
+
 		try
 		{
-			await HubAuthentication.Authenticate(Context, clients);
-			await base.OnDisconnectedAsync(ex);
 			await authentication.WithSystemIdentity();
 
 			var dto = new Dto<IUnsubscribeEventDto>().Value;
@@ -70,6 +74,10 @@ internal sealed class EventHub(IServiceProvider services, EventClients clients, 
 
 			foreach (var subscription in subscriptions)
 			{
+				// An entry without a service or an event names nothing; it never stands for all of them
+				if (string.IsNullOrWhiteSpace(subscription.Service) || string.IsNullOrWhiteSpace(subscription.Event))
+					continue;
+
 				var dto = new Dto<IUnsubscribeEventDto>().Value;
 
 				dto.Connection = Context.ConnectionId;
