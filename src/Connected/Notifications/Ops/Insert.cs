@@ -106,7 +106,7 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, Eve
 				{
 					await server.Send(dto);
 				}
-				catch (Exception ex) when (ex is not OperationCanceledException)
+				catch (Exception ex)
 				{
 					logger.LogError(ex, "Event '{key}' could not be sent to connection {connection}.", key, client.Connection);
 				}
@@ -114,11 +114,15 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, Eve
 
 			await scope.Commit();
 		}
-		catch
+		catch (Exception ex)
 		{
-			await scope.Rollback();
+			/*
+			 * Not rethrown: the committed transaction this runs in would swallow it unseen. The data is saved either way;
+			 * only the event is lost, and that is logged.
+			 */
+			logger.LogError(ex, "Event '{key}' could not be sent.", key);
 
-			throw;
+			await scope.Rollback();
 		}
 	}
 }
