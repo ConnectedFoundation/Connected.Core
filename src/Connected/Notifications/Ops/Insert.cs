@@ -60,13 +60,17 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEv
 		var key = $"{url}/{Dto.Event}".ToLowerInvariant();
 		var clients = subscriptions.Items.TryGetValue(key, out List<IClient>? list) && list is not null ? list : [];
 
+		// A blank target names no one: the event is not sent rather than sent to everyone
+		if (Dto.Identity is not null && string.IsNullOrWhiteSpace(Dto.Identity))
+			return;
+
 		var ctx = new Dto<ISendContextDto>().Value;
 
 		ctx.Method = "Notify";
 
 		foreach (var client in clients)
 		{
-			if (Dto.Identity is not null && (string.IsNullOrWhiteSpace(Dto.Identity) || !string.Equals(client.Identity, Dto.Identity, StringComparison.OrdinalIgnoreCase)))
+			if (Dto.Identity is not null && !string.Equals(client.Identity, Dto.Identity, StringComparison.Ordinal))
 				continue;
 
 			var dto = new Dto<ISendEventDto>().Value;

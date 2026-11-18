@@ -81,8 +81,8 @@ public interface IInsertEventDto<TService, TDto>
 	/// </value>
 	/// <remarks>
 	/// When set, only the connections of that identity that subscribed to the event receive it, for example to tell
-	/// someone of a change that concerns only them. Tokens are compared without regard to case, as identities are
-	/// looked up by them. An empty or blank token matches no connection, so a targeted event never falls back to everyone. The
+	/// someone of a change that concerns only them. Tokens are compared exactly, as the hub's other identity filters
+	/// compare them. An empty or blank token matches no connection, so a targeted event never falls back to everyone. The
 	/// event listeners on the server are invoked either way.
 	/// </remarks>
 	string? Identity { get; set; }
