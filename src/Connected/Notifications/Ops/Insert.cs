@@ -1,15 +1,17 @@
+using Connected.Authentication;
 using Connected.Net.Events;
 using Connected.Net.Events.Dtos;
 using Connected.Net.Messaging;
 using Connected.Net.Messaging.Dtos;
 using Connected.Reflection;
 using Connected.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 
 namespace Connected.Notifications.Ops;
 
-internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEventServer server, EventSubscriptions subscriptions,
+internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, EventSubscriptions subscriptions,
 	ILogger<Insert<TService, TDto>> logger)
 	: ServiceAction<IInsertEventDto<TService, TDto>>
 	where TDto : IDto
@@ -58,7 +60,26 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEv
 			return;
 
 		var key = $"{url}/{Dto.Event}".ToLowerInvariant();
-		var clients = subscriptions.Items.TryGetValue(key, out List<IClient>? list) && list is not null ? list : [];
+
+		if (!subscriptions.Items.TryGetValue(key, out List<IClient>? list) || list is null)
+			return;
+
+		IClient[] clients;
+
+		lock (list)
+			clients = [.. list];
+
+		if (clients.Length == 0)
+			return;
+
+		/*
+		 * The event is sent once the transaction has committed, as the system. By then the operation's own identity
+		 * may be gone or anonymous - an operation that raised it while elevated, or a request with no signed-in
+		 * user - and the event server would refuse the send. Who receives the event is decided by the
+		 * subscriptions, not by the identity that raised it.
+		 */
+		await using var scope = await Scope.Create().WithSystemIdentity();
+		var server = scope.ServiceProvider.GetRequiredService<IEventServer>();
 
 		var ctx = new Dto<ISendContextDto>().Value;
 
@@ -76,5 +97,7 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEv
 
 			await server.Send(dto);
 		}
+
+		await scope.Commit();
 	}
 }
