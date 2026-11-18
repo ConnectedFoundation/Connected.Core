@@ -66,7 +66,7 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEv
 
 		foreach (var client in clients)
 		{
-			if (Dto.Identity is not null && !string.Equals(client.Identity, Dto.Identity, StringComparison.Ordinal))
+			if (Dto.Identity is not null && (string.IsNullOrWhiteSpace(Dto.Identity) || !string.Equals(client.Identity, Dto.Identity, StringComparison.OrdinalIgnoreCase)))
 				continue;
 
 			var dto = new Dto<ISendEventDto>().Value;
