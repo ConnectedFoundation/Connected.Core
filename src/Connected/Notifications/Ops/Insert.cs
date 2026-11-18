@@ -15,14 +15,14 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEv
 	where TDto : IDto
 {
 	/*
-	 * The identity the event is meant for, as it was when the event was raised: the broadcast runs at commit, when the
-	 * caller may already have reused its DTO for another event.
+	 * The event as it was raised: the broadcast runs at commit, when the caller may already have reused its DTO for
+	 * another event, so its service, name, payload and target are taken together now.
 	 */
-	private string? Target { get; set; }
+	private (TService Service, string Event, TDto Payload, string? Target)? Raised { get; set; }
 
 	protected override async Task OnInvoke()
 	{
-		Target = Dto.Identity;
+		Raised = (Dto.Service, Dto.Event, Dto.Dto, Dto.Identity);
 
 		var targetMiddleware = typeof(IEventListener<>);
 		var dto = Dto.Dto.GetType().GetImplementedDtos();
@@ -57,19 +57,22 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEv
 
 	private async Task Broadcast()
 	{
-		if (Dto.Service is null || Dto.Event is null)
+		if (Raised is not var (service, @event, payload, target) || service is null || @event is null)
 			return;
 
 		// A blank target names no one: the event is not sent rather than sent to everyone
-		if (Target is not null && string.IsNullOrWhiteSpace(Target))
+		if (target is not null && string.IsNullOrWhiteSpace(target))
+		{
+			logger.LogWarning("Event '{event}' was raised for a blank identity and was sent to no one.", @event);
 			return;
+		}
 
-		var url = Dto.Service.GetType().ResolveServiceUrl();
+		var url = service.GetType().ResolveServiceUrl();
 
 		if (url is null)
 			return;
 
-		var key = $"{url}/{Dto.Event}".ToLowerInvariant();
+		var key = $"{url}/{@event}".ToLowerInvariant();
 		var clients = subscriptions.Items.TryGetValue(key, out List<IClient>? list) && list is not null ? list : [];
 
 		var ctx = new Dto<ISendContextDto>().Value;
@@ -78,15 +81,15 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEv
 
 		foreach (var client in clients)
 		{
-			if (Target is not null && !string.Equals(client.Identity, Target, StringComparison.Ordinal))
+			if (target is not null && !string.Equals(client.Identity, target, StringComparison.Ordinal))
 				continue;
 
 			var dto = new Dto<ISendEventDto>().Value;
 
 			dto.Client = client;
-			dto.Event = Dto.Event;
+			dto.Event = @event;
 			dto.Service = url;
-			dto.Dto = Dto.Dto;
+			dto.Dto = payload;
 			dto.Context = ctx;
 
 			await server.Send(dto);
