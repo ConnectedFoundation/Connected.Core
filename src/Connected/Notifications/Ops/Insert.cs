@@ -78,10 +78,12 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, Eve
 		 * user - and the event server would refuse the send. Who receives the event is decided by the
 		 * subscriptions, not by the identity that raised it.
 		 */
-		await using var scope = await scopes.CreateAsyncScope().WithSystemIdentity();
+		await using var scope = scopes.CreateAsyncScope();
 
 		try
 		{
+			await scope.WithSystemIdentity();
+
 			var server = scope.ServiceProvider.GetRequiredService<IEventServer>();
 			var ctx = new Dto<ISendContextDto>().Value;
 
@@ -104,7 +106,7 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, Eve
 				{
 					await server.Send(dto);
 				}
-				catch (Exception ex)
+				catch (Exception ex) when (ex is not OperationCanceledException)
 				{
 					logger.LogError(ex, "Event '{key}' could not be sent to connection {connection}.", key, client.Connection);
 				}
