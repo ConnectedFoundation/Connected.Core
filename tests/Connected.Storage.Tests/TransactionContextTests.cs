@@ -1,5 +1,6 @@
 using Connected.Storage.Transactions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Connected.Storage.Tests;
 
@@ -12,7 +13,7 @@ public sealed class TransactionContextTests
 	[TestMethod]
 	public async Task HandlersAfterOneThatThrowsHearOfTheCommit()
 	{
-		var context = new TransactionContext();
+		var context = new TransactionContext(NullLogger<TransactionContext>.Instance);
 		var heard = new List<MiddlewareTransactionState>();
 
 		context.StateChanged += (_, _) => throw new InvalidOperationException();
@@ -26,7 +27,7 @@ public sealed class TransactionContextTests
 	[TestMethod]
 	public async Task HandlersAfterOneThatThrowsHearOfTheRollback()
 	{
-		var context = new TransactionContext();
+		var context = new TransactionContext(NullLogger<TransactionContext>.Instance);
 		var heard = new List<MiddlewareTransactionState>();
 
 		context.StateChanged += (_, _) => throw new InvalidOperationException();
@@ -40,7 +41,7 @@ public sealed class TransactionContextTests
 	[TestMethod]
 	public async Task HandlerThatThrowsStillHearsEveryChange()
 	{
-		var context = new TransactionContext();
+		var context = new TransactionContext(NullLogger<TransactionContext>.Instance);
 		var heard = new List<MiddlewareTransactionState>();
 
 		context.StateChanged += (_, _) =>
@@ -59,7 +60,7 @@ public sealed class TransactionContextTests
 	{
 		for (var i = 0; i < 200; i++)
 		{
-			var context = new TransactionContext();
+			var context = new TransactionContext(NullLogger<TransactionContext>.Instance);
 			var heard = new System.Collections.Concurrent.ConcurrentQueue<MiddlewareTransactionState>();
 
 			context.StateChanged += (_, _) => heard.Enqueue(context.State);
@@ -87,7 +88,7 @@ public sealed class TransactionContextTests
 		await context.Commit();
 
 		Assert.AreEqual(2, logger.Errors.Count);
-		StringAssert.Contains(logger.Errors[0], typeof(Failing).FullName);
+		StringAssert.Contains(logger.Errors[0], $"{typeof(Failing).FullName}.{nameof(Failing.Handle)}");
 	}
 
 	private sealed class Failing

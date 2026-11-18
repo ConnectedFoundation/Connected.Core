@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 
 namespace Connected.Storage.Transactions;
 
-internal class TransactionContext(ILogger<TransactionContext>? logger = null) : ITransactionContext
+internal class TransactionContext(ILogger<TransactionContext> logger) : ITransactionContext
 {
 	public event EventHandler? StateChanged;
 
@@ -63,7 +63,7 @@ internal class TransactionContext(ILogger<TransactionContext>? logger = null) : 
 			}
 			catch (Exception ex)
 			{
-				logger?.LogError(ex, "Transaction state handler {Handler} failed on {State}.", handler.Target?.GetType().FullName ?? handler.Method.Name, State);
+				logger.LogError(ex, "Transaction state handler {Handler} failed on {State}.", $"{handler.Method.DeclaringType?.FullName}.{handler.Method.Name}", State);
 			}
 		}
 	}
@@ -100,7 +100,7 @@ internal class TransactionContext(ILogger<TransactionContext>? logger = null) : 
 				}
 				catch (Exception ex)
 				{
-					logger?.LogError(ex, "Transaction client {Client} failed to commit.", op.GetType().FullName);
+					logger.LogError(ex, "Transaction client {Client} failed to commit.", op.GetType().FullName);
 				}
 			}
 		}
@@ -126,7 +126,7 @@ internal class TransactionContext(ILogger<TransactionContext>? logger = null) : 
 				}
 				catch (Exception ex)
 				{
-					logger?.LogError(ex, "Transaction client {Client} failed to roll back.", op.GetType().FullName);
+					logger.LogError(ex, "Transaction client {Client} failed to roll back.", op.GetType().FullName);
 				}
 			}
 		}
