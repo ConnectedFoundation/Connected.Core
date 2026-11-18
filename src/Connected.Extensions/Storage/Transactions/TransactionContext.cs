@@ -7,7 +7,10 @@ internal class TransactionContext(ILogger<TransactionContext>? logger = null) : 
 {
 	public event EventHandler? StateChanged;
 
-	public MiddlewareTransactionState State { get; private set; } = MiddlewareTransactionState.Active;
+	// Read by other threads without the lock, so always the latest value
+	private volatile MiddlewareTransactionState _state = MiddlewareTransactionState.Active;
+
+	public MiddlewareTransactionState State => _state;
 
 	private ConcurrentStack<ITransactionClient> Operations { get; } = new();
 	private object Lock = new object();
@@ -27,7 +30,7 @@ internal class TransactionContext(ILogger<TransactionContext>? logger = null) : 
 			if (State != MiddlewareTransactionState.Active)
 				return false;
 
-			State = state;
+			_state = state;
 		}
 
 		RaiseStateChanged();
@@ -35,15 +38,9 @@ internal class TransactionContext(ILogger<TransactionContext>? logger = null) : 
 		return true;
 	}
 
-	private void ChangeState(MiddlewareTransactionState state)
+	private void Complete()
 	{
-		lock (Lock)
-		{
-			if (State == state)
-				return;
-
-			State = state;
-		}
+		_state = MiddlewareTransactionState.Completed;
 
 		RaiseStateChanged();
 	}
@@ -66,7 +63,7 @@ internal class TransactionContext(ILogger<TransactionContext>? logger = null) : 
 			}
 			catch (Exception ex)
 			{
-				logger?.LogError(ex, "A transaction state handler failed on {State}.", State);
+				logger?.LogError(ex, "Transaction state handler {Handler} failed on {State}.", handler.Target?.GetType().FullName ?? handler.Method.Name, State);
 			}
 		}
 	}
@@ -101,11 +98,14 @@ internal class TransactionContext(ILogger<TransactionContext>? logger = null) : 
 				{
 					await op.Commit();
 				}
-				catch { }
+				catch (Exception ex)
+				{
+					logger?.LogError(ex, "Transaction client {Client} failed to commit.", op.GetType().FullName);
+				}
 			}
 		}
 
-		ChangeState(MiddlewareTransactionState.Completed);
+		Complete();
 	}
 
 	public async Task Rollback()
@@ -124,10 +124,13 @@ internal class TransactionContext(ILogger<TransactionContext>? logger = null) : 
 				{
 					await op.Rollback();
 				}
-				catch { }
+				catch (Exception ex)
+				{
+					logger?.LogError(ex, "Transaction client {Client} failed to roll back.", op.GetType().FullName);
+				}
 			}
 		}
 
-		ChangeState(MiddlewareTransactionState.Completed);
+		Complete();
 	}
 }

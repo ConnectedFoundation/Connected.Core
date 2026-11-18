@@ -1,4 +1,5 @@
 using Connected.Storage.Transactions;
+using Microsoft.Extensions.Logging;
 
 namespace Connected.Storage.Tests;
 
@@ -72,6 +73,40 @@ public sealed class TransactionContextTests
 
 			Assert.AreEqual(2, heard.Count);
 			Assert.AreEqual(MiddlewareTransactionState.Completed, heard.Last());
+		}
+	}
+
+	[TestMethod]
+	public async Task FailingHandlerIsLoggedByName()
+	{
+		var logger = new Logger();
+		var context = new TransactionContext(logger);
+
+		context.StateChanged += new Failing().Handle;
+
+		await context.Commit();
+
+		Assert.AreEqual(2, logger.Errors.Count);
+		StringAssert.Contains(logger.Errors[0], typeof(Failing).FullName);
+	}
+
+	private sealed class Failing
+	{
+		public void Handle(object? sender, EventArgs e) => throw new InvalidOperationException();
+	}
+
+	private sealed class Logger : ILogger<TransactionContext>
+	{
+		public List<string> Errors { get; } = [];
+
+		public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+		public bool IsEnabled(LogLevel logLevel) => true;
+
+		public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+		{
+			if (logLevel == LogLevel.Error)
+				Errors.Add(formatter(state, exception));
 		}
 	}
 }
