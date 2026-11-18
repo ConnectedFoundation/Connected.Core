@@ -67,6 +67,33 @@ public sealed class TransactionStorageTests
 	}
 
 	/*
+	 * Documents today's rule: a storage client that fails is passed over, and the other clients still commit. What a
+	 * failed storage commit should stop is a separate decision.
+	 */
+	[TestMethod]
+	public async Task StorageThatFailsDoesNotStopTheOtherClients()
+	{
+		var context = new TransactionContext();
+		var log = new List<string>();
+
+		context.Register(new FailingStorage());
+		context.Register(new Storage("storage", log));
+		context.Register(new Client("operation", log));
+
+		await context.Commit();
+
+		CollectionAssert.AreEqual(new[] { "storage committed", "operation committed" }, log);
+		Assert.AreEqual(MiddlewareTransactionState.Completed, context.State);
+	}
+
+	private sealed class FailingStorage : IStorageTransactionClient
+	{
+		public Task Commit() => throw new InvalidOperationException();
+
+		public Task Rollback() => throw new InvalidOperationException();
+	}
+
+	/*
 	 * Registers another client while it commits, as a first storage access during OnCommitted does.
 	 */
 	private sealed class Registering(string name, List<string> log, Action register) : ITransactionClient

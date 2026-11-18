@@ -288,7 +288,7 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 		if (transactions?.State == MiddlewareTransactionState.Active)
 			await transactions.Rollback();
 
-		foreach (var connection in Connections)
+		foreach (var connection in Shared())
 			await connection.DisposeAsync();
 
 		OnDisposing(false);
@@ -303,7 +303,7 @@ internal sealed class ConnectionProvider(IServiceProvider services, IMiddlewareS
 		if (transactions?.State == MiddlewareTransactionState.Active)
 			transactions.Rollback().Wait();
 
-		foreach (var connection in Connections)
+		foreach (var connection in Shared())
 			connection.Dispose();
 	}
 }
