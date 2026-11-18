@@ -57,7 +57,6 @@ public sealed class HubDisconnectTests
 
 		Assert.AreEqual("second", client.Connection);
 		Assert.AreEqual("signed-in", client.Identity);
-		Assert.AreEqual(DateTime.MinValue, client.RetentionDeadline);
 	}
 
 	[TestMethod]
@@ -81,10 +80,12 @@ public sealed class HubDisconnectTests
 		var first = NewClient("first", "a", id);
 
 		clients.AddOrUpdate(first);
+		first.RetentionDeadline = DateTime.UtcNow.AddMinutes(5);
 		clients.AddOrUpdate(NewClient("second", "a", id));
 
 		Assert.AreSame(first, clients.Select(id));
 		Assert.AreEqual("second", first.Connection);
+		Assert.AreEqual(DateTime.MinValue, first.RetentionDeadline);
 	}
 
 	[TestMethod]

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace Connected.Net.Events;
 
-internal sealed class EventHub(IServiceProvider services, EventClients clients, IAuthenticationService authentication, IHttpContextAccessor http, IEventServer server)
+internal sealed class EventHub(IServiceProvider services, EventClients clients, EventSubscriptions subscriptions, IAuthenticationService authentication, IHttpContextAccessor http, IEventServer server)
 	: ServerHub(services, clients)
 {
 	public override async Task OnDisconnectedAsync(Exception? ex)
@@ -32,6 +32,9 @@ internal sealed class EventHub(IServiceProvider services, EventClients clients, 
 		catch
 		{
 			await Rollback();
+
+			// The connection is gone either way: it never stays subscribed because the cleanup failed
+			subscriptions.Remove(Context.ConnectionId);
 
 			throw;
 		}

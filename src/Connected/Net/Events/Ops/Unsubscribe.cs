@@ -13,11 +13,7 @@ internal sealed class Unsubscribe(EventSubscriptions subscriptions)
 		 */
 		if (string.IsNullOrWhiteSpace(Dto.Service) && string.IsNullOrWhiteSpace(Dto.Event))
 		{
-			foreach (var subscribed in subscriptions.Items.Values)
-			{
-				lock (subscribed)
-					subscribed.RemoveAll(f => string.Equals(f.Connection, Dto.Connection, StringComparison.OrdinalIgnoreCase));
-			}
+			subscriptions.Remove(Dto.Connection);
 
 			return;
 		}
