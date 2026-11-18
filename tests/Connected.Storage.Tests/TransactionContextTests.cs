@@ -35,4 +35,43 @@ public sealed class TransactionContextTests
 
 		CollectionAssert.AreEqual(new[] { MiddlewareTransactionState.Reverting, MiddlewareTransactionState.Completed }, heard);
 	}
+
+	[TestMethod]
+	public async Task HandlerThatThrowsStillHearsEveryChange()
+	{
+		var context = new TransactionContext();
+		var heard = new List<MiddlewareTransactionState>();
+
+		context.StateChanged += (_, _) =>
+		{
+			heard.Add(context.State);
+			throw new InvalidOperationException();
+		};
+
+		await context.Commit();
+
+		CollectionAssert.AreEqual(new[] { MiddlewareTransactionState.Committing, MiddlewareTransactionState.Completed }, heard);
+	}
+
+	[TestMethod]
+	public async Task CommitAndRollbackRacingLeaveTheActiveStateOnce()
+	{
+		for (var i = 0; i < 200; i++)
+		{
+			var context = new TransactionContext();
+			var heard = new System.Collections.Concurrent.ConcurrentQueue<MiddlewareTransactionState>();
+
+			context.StateChanged += (_, _) => heard.Enqueue(context.State);
+
+			using var start = new ManualResetEventSlim();
+			var commit = Task.Run(async () => { start.Wait(); await context.Commit(); });
+			var rollback = Task.Run(async () => { start.Wait(); await context.Rollback(); });
+
+			start.Set();
+			await Task.WhenAll(commit, rollback);
+
+			Assert.AreEqual(2, heard.Count);
+			Assert.AreEqual(MiddlewareTransactionState.Completed, heard.Last());
+		}
+	}
 }

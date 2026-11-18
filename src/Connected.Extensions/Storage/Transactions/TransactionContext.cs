@@ -1,19 +1,15 @@
+using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 
 namespace Connected.Storage.Transactions;
 
-internal class TransactionContext : ITransactionContext
+internal class TransactionContext(ILogger<TransactionContext>? logger = null) : ITransactionContext
 {
 	public event EventHandler? StateChanged;
 
-	public TransactionContext()
-	{
-		Operations = new();
-	}
-
 	public MiddlewareTransactionState State { get; private set; } = MiddlewareTransactionState.Active;
 
-	private ConcurrentStack<ITransactionClient> Operations { get; }
+	private ConcurrentStack<ITransactionClient> Operations { get; } = new();
 	private object Lock = new object();
 	private HashSet<ITransactionClient> OperationsHashSet = new();
 
@@ -21,27 +17,57 @@ internal class TransactionContext : ITransactionContext
 
 	public Guid Id { get; } = Guid.NewGuid();
 
+	/*
+	 * Leaves the active state for the one asked, once: a commit and a rollback racing each other can't both proceed.
+	 */
+	private bool Leave(MiddlewareTransactionState state)
+	{
+		lock (Lock)
+		{
+			if (State != MiddlewareTransactionState.Active)
+				return false;
+
+			State = state;
+		}
+
+		RaiseStateChanged();
+
+		return true;
+	}
+
 	private void ChangeState(MiddlewareTransactionState state)
 	{
-		if (State == state)
-			return;
+		lock (Lock)
+		{
+			if (State == state)
+				return;
 
-		State = state;
+			State = state;
+		}
 
+		RaiseStateChanged();
+	}
+
+	private void RaiseStateChanged()
+	{
 		if (StateChanged is not EventHandler handlers)
 			return;
 
 		/*
-		 * Each handler is called on its own, so one that throws doesn't keep the ones after it from hearing of
-		 * the change; storage and caches rely on it to commit or discard their work.
+		 * Each handler is called on its own, so one that throws doesn't keep the ones after it from hearing of the change:
+		 * the storage connections and caches subscribed to it commit or discard their work on it. A handler that fails
+		 * is logged.
 		 */
-		foreach (var handler in handlers.GetInvocationList().Cast<EventHandler>())
+		foreach (EventHandler handler in handlers.GetInvocationList())
 		{
 			try
 			{
 				handler(this, EventArgs.Empty);
 			}
-			catch { }
+			catch (Exception ex)
+			{
+				logger?.LogError(ex, "A transaction state handler failed on {State}.", State);
+			}
 		}
 	}
 
@@ -61,10 +87,8 @@ internal class TransactionContext : ITransactionContext
 
 	public async Task Commit()
 	{
-		if (State != MiddlewareTransactionState.Active)
+		if (!Leave(MiddlewareTransactionState.Committing))
 			return;
-
-		ChangeState(MiddlewareTransactionState.Committing);
 
 		while (!Operations.IsEmpty)
 		{
@@ -86,10 +110,8 @@ internal class TransactionContext : ITransactionContext
 
 	public async Task Rollback()
 	{
-		if (State != MiddlewareTransactionState.Active)
+		if (!Leave(MiddlewareTransactionState.Reverting))
 			return;
-
-		ChangeState(MiddlewareTransactionState.Reverting);
 
 		while (!Operations.IsEmpty)
 		{
