@@ -191,6 +191,19 @@ public sealed class PostgreSqlProviderTests
 	}
 
 	/*
+	 * information_schema has no length for bytea (it reads as 0). A binary column whose property declares a length must still be
+	 * the same column as the one in the database, or every start alters it again.
+	 */
+	[TestMethod]
+	public void ABinaryColumnIsNotAlteredForItsLengthOnEveryStart()
+	{
+		var desired = new Column { Name = "payload", DataType = DbType.Binary, MaxLength = 8 };
+		var existing = new Column { Name = "payload", DataType = DbType.Binary, MaxLength = 0 };
+
+		Assert.IsTrue(ColumnComparer.Equals(desired, existing));
+	}
+
+	/*
 	 * The shared cache keeps an entity only if its version is not lower than the cached one (Entry.Set), as a rowversion
 	 * only grows. Random versions were lower half the time, so half of all updates never reached the cache.
 	 */

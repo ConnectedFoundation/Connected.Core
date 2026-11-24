@@ -61,6 +61,9 @@ internal static class ColumnComparer
 	/// <returns><c>true</c> if the type requires length specification; otherwise, <c>false</c>.</returns>
 	private static bool IsVariableLengthType(DbType type)
 	{
-		return type is DbType.String or DbType.StringFixedLength or DbType.Binary or DbType.AnsiString or DbType.AnsiStringFixedLength;
+		/*
+		 * Binary is not one of them: bytea has no length, so the database never reports one
+		 */
+		return type is DbType.String or DbType.StringFixedLength or DbType.AnsiString or DbType.AnsiStringFixedLength;
 	}
 }
