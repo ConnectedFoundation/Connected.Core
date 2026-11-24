@@ -107,9 +107,13 @@ internal abstract class SynchronizationCommand
 	/// </summary>
 	/// <param name="dbType">The DbType to check.</param>
 	/// <returns><c>true</c> if length is required; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// Binary is not one of them: <c>bytea</c> has no length, and PostgreSQL refuses <c>bytea(n)</c> with
+	/// "type modifier is not allowed for type bytea".
+	/// </remarks>
 	private static bool RequiresLength(DbType dbType)
 	{
-		return dbType is DbType.String or DbType.StringFixedLength or DbType.AnsiString or DbType.AnsiStringFixedLength or DbType.Binary;
+		return dbType is DbType.String or DbType.StringFixedLength or DbType.AnsiString or DbType.AnsiStringFixedLength;
 	}
 
 	/// <summary>
