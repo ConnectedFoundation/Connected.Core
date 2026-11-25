@@ -10,6 +10,7 @@ using Connected.Storage.PostgreSql.Schemas;
 using Connected.Storage.PostgreSql.Transactions;
 using Connected.Storage.Schemas;
 using Npgsql;
+using NpgsqlTypes;
 using System.Data;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -537,6 +538,32 @@ public sealed class PostgreSqlProviderTests
 		{
 			await Execute(setup, "DROP TABLE IF EXISTS \"test\".\"unnamedRow\"");
 		}
+	}
+
+	/*
+	 * A bytea type is written as bytea, whatever length the type carries: the default size of a binary type is int.MaxValue,
+	 * which the formatter wrote as TEXT (the type of a DECLARE of a byte[] variable), and a declared length as bytea(n), which the
+	 * server refuses.
+	 */
+	[TestMethod]
+	[DataRow(int.MaxValue)]
+	[DataRow(8)]
+	public void AByteaTypeIsFormattedWithoutALength(int length)
+	{
+		var text = new PostgreSqlTypeSystem().Format(new PostgreSqlDataType(NpgsqlDbType.Bytea, true, length, 0, 0), false);
+
+		Assert.AreEqual("bytea", text);
+	}
+
+	[TestMethod]
+	[DataRow(NpgsqlDbType.Varchar, 50, false, "varchar(50)")]
+	[DataRow(NpgsqlDbType.Varchar, 50, true, "varchar")]
+	[DataRow(NpgsqlDbType.Varchar, int.MaxValue, false, "TEXT")]
+	[DataRow(NpgsqlDbType.Text, int.MaxValue, false, "text")]
+	[DataRow(NpgsqlDbType.Bytea, 8, true, "bytea")]
+	public void TheOtherTypesAreFormattedAsBefore(NpgsqlDbType type, int length, bool suppressSize, string expected)
+	{
+		Assert.AreEqual(expected, new PostgreSqlTypeSystem().Format(new PostgreSqlDataType(type, true, length, 0, 0), suppressSize), true);
 	}
 
 	private static async Task<NpgsqlConnection> Open()
