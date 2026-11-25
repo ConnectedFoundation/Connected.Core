@@ -332,7 +332,7 @@ internal sealed class PostgreSqlTypeSystem
 	/// <returns>A string representing the PostgreSQL type declaration (e.g., "VARCHAR(50)", "NUMERIC(18,2)").</returns>
 	/// <remarks>
 	/// This method generates PostgreSQL DDL-compatible type declarations, handling length specifications
-	/// for character/binary types and precision/scale for numeric types. Unlike SQL Server, PostgreSQL
+	/// for character types and precision/scale for numeric types. Binary (bytea) is written without either. Unlike SQL Server, PostgreSQL
 	/// uses TEXT type for unlimited text storage instead of VARCHAR(MAX). The method uses lowercase
 	/// type names following PostgreSQL conventions.
 	/// </remarks>
@@ -345,6 +345,13 @@ internal sealed class PostgreSqlTypeSystem
 		 * Get PostgreSQL type name (lowercase convention)
 		 */
 		sb.Append(GetTypeName(pgType.DbType));
+
+		/*
+		 * BYTEA has no length or precision: the server refuses bytea(n), and a binary type's default size (int.MaxValue)
+		 * must not make it TEXT below
+		 */
+		if (pgType.DbType == NpgsqlDbType.Bytea)
+			return sb.ToString();
 
 		if (pgType.Length > 0 && !suppressSize && pgType.DbType != NpgsqlDbType.Text)
 		{
