@@ -61,6 +61,8 @@ public abstract record QueueMessage
 	/// <remarks>
 	/// The DTO is serialized to binary format using JSON and stored in a VARBINARY column.
 	/// Deserialization uses the DtoTypeName property to resolve the concrete type.
+	/// The length applies where the provider has a bounded binary type (SQL Server). PostgreSQL stores it as bytea, which has no
+	/// length, so a larger payload is not rejected there.
 	/// </remarks>
 	[Ordinal(4), Length(1024), DataType(DbType.Binary)]
 	[Serializer(typeof(DtoSerializer))]

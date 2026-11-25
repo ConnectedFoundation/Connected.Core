@@ -33,7 +33,7 @@ internal static class ColumnComparer
 		/*
 		 * Compare max length for variable-length types
 		 */
-		if (IsVariableLengthType(desired.DataType) && desired.MaxLength != existing.MaxLength)
+		if (ColumnTypes.HasLength(desired.DataType) && desired.MaxLength != existing.MaxLength)
 			return false;
 
 		/*
@@ -52,15 +52,5 @@ internal static class ColumnComparer
 		 * Columns are equivalent
 		 */
 		return true;
-	}
-
-	/// <summary>
-	/// Determines whether a data type requires length specification.
-	/// </summary>
-	/// <param name="type">The data type to check.</param>
-	/// <returns><c>true</c> if the type requires length specification; otherwise, <c>false</c>.</returns>
-	private static bool IsVariableLengthType(DbType type)
-	{
-		return type is DbType.String or DbType.StringFixedLength or DbType.Binary or DbType.AnsiString or DbType.AnsiStringFixedLength;
 	}
 }

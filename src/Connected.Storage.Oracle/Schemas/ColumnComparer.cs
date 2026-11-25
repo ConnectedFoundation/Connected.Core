@@ -76,11 +76,12 @@ internal static class ColumnComparer
 	/// <param name="type">The data type to check.</param>
 	/// <returns><c>true</c> if the type requires length specification; otherwise, <c>false</c>.</returns>
 	/// <remarks>
-	/// Oracle variable-length types include VARCHAR2, NVARCHAR2, RAW, CHAR, and NCHAR.
+	/// Oracle variable-length types include VARCHAR2, NVARCHAR2, CHAR, and NCHAR. Binary is not one of them: it is created as BLOB
+	/// (SynchronizationCommand), which has no declared length, so the length the database reports for it never equals the property's.
 	/// </remarks>
 	private static bool IsVariableLengthType(DbType type)
 	{
-		return type is DbType.String or DbType.StringFixedLength or DbType.Binary or DbType.AnsiString or DbType.AnsiStringFixedLength;
+		return type is DbType.String or DbType.StringFixedLength or DbType.AnsiString or DbType.AnsiStringFixedLength;
 	}
 
 	/// <summary>

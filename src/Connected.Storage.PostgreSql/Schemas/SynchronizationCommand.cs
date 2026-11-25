@@ -63,7 +63,7 @@ internal abstract class SynchronizationCommand
 		if (string.Equals(pgType, "text", StringComparison.OrdinalIgnoreCase))
 			return pgType.ToUpper();
 
-		if (size > 0 && RequiresLength(dataType))
+		if (size > 0 && ColumnTypes.HasLength(dataType))
 			return $"{pgType.ToUpper()}({size})";
 
 		return pgType.ToUpper();
@@ -100,16 +100,6 @@ internal abstract class SynchronizationCommand
 			DbType.Xml => "xml",
 			_ => "text"
 		};
-	}
-
-	/// <summary>
-	/// Determines if a DbType requires length specification.
-	/// </summary>
-	/// <param name="dbType">The DbType to check.</param>
-	/// <returns><c>true</c> if length is required; otherwise, <c>false</c>.</returns>
-	private static bool RequiresLength(DbType dbType)
-	{
-		return dbType is DbType.String or DbType.StringFixedLength or DbType.AnsiString or DbType.AnsiStringFixedLength or DbType.Binary;
 	}
 
 	/// <summary>
