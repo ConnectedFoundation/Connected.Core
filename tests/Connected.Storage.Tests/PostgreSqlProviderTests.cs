@@ -539,6 +539,69 @@ public sealed class PostgreSqlProviderTests
 		}
 	}
 
+	/*
+	 * ALTER COLUMN of an existing column: the version keeps the default that generates it, a type change says how the values
+	 * convert (without USING the server only converts what it can assign), a default is a literal as when the column is created,
+	 * and an identity column is left without DROP or SET DEFAULT (the server refuses both).
+	 */
+	[TestMethod]
+	public void AlteringAVersionColumnKeepsItsDefault()
+	{
+		var commands = Ddl.Alter(new Column { Name = "eTag", DataType = DbType.Binary, MaxLength = 8, IsVersion = true });
+
+		Assert.IsFalse(commands.Any(c => c.Contains("DROP DEFAULT")), string.Join("; ", commands));
+		Assert.IsTrue(commands.Any(c => c.Contains($"SET DEFAULT {PostgreSqlVersion.Next}")), string.Join("; ", commands));
+	}
+
+	[TestMethod]
+	public void ATypeChangeSaysHowTheValuesConvert()
+	{
+		var commands = Ddl.Alter(new Column { Name = "amount", DataType = DbType.Int64 });
+
+		Assert.AreEqual("ALTER TABLE \"t\" ALTER COLUMN \"amount\" TYPE BIGINT USING \"amount\"::BIGINT", commands[0]);
+	}
+
+	[TestMethod]
+	public void AnAlteredDefaultIsALiteralAndNoDefaultDropsIt()
+	{
+		var withDefault = Ddl.Alter(new Column { Name = "name", DataType = DbType.String, MaxLength = 10, DefaultValue = "it's" });
+		var without = Ddl.Alter(new Column { Name = "name", DataType = DbType.String, MaxLength = 10 });
+
+		Assert.IsTrue(withDefault.Contains("ALTER TABLE \"t\" ALTER COLUMN \"name\" SET DEFAULT 'it''s'"), string.Join("; ", withDefault));
+		Assert.IsTrue(without.Contains("ALTER TABLE \"t\" ALTER COLUMN \"name\" DROP DEFAULT"), string.Join("; ", without));
+	}
+
+	[TestMethod]
+	public void AnIdentityColumnIsNotGivenOrStrippedOfADefault()
+	{
+		var commands = Ddl.Alter(new Column { Name = "id", DataType = DbType.Int32, IsIdentity = true });
+
+		Assert.IsFalse(commands.Any(c => c.Contains("DEFAULT")), string.Join("; ", commands));
+	}
+
+	[TestMethod]
+	public async Task TheServerAcceptsTheAlterOfAVersionColumnAndItKeepsItsDefault()
+	{
+		await using var connection = await Open();
+
+		await Execute(connection, PostgreSqlVersion.CreateSequence);
+		await Execute(connection, "CREATE TEMP TABLE \"alterProbe\" (\"eTag\" BYTEA NOT NULL, \"amount\" INTEGER NULL)");
+
+		foreach (var command in Ddl.AlterOn("\"alterProbe\"", new Column { Name = "eTag", DataType = DbType.Binary, MaxLength = 8, IsVersion = true }))
+			await Execute(connection, command);
+
+		foreach (var command in Ddl.AlterOn("\"alterProbe\"", new Column { Name = "amount", DataType = DbType.Int64, IsNullable = true }))
+			await Execute(connection, command);
+
+		await using var read = new NpgsqlCommand("SELECT column_default, data_type FROM information_schema.columns WHERE table_name = 'alterProbe' ORDER BY column_name", connection);
+		await using var reader = await read.ExecuteReaderAsync();
+
+		Assert.IsTrue(await reader.ReadAsync());
+		Assert.AreEqual("bigint", reader.GetString(1));
+		Assert.IsTrue(await reader.ReadAsync());
+		Assert.IsFalse(reader.IsDBNull(0), "the version column lost its default");
+	}
+
 	private static async Task<NpgsqlConnection> Open()
 	{
 		var connection = new NpgsqlConnection(TestConfiguration.From(Variable));
@@ -558,6 +621,8 @@ public sealed class PostgreSqlProviderTests
 	private abstract class Ddl : SynchronizationCommand
 	{
 		public static string Column(ISchemaColumn column) => CreateColumnCommandText(column);
+		public static IReadOnlyList<string> Alter(ISchemaColumn column) => AlterColumnCommands("\"t\"", column);
+		public static IReadOnlyList<string> AlterOn(string table, ISchemaColumn column) => AlterColumnCommands(table, column);
 	}
 
 	private sealed class Column : ISchemaColumn

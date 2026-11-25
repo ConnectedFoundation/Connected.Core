@@ -154,6 +154,41 @@ internal abstract class SynchronizationCommand
 	}
 
 	/// <summary>
+	/// Creates the statements that bring an existing column to the definition of a schema column.
+	/// </summary>
+	/// <param name="table">The escaped, schema-qualified table name.</param>
+	/// <param name="column">The schema column the existing one must become.</param>
+	/// <returns>The ALTER TABLE statements, in the order they run.</returns>
+	/// <remarks>
+	/// The type change says how the values convert (USING), as the server converts without it only what it can assign. The default
+	/// is the one the column gets when it is created: the version's generator, a literal, or none. An identity column is left
+	/// alone, as the server refuses both SET and DROP DEFAULT on it.
+	/// </remarks>
+	protected static IReadOnlyList<string> AlterColumnCommands(string table, ISchemaColumn column)
+	{
+		var name = Escape(column.Name);
+		var type = FormatType(column.DataType, column.MaxLength);
+		var prefix = $"ALTER TABLE {table} ALTER COLUMN {name}";
+		var result = new List<string>
+		{
+			$"{prefix} TYPE {type} USING {name}::{type}",
+			column.IsNullable ? $"{prefix} DROP NOT NULL" : $"{prefix} SET NOT NULL"
+		};
+
+		if (column.IsIdentity)
+			return result;
+
+		if (column.IsVersion)
+			result.Add($"{prefix} SET DEFAULT {PostgreSqlVersion.Next}");
+		else if (!string.IsNullOrWhiteSpace(column.DefaultValue))
+			result.Add($"{prefix} SET DEFAULT {FormatDefault(column.DefaultValue)}");
+		else
+			result.Add($"{prefix} DROP DEFAULT");
+
+		return result;
+	}
+
+	/// <summary>
 	/// Parses index definitions from schema column attributes.
 	/// </summary>
 	/// <param name="schema">The schema definition containing columns with index attributes.</param>

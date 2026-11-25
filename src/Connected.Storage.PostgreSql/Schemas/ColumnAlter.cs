@@ -22,27 +22,8 @@ internal sealed class ColumnAlter(ISchemaColumn column)
 	protected override async Task OnExecute()
 	{
 		var tableName = Escape(Context.Schema.Schema, Context.Schema.Name);
-		var columnName = Escape(Column.Name);
 
-		/*
-		 * Alter data type if needed
-		 */
-		await Context.Execute($"ALTER TABLE {tableName} ALTER COLUMN {columnName} TYPE {FormatType(Column.DataType, Column.MaxLength)}");
-
-		/*
-		 * Alter nullability if needed
-		 */
-		if (Column.IsNullable)
-			await Context.Execute($"ALTER TABLE {tableName} ALTER COLUMN {columnName} DROP NOT NULL");
-		else
-			await Context.Execute($"ALTER TABLE {tableName} ALTER COLUMN {columnName} SET NOT NULL");
-
-		/*
-		 * Handle default value if specified
-		 */
-		if (!string.IsNullOrWhiteSpace(Column.DefaultValue))
-			await Context.Execute($"ALTER TABLE {tableName} ALTER COLUMN {columnName} SET DEFAULT {Column.DefaultValue}");
-		else
-			await Context.Execute($"ALTER TABLE {tableName} ALTER COLUMN {columnName} DROP DEFAULT");
+		foreach (var command in AlterColumnCommands(tableName, Column))
+			await Context.Execute(command);
 	}
 }
