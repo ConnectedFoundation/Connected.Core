@@ -204,6 +204,30 @@ public sealed class PostgreSqlProviderTests
 	}
 
 	/*
+	 * The two halves together against a server: it accepts the column the DDL writes for a binary property with a length, and what
+	 * the catalog reports for it is the same column as the property's.
+	 */
+	[TestMethod]
+	public async Task ABinaryColumnWithALengthIsCreatedByTheServerAndReadBackAsTheSameColumn()
+	{
+		await using var connection = await Open();
+
+		var desired = new Column { Name = "payload", DataType = DbType.Binary, MaxLength = 8 };
+
+		await Execute(connection, $"CREATE TEMP TABLE \"binaryProbe\" ({Ddl.Column(desired)})");
+
+		await using var command = new NpgsqlCommand("SELECT data_type, character_maximum_length FROM information_schema.columns WHERE table_name = 'binaryProbe' AND column_name = 'payload'", connection);
+		await using var reader = await command.ExecuteReaderAsync();
+
+		Assert.IsTrue(await reader.ReadAsync());
+		Assert.AreEqual("bytea", reader.GetString(0));
+
+		var existing = new Column { Name = "payload", DataType = DbType.Binary, MaxLength = reader.IsDBNull(1) ? 0 : reader.GetInt32(1) };
+
+		Assert.IsTrue(ColumnComparer.Equals(desired, existing));
+	}
+
+	/*
 	 * The shared cache keeps an entity only if its version is not lower than the cached one (Entry.Set), as a rowversion
 	 * only grows. Random versions were lower half the time, so half of all updates never reached the cache.
 	 */
