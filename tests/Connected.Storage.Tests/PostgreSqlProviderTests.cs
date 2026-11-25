@@ -549,16 +549,29 @@ public sealed class PostgreSqlProviderTests
 	{
 		var commands = Ddl.Alter(new Column { Name = "eTag", DataType = DbType.Binary, MaxLength = 8, IsVersion = true });
 
-		Assert.IsFalse(commands.Any(c => c.Contains("DROP DEFAULT")), string.Join("; ", commands));
-		Assert.IsTrue(commands.Any(c => c.Contains($"SET DEFAULT {PostgreSqlVersion.Next}")), string.Join("; ", commands));
+		Assert.IsTrue(commands[^1].EndsWith($"SET DEFAULT {PostgreSqlVersion.Next}"), string.Join("; ", commands));
+		Assert.AreEqual(PostgreSqlVersion.CreateSequence, commands[0]);
 	}
 
 	[TestMethod]
-	public void ATypeChangeSaysHowTheValuesConvert()
+	public void ATypeChangeHasNoCastThatCutsValues()
 	{
-		var commands = Ddl.Alter(new Column { Name = "amount", DataType = DbType.Int64 });
+		var commands = Ddl.Alter(new Column { Name = "name", DataType = DbType.String, MaxLength = 20 });
 
-		Assert.AreEqual("ALTER TABLE \"t\" ALTER COLUMN \"amount\" TYPE BIGINT USING \"amount\"::BIGINT", commands[0]);
+		Assert.IsTrue(commands.Contains("ALTER TABLE \"t\" ALTER COLUMN \"name\" TYPE VARCHAR(20)"), string.Join("; ", commands));
+		Assert.IsFalse(commands.Any(c => c.Contains("USING")), string.Join("; ", commands));
+	}
+
+	[TestMethod]
+	public void TheOldDefaultGoesBeforeTheTypeChangeAndTheNewOneComesLast()
+	{
+		var commands = Ddl.Alter(new Column { Name = "amount", DataType = DbType.Int64, DefaultValue = "0" });
+
+		var drop = commands.ToList().FindIndex(c => c.Contains("DROP DEFAULT"));
+		var type = commands.ToList().FindIndex(c => c.Contains(" TYPE "));
+		var set = commands.ToList().FindIndex(c => c.Contains("SET DEFAULT"));
+
+		Assert.IsTrue(drop >= 0 && drop < type && type < set, string.Join("; ", commands));
 	}
 
 	[TestMethod]
@@ -584,13 +597,13 @@ public sealed class PostgreSqlProviderTests
 	{
 		await using var connection = await Open();
 
-		await Execute(connection, PostgreSqlVersion.CreateSequence);
-		await Execute(connection, "CREATE TEMP TABLE \"alterProbe\" (\"eTag\" BYTEA NOT NULL, \"amount\" INTEGER NULL)");
+		await Execute(connection, "DROP SEQUENCE IF EXISTS \"public\".\"connectedVersion\" CASCADE");
+		await Execute(connection, "CREATE TEMP TABLE \"alterProbe\" (\"eTag\" BYTEA NOT NULL, \"amount\" INTEGER NOT NULL DEFAULT 0)");
 
 		foreach (var command in Ddl.AlterOn("\"alterProbe\"", new Column { Name = "eTag", DataType = DbType.Binary, MaxLength = 8, IsVersion = true }))
 			await Execute(connection, command);
 
-		foreach (var command in Ddl.AlterOn("\"alterProbe\"", new Column { Name = "amount", DataType = DbType.Int64, IsNullable = true }))
+		foreach (var command in Ddl.AlterOn("\"alterProbe\"", new Column { Name = "amount", DataType = DbType.Int64, DefaultValue = "7" }))
 			await Execute(connection, command);
 
 		await using var read = new NpgsqlCommand("SELECT column_default, data_type FROM information_schema.columns WHERE table_name = 'alterProbe' ORDER BY column_name", connection);
