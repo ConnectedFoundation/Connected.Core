@@ -346,11 +346,12 @@ internal sealed class PostgreSqlTypeSystem
 		 */
 		sb.Append(GetTypeName(pgType.DbType));
 
-		if (pgType.Length > 0 && !suppressSize && pgType.DbType != NpgsqlDbType.Text)
+		if (pgType.Length > 0 && !suppressSize && pgType.DbType != NpgsqlDbType.Text && pgType.DbType != NpgsqlDbType.Bytea)
 		{
 			/*
 			 * Format length specification for types that support it
-			 * TEXT type doesn't need length specification
+			 * TEXT and BYTEA have no length: the server refuses bytea(n), and a binary type's default size (int.MaxValue)
+			 * must not turn a cast to bytea into a cast to TEXT
 			 */
 			if (pgType.Length == int.MaxValue)
 			{

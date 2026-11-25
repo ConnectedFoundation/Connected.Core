@@ -10,6 +10,7 @@ using Connected.Storage.PostgreSql.Schemas;
 using Connected.Storage.PostgreSql.Transactions;
 using Connected.Storage.Schemas;
 using Npgsql;
+using NpgsqlTypes;
 using System.Data;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -486,6 +487,20 @@ public sealed class PostgreSqlProviderTests
 		{
 			await Execute(setup, "DROP TABLE IF EXISTS \"test\".\"unnamedRow\"");
 		}
+	}
+
+	/*
+	 * A cast to bytea is written as bytea, whatever length the type carries: the default size of a binary type is int.MaxValue,
+	 * which the formatter wrote as TEXT (a CAST of a byte[] to TEXT), and a declared length as bytea(n), which the server refuses.
+	 */
+	[TestMethod]
+	[DataRow(int.MaxValue)]
+	[DataRow(8)]
+	public void AByteaTypeIsFormattedWithoutALength(int length)
+	{
+		var text = new PostgreSqlTypeSystem().Format(new PostgreSqlDataType(NpgsqlDbType.Bytea, true, length, 0, 0), false);
+
+		Assert.AreEqual("bytea", text, true);
 	}
 
 	private static async Task<NpgsqlConnection> Open()
