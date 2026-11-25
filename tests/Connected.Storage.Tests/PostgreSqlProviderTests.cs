@@ -642,6 +642,54 @@ public sealed class PostgreSqlProviderTests
 		Assert.AreEqual(expected, new PostgreSqlTypeSystem().Format(new PostgreSqlDataType(type, true, length, 0, 0), suppressSize), true);
 	}
 
+	/*
+	 * An alter of a table that holds rows: a widened type keeps them, a default that applies to new rows takes effect, and a
+	 * string that would be cut is refused and leaves the rows as they were (no explicit cast truncates them).
+	 */
+	[TestMethod]
+	public async Task AnAlterKeepsTheRowsAndRefusesToCutThem()
+	{
+		await using var connection = await Open();
+
+		await Execute(connection, "DROP TABLE IF EXISTS \"alterRows\"");
+		await Execute(connection, "CREATE TABLE \"alterRows\" (\"id\" INTEGER NOT NULL, \"amount\" INTEGER NOT NULL DEFAULT 0, \"name\" VARCHAR(100) NOT NULL)");
+
+		try
+		{
+			await Execute(connection, "INSERT INTO \"alterRows\" VALUES (1, 5, '" + new string('x', 50) + "')");
+
+			foreach (var command in Ddl.AlterOn("\"alterRows\"", new Column { Name = "amount", DataType = DbType.Int64, DefaultValue = "7" }))
+				await Execute(connection, command);
+
+			await Execute(connection, "INSERT INTO \"alterRows\" (\"id\", \"name\") VALUES (2, 'y')");
+
+			await using (var read = new NpgsqlCommand("SELECT \"amount\" FROM \"alterRows\" ORDER BY \"id\"", connection))
+			await using (var reader = await read.ExecuteReaderAsync())
+			{
+				Assert.IsTrue(await reader.ReadAsync());
+				Assert.AreEqual(5L, reader.GetInt64(0));
+				Assert.IsTrue(await reader.ReadAsync());
+				Assert.AreEqual(7L, reader.GetInt64(0));
+			}
+
+			var shrink = Ddl.AlterOn("\"alterRows\"", new Column { Name = "name", DataType = DbType.String, MaxLength = 20 });
+
+			await Assert.ThrowsExceptionAsync<PostgresException>(async () =>
+			{
+				foreach (var command in shrink)
+					await Execute(connection, command);
+			});
+
+			await using var length = new NpgsqlCommand("SELECT max(length(\"name\")) FROM \"alterRows\"", connection);
+
+			Assert.AreEqual(50, Convert.ToInt32(await length.ExecuteScalarAsync()));
+		}
+		finally
+		{
+			await Execute(connection, "DROP TABLE IF EXISTS \"alterRows\"");
+		}
+	}
+
 	private static async Task<NpgsqlConnection> Open()
 	{
 		var connection = new NpgsqlConnection(TestConfiguration.From(Variable));
