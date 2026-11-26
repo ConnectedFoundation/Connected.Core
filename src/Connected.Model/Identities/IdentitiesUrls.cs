@@ -41,6 +41,11 @@ public static class IdentitiesUrls
 	public const string AuthenticationTokenService = $"{Identities}/authentication-tokens";
 
 	/// <summary>
+	/// The service endpoint URL for two-factor sign-in operations.
+	/// </summary>
+	public const string TwoFactorService = $"{Identities}/two-factor";
+
+	/// <summary>
 	/// The operation name for selecting a user by credentials.
 	/// </summary>
 	public const string SelectByCredentialsOperation = "select-by-credentials";

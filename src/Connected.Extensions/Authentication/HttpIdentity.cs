@@ -31,4 +31,13 @@ public sealed class HttpIdentity(IIdentity? identity)
 	/// Gets the domain identity instance associated with this HTTP identity.
 	/// </summary>
 	public IIdentity? Identity { get; } = identity;
+	/// <summary>
+	/// Gets the authentication token the request was authenticated with, or <see langword="null"/> when it was
+	/// authenticated otherwise.
+	/// </summary>
+	/// <remarks>
+	/// Operations that act on a token passed as a parameter compare it with this value, so a caller can act only on
+	/// the session it is using.
+	/// </remarks>
+	public string? AuthenticationToken { get; init; }
 }
