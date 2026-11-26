@@ -1,5 +1,4 @@
 using Connected.Storage.Schemas;
-using System.Text;
 
 namespace Connected.Storage.PostgreSql.Schemas;
 
@@ -7,13 +6,10 @@ namespace Connected.Storage.PostgreSql.Schemas;
 /// Alters an existing column in a PostgreSQL database table.
 /// </summary>
 /// <remarks>
-/// This transaction generates and executes ALTER TABLE ALTER COLUMN DDL statements to modify
-/// an existing column's definition. PostgreSQL requires separate ALTER COLUMN statements for
-/// different column properties such as data type, nullability, and default values. The operation
-/// determines which properties have changed and generates appropriate ALTER statements for each
-/// modification. This approach ensures that only necessary changes are applied while preserving
-/// existing data where possible. Identity column modifications may require special handling
-/// or table recreation in some cases.
+/// The statements come from <see cref="SynchronizationCommand.AlterColumnCommands"/>: the column is altered to the definition of
+/// the schema column as a whole (type, nullability and default), in one ALTER TABLE statement, so a change the server refuses
+/// leaves the column as it was. The caller has already decided that the column differs, this transaction does not compare
+/// properties. The table is not recreated.
 /// </remarks>
 internal sealed class ColumnAlter(ISchemaColumn column)
 	: ColumnTransaction(column)

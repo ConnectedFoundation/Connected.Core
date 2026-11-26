@@ -103,10 +103,10 @@ internal abstract class SynchronizationCommand
 	}
 
 	/// <summary>
-	/// Formats a column default as a PostgreSQL literal, the way the SQL Server provider does.
+	/// Formats a column default as a PostgreSQL literal.
 	/// </summary>
 	/// <param name="value">The default value in its invariant string form.</param>
-	/// <returns>A quoted literal, which PostgreSQL coerces to the column type, or the expression when it is already parenthesized.</returns>
+	/// <returns>A quoted literal, which PostgreSQL coerces to the column type, or the value as it is when it starts with an opening and ends with a closing parenthesis (any such value is taken for an expression).</returns>
 	private static string FormatDefault(string value)
 	{
 		var trimmed = value.Trim();
@@ -172,32 +172,37 @@ internal abstract class SynchronizationCommand
 	/// </summary>
 	/// <param name="table">The escaped, schema-qualified table name.</param>
 	/// <param name="column">The schema column the existing one must become.</param>
-	/// <returns>The statements, in the order they run.</returns>
+	/// <returns>The statements, in the order they run: the version sequence for a version column, then one ALTER TABLE.</returns>
 	/// <remarks>
-	/// The old default goes first, as the server casts it to the new type and refuses when it cannot; the new one is set last. A
-	/// version column's sequence is created first, as when the column is added. The type change has no USING: the server converts
-	/// what it can assign and refuses the rest, where an explicit cast would cut a string to its new length. An identity column is
-	/// left alone, as the server refuses both SET and DROP DEFAULT on it.
+	/// The alter is one statement, so that the server applies it as a whole and a refused change (a narrowing that would cut values)
+	/// leaves the column as it was, its default included. The server runs the subcommands in its own order: the old default is
+	/// dropped first, as the server casts it to the new type and refuses when it cannot, then the type changes, and the new default
+	/// is set last. A version column's sequence is created first, in a statement of its own, as when the column is added. The type
+	/// change has no USING: the server converts what it can assign and refuses the rest, where an explicit cast would cut a string
+	/// to its new length. An identity column gets no default subcommands, as the server refuses both SET and DROP DEFAULT on it.
 	/// </remarks>
 	protected static IReadOnlyList<string> AlterColumnCommands(string table, ISchemaColumn column)
 	{
 		var name = Escape(column.Name);
-		var prefix = $"ALTER TABLE {table} ALTER COLUMN {name}";
 		var result = new List<string>();
+		var parts = new List<string>();
 
 		if (column.IsVersion)
 			result.Add(PostgreSqlVersion.CreateSequence);
 
 		if (!column.IsIdentity)
-			result.Add($"{prefix} DROP DEFAULT");
+			parts.Add($"ALTER COLUMN {name} DROP DEFAULT");
 
-		result.Add($"{prefix} TYPE {FormatType(column.DataType, column.MaxLength)}");
-		result.Add(column.IsNullable ? $"{prefix} DROP NOT NULL" : $"{prefix} SET NOT NULL");
+		parts.Add($"ALTER COLUMN {name} TYPE {FormatType(column.DataType, column.MaxLength)}");
+		parts.Add(column.IsNullable ? $"ALTER COLUMN {name} DROP NOT NULL" : $"ALTER COLUMN {name} SET NOT NULL");
 
-		var value = DefaultOf(column);
+		/*
+		 * DefaultOf is null for an identity column
+		 */
+		if (DefaultOf(column) is { } value)
+			parts.Add($"ALTER COLUMN {name} SET DEFAULT {value}");
 
-		if (value is not null && !column.IsIdentity)
-			result.Add($"{prefix} SET DEFAULT {value}");
+		result.Add($"ALTER TABLE {table} {string.Join(", ", parts)}");
 
 		return result;
 	}
