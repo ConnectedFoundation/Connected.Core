@@ -541,6 +541,441 @@ public sealed class PostgreSqlProviderTests
 	}
 
 	/*
+	 * ALTER COLUMN of an existing column: one statement, so that the server applies it as a whole. The version keeps the default
+	 * that generates it, a type change has no USING (without it the server only converts what it can assign), a default is a
+	 * literal as when the column is created, and an identity column is left without DROP or SET DEFAULT (the server refuses both).
+	 * The order of the subcommands is not asserted anywhere: the server orders them itself, and the live tests check the outcome.
+	 */
+	private static string AlterStatement(IReadOnlyList<string> commands)
+	{
+		var statements = commands.Where(c => c.StartsWith("ALTER TABLE", StringComparison.Ordinal)).ToList();
+
+		Assert.AreEqual(1, statements.Count, "The column has to be altered by one statement: " + string.Join("; ", commands));
+
+		return statements[0];
+	}
+
+	[TestMethod]
+	public void AnAlterIsOneStatementWithAllTheSubcommands()
+	{
+		var commands = Ddl.Alter(new Column { Name = "amount", DataType = DbType.Int64, DefaultValue = "0" });
+
+		// The order of the subcommands is not asserted: the server runs them in its own order.
+		Assert.AreEqual(1, commands.Count, string.Join("; ", commands));
+
+		foreach (var part in new[] { "ALTER COLUMN \"amount\" DROP DEFAULT", "ALTER COLUMN \"amount\" TYPE BIGINT", "ALTER COLUMN \"amount\" SET NOT NULL", "ALTER COLUMN \"amount\" SET DEFAULT '0'" })
+			StringAssert.Contains(commands[0], part);
+
+		StringAssert.StartsWith(commands[0], "ALTER TABLE \"t\" ");
+	}
+
+	[TestMethod]
+	public void AlteringAVersionColumnKeepsItsDefault()
+	{
+		var commands = Ddl.Alter(new Column { Name = "eTag", DataType = DbType.Binary, MaxLength = 8, IsVersion = true });
+
+		Assert.AreEqual(2, commands.Count, string.Join("; ", commands));
+		Assert.AreEqual(PostgreSqlVersion.CreateSequence, commands[0]);
+		StringAssert.EndsWith(AlterStatement(commands), $"ALTER COLUMN \"eTag\" SET DEFAULT {PostgreSqlVersion.Next}");
+	}
+
+	[TestMethod]
+	public void ATypeChangeHasNoCastThatCutsValues()
+	{
+		var commands = Ddl.Alter(new Column { Name = "name", DataType = DbType.String, MaxLength = 20 });
+
+		StringAssert.Contains(AlterStatement(commands), "ALTER COLUMN \"name\" TYPE VARCHAR(20)");
+		Assert.IsFalse(commands.Any(c => c.Contains("USING")), string.Join("; ", commands));
+	}
+
+	[TestMethod]
+	public void AnAlterDropsTheOldDefaultAndSetsTheNewOne()
+	{
+		var statement = AlterStatement(Ddl.Alter(new Column { Name = "amount", DataType = DbType.Int64, DefaultValue = "0" }));
+
+		// Presence only: the order of the subcommands is not asserted, the server orders them itself.
+		StringAssert.Contains(statement, "ALTER COLUMN \"amount\" DROP DEFAULT");
+		StringAssert.Contains(statement, "ALTER COLUMN \"amount\" SET DEFAULT '0'");
+	}
+
+	[TestMethod]
+	public void AnAlteredDefaultIsALiteralAndNoDefaultDropsIt()
+	{
+		var withDefault = AlterStatement(Ddl.Alter(new Column { Name = "name", DataType = DbType.String, MaxLength = 10, DefaultValue = "it's" }));
+		var without = AlterStatement(Ddl.Alter(new Column { Name = "name", DataType = DbType.String, MaxLength = 10 }));
+
+		StringAssert.Contains(withDefault, "ALTER COLUMN \"name\" SET DEFAULT 'it''s'");
+		StringAssert.Contains(without, "ALTER COLUMN \"name\" DROP DEFAULT");
+		Assert.IsFalse(without.Contains("SET DEFAULT"), without);
+	}
+
+	[TestMethod]
+	public void AnIdentityColumnAlterHasNoDefaultSubcommands()
+	{
+		var commands = Ddl.Alter(new Column { Name = "id", DataType = DbType.Int32, IsIdentity = true });
+
+		Assert.IsFalse(commands.Any(c => c.Contains("DEFAULT")), string.Join("; ", commands));
+		var statement = AlterStatement(commands);
+
+		StringAssert.Contains(statement, "ALTER COLUMN \"id\" TYPE INTEGER");
+		StringAssert.Contains(statement, "ALTER COLUMN \"id\" SET NOT NULL");
+	}
+
+	[TestMethod]
+	public void AnIdentityColumnWithADefaultValueIsNotGivenOne()
+	{
+		var commands = Ddl.Alter(new Column { Name = "id", DataType = DbType.Int32, IsIdentity = true, DefaultValue = "1" });
+
+		Assert.IsFalse(commands.Any(c => c.Contains("DEFAULT")), string.Join("; ", commands));
+	}
+
+	/// <summary>A database of its own on the server the variable names, dropped when the test is done.</summary>
+	/// <remarks>
+	/// The tests that alter columns create the shared version sequence in it, so that nothing they do reaches the sequence, or the
+	/// defaults that use it, in a database somebody else works in. <c>DROP DATABASE ... WITH (FORCE)</c> needs PostgreSQL 13 or
+	/// later. After a killed run, leftovers are the databases named <c>connected_test_%</c>: drop them by hand.
+	/// </remarks>
+	private sealed class ScratchDatabase : IAsyncDisposable
+	{
+		private readonly string _admin;
+		private readonly string _name;
+
+		private ScratchDatabase(string admin, string name, NpgsqlConnection connection)
+		{
+			_admin = admin;
+			_name = name;
+			Connection = connection;
+		}
+
+		public NpgsqlConnection Connection { get; }
+
+		public static async Task<ScratchDatabase> Create()
+		{
+			var admin = TestConfiguration.From(Variable);
+			var name = $"connected_test_{Guid.NewGuid():N}";
+
+			await using (var server = new NpgsqlConnection(admin))
+			{
+				await server.OpenAsync();
+				await Execute(server, $"CREATE DATABASE \"{name}\"");
+			}
+
+			var connection = new NpgsqlConnection(new NpgsqlConnectionStringBuilder(admin) { Database = name, Pooling = false }.ConnectionString);
+
+			try
+			{
+				await connection.OpenAsync();
+			}
+			catch
+			{
+				await connection.DisposeAsync();
+				await Drop(admin, name);
+
+				throw;
+			}
+
+			return new ScratchDatabase(admin, name, connection);
+		}
+
+		public async ValueTask DisposeAsync()
+		{
+			await Connection.DisposeAsync();
+			await Drop(_admin, _name);
+		}
+
+		/// <summary>Drops the database, and never throws: a failure here must not hide the one of the test.</summary>
+		private static async Task Drop(string admin, string name)
+		{
+			try
+			{
+				await using var server = new NpgsqlConnection(new NpgsqlConnectionStringBuilder(admin) { Pooling = false }.ConnectionString);
+
+				await server.OpenAsync();
+				await Execute(server, $"DROP DATABASE IF EXISTS \"{name}\" WITH (FORCE)");
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"The scratch database {name} was not dropped: {ex.Message}");
+			}
+		}
+	}
+
+	private sealed record Described(string DataType, bool IsNullable, string? Default, int? Length, bool IsIdentity);
+
+	private static async Task<Described> Describe(NpgsqlConnection connection, string table, string column)
+	{
+		await using var command = new NpgsqlCommand(
+			"SELECT data_type, is_nullable, column_default, character_maximum_length, is_identity FROM information_schema.columns WHERE table_schema = 'public' AND table_name = @table AND column_name = @column",
+			connection);
+
+		command.Parameters.AddWithValue("table", table);
+		command.Parameters.AddWithValue("column", column);
+
+		await using var reader = await command.ExecuteReaderAsync();
+
+		Assert.IsTrue(await reader.ReadAsync(), $"{table}.{column} does not exist.");
+
+		return new Described(reader.GetString(0), reader.GetString(1) == "YES", reader.IsDBNull(2) ? null : reader.GetString(2), reader.IsDBNull(3) ? null : reader.GetInt32(3), reader.GetString(4) == "YES");
+	}
+
+	private static async Task Alter(NpgsqlConnection connection, string table, ISchemaColumn column)
+	{
+		foreach (var command in Ddl.AlterOn($"\"public\".\"{table}\"", column))
+			await Execute(connection, command);
+	}
+
+	private static async Task<object?> Scalar(NpgsqlConnection connection, string text)
+	{
+		await using var command = new NpgsqlCommand(text, connection);
+
+		return await command.ExecuteScalarAsync();
+	}
+
+	[TestMethod]
+	public async Task AnAlteredVersionColumnKeepsItsDefaultAndGivesNewRowsAnEightByteVersion()
+	{
+		var table = $"t{Guid.NewGuid():N}";
+
+		await using var database = await ScratchDatabase.Create();
+		var connection = database.Connection;
+		var version = new Column { Name = "eTag", DataType = DbType.Binary, MaxLength = 8, IsVersion = true };
+
+		await Execute(connection, $"""CREATE TABLE "{table}" ("id" INTEGER NOT NULL, "eTag" BYTEA NOT NULL)""");
+		await Execute(connection, $"""INSERT INTO "{table}" VALUES (1, '\x01'), (2, '\x02')""");
+
+		// What Express does on every start: the second alter finds the column as the first one left it.
+		for (var i = 0; i < 2; i++)
+		{
+			await Alter(connection, table, version);
+
+			var described = await Describe(connection, table, "eTag");
+
+			Assert.AreEqual("bytea", described.DataType);
+			Assert.IsFalse(described.IsNullable);
+			Assert.IsNotNull(described.Default, "the version column lost its default");
+			StringAssert.Contains(described.Default, "int8send");
+			StringAssert.Contains(described.Default, "connectedVersion");
+		}
+
+		await Execute(connection, $"""INSERT INTO "{table}" ("id") VALUES (3)""");
+
+		Assert.AreEqual(8, Convert.ToInt32(await Scalar(connection, $"""SELECT length("eTag") FROM "{table}" WHERE "id" = 3""")));
+		Assert.AreEqual(3L, (long)(await Scalar(connection, $"""SELECT count(*) FROM "{table}" """))!);
+		Assert.AreEqual(1, Convert.ToInt32(await Scalar(connection, $"""SELECT length("eTag") FROM "{table}" WHERE "id" = 1""")), "an existing row kept its value");
+	}
+
+	[TestMethod]
+	[DataRow("INTEGER", DbType.Int64, 0, "7", "'7'::bigint", "7")]
+	[DataRow("VARCHAR(5)", DbType.String, 20, "it's", "'it''s'::character varying", "it's")]
+	[DataRow("VARCHAR(5)", DbType.String, 20, "a-b c", "'a-b c'::character varying", "a-b c")]
+	public async Task AnAlteredDefaultIsAQuotedLiteralTheNewRowsGet(string oldType, DbType type, int length, string value, string expectedDefault, string expectedValue)
+	{
+		var table = $"t{Guid.NewGuid():N}";
+
+		await using var database = await ScratchDatabase.Create();
+		var connection = database.Connection;
+		var column = new Column { Name = "amount", DataType = type, MaxLength = length, DefaultValue = value };
+
+		await Execute(connection, $"""CREATE TABLE "{table}" ("id" INTEGER NOT NULL, "amount" {oldType} NOT NULL DEFAULT 5)""");
+		await Execute(connection, $"""INSERT INTO "{table}" ("id", "amount") VALUES (1, '5')""");
+
+		for (var i = 0; i < 2; i++)
+		{
+			await Alter(connection, table, column);
+
+			Assert.AreEqual(expectedDefault, (await Describe(connection, table, "amount")).Default);
+		}
+
+		await Execute(connection, $"""INSERT INTO "{table}" ("id") VALUES (2)""");
+
+		Assert.AreEqual("5", (await Scalar(connection, $"""SELECT "amount"::text FROM "{table}" WHERE "id" = 1"""))!.ToString());
+		Assert.AreEqual(expectedValue, (await Scalar(connection, $"""SELECT "amount"::text FROM "{table}" WHERE "id" = 2"""))!.ToString());
+	}
+
+	[TestMethod]
+	public async Task AnAlterSetsAndDropsNotNull()
+	{
+		var table = $"t{Guid.NewGuid():N}";
+
+		await using var database = await ScratchDatabase.Create();
+		var connection = database.Connection;
+
+		await Execute(connection, $"""CREATE TABLE "{table}" ("id" INTEGER NOT NULL, "a" INTEGER NULL, "b" INTEGER NOT NULL)""");
+		await Execute(connection, $"""INSERT INTO "{table}" VALUES (1, 1, 1)""");
+
+		await Alter(connection, table, new Column { Name = "a", DataType = DbType.Int32, IsNullable = false });
+		await Alter(connection, table, new Column { Name = "b", DataType = DbType.Int32, IsNullable = true });
+
+		Assert.IsFalse((await Describe(connection, table, "a")).IsNullable, "SET NOT NULL");
+		Assert.IsTrue((await Describe(connection, table, "b")).IsNullable, "DROP NOT NULL");
+	}
+
+	/*
+	 * The old default and the new one in one statement: the new one replaces it whatever the old one was (100000 does not fit the
+	 * smallint it is cast to, which the server only finds out when it is used), and a column without a default drops it.
+	 */
+	[TestMethod]
+	public async Task TheNewDefaultReplacesTheOldOneAndNoDefaultDropsIt()
+	{
+		var table = $"t{Guid.NewGuid():N}";
+
+		await using var database = await ScratchDatabase.Create();
+		var connection = database.Connection;
+
+		await Execute(connection, $"""CREATE TABLE "{table}" ("count" INTEGER NOT NULL DEFAULT 100000)""");
+
+		await Alter(connection, table, new Column { Name = "count", DataType = DbType.Int16, DefaultValue = "5" });
+
+		var described = await Describe(connection, table, "count");
+
+		Assert.AreEqual("smallint", described.DataType);
+		Assert.AreEqual("'5'::smallint", described.Default);
+
+		await Execute(connection, $"""INSERT INTO "{table}" DEFAULT VALUES""");
+
+		Assert.AreEqual(5, Convert.ToInt32(await Scalar(connection, $"""SELECT "count" FROM "{table}" """)));
+
+		await Alter(connection, table, new Column { Name = "count", DataType = DbType.Int16 });
+
+		Assert.IsNull((await Describe(connection, table, "count")).Default, "no default has to drop the old one");
+	}
+
+	/*
+	 * A conversion the server has no assignment cast for (text to integer) is refused even on an empty table, as the type change has
+	 * no USING, and the column, its text default included, stays as it was.
+	 */
+	[TestMethod]
+	public async Task AConversionTheServerCannotDoIsRefusedAndLeavesTheColumnAsItWas()
+	{
+		var table = $"t{Guid.NewGuid():N}";
+
+		await using var database = await ScratchDatabase.Create();
+		var connection = database.Connection;
+
+		await Execute(connection, $"""CREATE TABLE "{table}" ("count" TEXT NOT NULL DEFAULT 'abc')""");
+
+		var before = await Describe(connection, table, "count");
+		var thrown = await Assert.ThrowsExceptionAsync<PostgresException>(() => Alter(connection, table, new Column { Name = "count", DataType = DbType.Int32, DefaultValue = "5" }));
+
+		Assert.AreEqual(PostgresErrorCodes.DatatypeMismatch, thrown.SqlState);
+		Assert.AreEqual(before, await Describe(connection, table, "count"));
+		Assert.AreEqual("'abc'::text", before.Default);
+	}
+
+	[TestMethod]
+	public async Task AnAlterToNotNullOnNullRowsFailsAndLeavesTheColumnAndRowsAsTheyWere()
+	{
+		var table = $"t{Guid.NewGuid():N}";
+
+		await using var database = await ScratchDatabase.Create();
+		var connection = database.Connection;
+
+		await Execute(connection, $"""CREATE TABLE "{table}" ("id" INTEGER NOT NULL, "a" INTEGER NULL DEFAULT 1)""");
+		await Execute(connection, $"""INSERT INTO "{table}" VALUES (1, NULL), (2, 2)""");
+
+		var before = await Describe(connection, table, "a");
+		var thrown = await Assert.ThrowsExceptionAsync<PostgresException>(() => Alter(connection, table, new Column { Name = "a", DataType = DbType.Int32, IsNullable = false, DefaultValue = "9" }));
+
+		Assert.AreEqual(PostgresErrorCodes.NotNullViolation, thrown.SqlState);
+		Assert.AreEqual(before, await Describe(connection, table, "a"));
+		Assert.IsTrue(before.IsNullable);
+		Assert.AreEqual(2L, Convert.ToInt64(await Scalar(connection, $"""SELECT count(*) FROM "{table}" """)));
+		Assert.AreEqual(1L, Convert.ToInt64(await Scalar(connection, $"""SELECT count(*) FROM "{table}" WHERE "a" IS NULL""")));
+	}
+
+	[TestMethod]
+	public async Task AnAlterCanChangeNullabilityAndDefaultTogetherOnATableWithRows()
+	{
+		var table = $"t{Guid.NewGuid():N}";
+
+		await using var database = await ScratchDatabase.Create();
+		var connection = database.Connection;
+
+		await Execute(connection, $"""CREATE TABLE "{table}" ("id" INTEGER NOT NULL, "a" INTEGER NULL)""");
+		await Execute(connection, $"""INSERT INTO "{table}" VALUES (1, 1), (2, 2)""");
+
+		await Alter(connection, table, new Column { Name = "a", DataType = DbType.Int64, IsNullable = false, DefaultValue = "9" });
+
+		var described = await Describe(connection, table, "a");
+
+		Assert.AreEqual("bigint", described.DataType);
+		Assert.IsFalse(described.IsNullable);
+		Assert.AreEqual("'9'::bigint", described.Default);
+
+		await Execute(connection, $"""INSERT INTO "{table}" ("id") VALUES (3)""");
+
+		Assert.AreEqual(9L, Convert.ToInt64(await Scalar(connection, $"""SELECT "a" FROM "{table}" WHERE "id" = 3""")));
+		Assert.AreEqual(3L, Convert.ToInt64(await Scalar(connection, $"""SELECT count(*) FROM "{table}" """)));
+	}
+
+	[TestMethod]
+	public async Task AnAlteredIdentityColumnStaysAnIdentityAndKeepsGeneratingValues()
+	{
+		var table = $"t{Guid.NewGuid():N}";
+
+		await using var database = await ScratchDatabase.Create();
+		var connection = database.Connection;
+
+		await Execute(connection, $"""CREATE TABLE "{table}" ("id" INTEGER GENERATED BY DEFAULT AS IDENTITY NOT NULL, "name" TEXT NULL)""");
+		await Execute(connection, $"""INSERT INTO "{table}" ("name") VALUES ('a'), ('b')""");
+
+		for (var i = 0; i < 2; i++)
+		{
+			await Alter(connection, table, new Column { Name = "id", DataType = DbType.Int64, IsIdentity = true });
+
+			var described = await Describe(connection, table, "id");
+
+			Assert.AreEqual("bigint", described.DataType);
+			Assert.IsTrue(described.IsIdentity);
+			Assert.IsNull(described.Default);
+		}
+
+		await Execute(connection, $"""INSERT INTO "{table}" ("name") VALUES ('c')""");
+
+		Assert.AreEqual(3L, Convert.ToInt64(await Scalar(connection, $"""SELECT max("id") FROM "{table}" """)));
+		Assert.AreEqual(3L, Convert.ToInt64(await Scalar(connection, $"""SELECT count(*) FROM "{table}" """)));
+	}
+
+	/*
+	 * An alter of a table that holds rows: a widened type keeps them, and a string that would be cut is refused with "value too long"
+	 * (22001) by the one statement, which leaves the column exactly as it was: type, nullability and default. Run as separate
+	 * statements, the DROP DEFAULT before it would stay committed.
+	 */
+	[TestMethod]
+	public async Task AnAlterKeepsTheRowsAndRefusesToCutThemLeavingTheColumnAsItWas()
+	{
+		var table = $"t{Guid.NewGuid():N}";
+
+		await using var database = await ScratchDatabase.Create();
+		var connection = database.Connection;
+
+		await Execute(connection, $"""CREATE TABLE "{table}" ("id" INTEGER NOT NULL, "amount" INTEGER NOT NULL DEFAULT 0, "name" VARCHAR(100) NOT NULL DEFAULT 'abc')""");
+		await Execute(connection, $"""INSERT INTO "{table}" VALUES (1, 5, '{new string('x', 50)}')""");
+
+		await Alter(connection, table, new Column { Name = "amount", DataType = DbType.Int64, DefaultValue = "7" });
+		await Execute(connection, $"""INSERT INTO "{table}" ("id", "name") VALUES (2, 'y')""");
+
+		Assert.AreEqual(5L, Convert.ToInt64(await Scalar(connection, $"""SELECT "amount" FROM "{table}" WHERE "id" = 1""")));
+		Assert.AreEqual(7L, Convert.ToInt64(await Scalar(connection, $"""SELECT "amount" FROM "{table}" WHERE "id" = 2""")));
+
+		var before = await Describe(connection, table, "name");
+
+		Assert.AreEqual("'abc'::character varying", before.Default);
+
+		var shrink = Ddl.AlterOn($"\"public\".\"{table}\"", new Column { Name = "name", DataType = DbType.String, MaxLength = 20, IsNullable = true, DefaultValue = "zz" });
+
+		var thrown = await Assert.ThrowsExceptionAsync<PostgresException>(async () =>
+		{
+			foreach (var command in shrink)
+				await Execute(connection, command);
+		});
+
+		Assert.AreEqual(PostgresErrorCodes.StringDataRightTruncation, thrown.SqlState);
+		Assert.AreEqual(before, await Describe(connection, table, "name"), "a refused alter has to leave the column, its default included, as it was");
+		Assert.AreEqual(50, Convert.ToInt32(await Scalar(connection, $"""SELECT max(length("name")) FROM "{table}" """)));
+	}
+
+	/*
 	 * A bytea type is written as bytea, whatever length the type carries: the default size of a binary type is int.MaxValue,
 	 * which the formatter wrote as TEXT (the type of a DECLARE of a byte[] variable), and a declared length as bytea(n), which the
 	 * server refuses.
@@ -585,6 +1020,8 @@ public sealed class PostgreSqlProviderTests
 	private abstract class Ddl : SynchronizationCommand
 	{
 		public static string Column(ISchemaColumn column) => CreateColumnCommandText(column);
+		public static IReadOnlyList<string> Alter(ISchemaColumn column) => AlterColumnCommands("\"t\"", column);
+		public static IReadOnlyList<string> AlterOn(string table, ISchemaColumn column) => AlterColumnCommands(table, column);
 	}
 
 	private sealed class Column : ISchemaColumn
