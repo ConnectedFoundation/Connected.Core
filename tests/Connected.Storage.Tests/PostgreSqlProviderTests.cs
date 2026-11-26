@@ -544,6 +544,7 @@ public sealed class PostgreSqlProviderTests
 	 * ALTER COLUMN of an existing column: one statement, so that the server applies it as a whole. The version keeps the default
 	 * that generates it, a type change has no USING (without it the server only converts what it can assign), a default is a
 	 * literal as when the column is created, and an identity column is left without DROP or SET DEFAULT (the server refuses both).
+	 * The order of the subcommands is not asserted anywhere: the server orders them itself, and the live tests check the outcome.
 	 */
 	private static string AlterStatement(IReadOnlyList<string> commands)
 	{
@@ -555,14 +556,17 @@ public sealed class PostgreSqlProviderTests
 	}
 
 	[TestMethod]
-	public void AnAlterIsOneStatement()
+	public void AnAlterIsOneStatementWithAllTheSubcommands()
 	{
 		var commands = Ddl.Alter(new Column { Name = "amount", DataType = DbType.Int64, DefaultValue = "0" });
 
+		// The order of the subcommands is not asserted: the server runs them in its own order.
 		Assert.AreEqual(1, commands.Count, string.Join("; ", commands));
-		Assert.AreEqual(
-			"ALTER TABLE \"t\" ALTER COLUMN \"amount\" DROP DEFAULT, ALTER COLUMN \"amount\" TYPE BIGINT, ALTER COLUMN \"amount\" SET NOT NULL, ALTER COLUMN \"amount\" SET DEFAULT '0'",
-			commands[0]);
+
+		foreach (var part in new[] { "ALTER COLUMN \"amount\" DROP DEFAULT", "ALTER COLUMN \"amount\" TYPE BIGINT", "ALTER COLUMN \"amount\" SET NOT NULL", "ALTER COLUMN \"amount\" SET DEFAULT '0'" })
+			StringAssert.Contains(commands[0], part);
+
+		StringAssert.StartsWith(commands[0], "ALTER TABLE \"t\" ");
 	}
 
 	[TestMethod]
@@ -585,11 +589,11 @@ public sealed class PostgreSqlProviderTests
 	}
 
 	[TestMethod]
-	public void TheOldDefaultIsDroppedAndTheNewOneSet()
+	public void AnAlterDropsTheOldDefaultAndSetsTheNewOne()
 	{
 		var statement = AlterStatement(Ddl.Alter(new Column { Name = "amount", DataType = DbType.Int64, DefaultValue = "0" }));
 
-		// The server runs the subcommands in its own order (drop default, type, set default), which the live tests below prove.
+		// Presence only: the order of the subcommands is not asserted, the server orders them itself.
 		StringAssert.Contains(statement, "ALTER COLUMN \"amount\" DROP DEFAULT");
 		StringAssert.Contains(statement, "ALTER COLUMN \"amount\" SET DEFAULT '0'");
 	}
@@ -606,12 +610,15 @@ public sealed class PostgreSqlProviderTests
 	}
 
 	[TestMethod]
-	public void AnIdentityColumnIsNotGivenOrStrippedOfADefault()
+	public void AnIdentityColumnAlterHasNoDefaultSubcommands()
 	{
 		var commands = Ddl.Alter(new Column { Name = "id", DataType = DbType.Int32, IsIdentity = true });
 
 		Assert.IsFalse(commands.Any(c => c.Contains("DEFAULT")), string.Join("; ", commands));
-		Assert.AreEqual("ALTER TABLE \"t\" ALTER COLUMN \"id\" TYPE INTEGER, ALTER COLUMN \"id\" SET NOT NULL", AlterStatement(commands));
+		var statement = AlterStatement(commands);
+
+		StringAssert.Contains(statement, "ALTER COLUMN \"id\" TYPE INTEGER");
+		StringAssert.Contains(statement, "ALTER COLUMN \"id\" SET NOT NULL");
 	}
 
 	[TestMethod]
@@ -625,7 +632,8 @@ public sealed class PostgreSqlProviderTests
 	/// <summary>A database of its own on the server the variable names, dropped when the test is done.</summary>
 	/// <remarks>
 	/// The tests that alter columns create the shared version sequence in it, so that nothing they do reaches the sequence, or the
-	/// defaults that use it, in a database somebody else works in.
+	/// defaults that use it, in a database somebody else works in. <c>DROP DATABASE ... WITH (FORCE)</c> needs PostgreSQL 13 or
+	/// later. After a killed run, leftovers are the databases named <c>connected_test_%</c>: drop them by hand.
 	/// </remarks>
 	private sealed class ScratchDatabase : IAsyncDisposable
 	{
@@ -644,7 +652,7 @@ public sealed class PostgreSqlProviderTests
 		public static async Task<ScratchDatabase> Create()
 		{
 			var admin = TestConfiguration.From(Variable);
-			var name = $"connected_{Guid.NewGuid():N}";
+			var name = $"connected_test_{Guid.NewGuid():N}";
 
 			await using (var server = new NpgsqlConnection(admin))
 			{
@@ -654,7 +662,17 @@ public sealed class PostgreSqlProviderTests
 
 			var connection = new NpgsqlConnection(new NpgsqlConnectionStringBuilder(admin) { Database = name, Pooling = false }.ConnectionString);
 
-			await connection.OpenAsync();
+			try
+			{
+				await connection.OpenAsync();
+			}
+			catch
+			{
+				await connection.DisposeAsync();
+				await Drop(admin, name);
+
+				throw;
+			}
 
 			return new ScratchDatabase(admin, name, connection);
 		}
@@ -662,11 +680,23 @@ public sealed class PostgreSqlProviderTests
 		public async ValueTask DisposeAsync()
 		{
 			await Connection.DisposeAsync();
+			await Drop(_admin, _name);
+		}
 
-			await using var server = new NpgsqlConnection(new NpgsqlConnectionStringBuilder(_admin) { Pooling = false }.ConnectionString);
+		/// <summary>Drops the database, and never throws: a failure here must not hide the one of the test.</summary>
+		private static async Task Drop(string admin, string name)
+		{
+			try
+			{
+				await using var server = new NpgsqlConnection(new NpgsqlConnectionStringBuilder(admin) { Pooling = false }.ConnectionString);
 
-			await server.OpenAsync();
-			await Execute(server, $"DROP DATABASE IF EXISTS \"{_name}\" WITH (FORCE)");
+				await server.OpenAsync();
+				await Execute(server, $"DROP DATABASE IF EXISTS \"{name}\" WITH (FORCE)");
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"The scratch database {name} was not dropped: {ex.Message}");
+			}
 		}
 	}
 
@@ -830,6 +860,52 @@ public sealed class PostgreSqlProviderTests
 		Assert.AreEqual(PostgresErrorCodes.DatatypeMismatch, thrown.SqlState);
 		Assert.AreEqual(before, await Describe(connection, table, "count"));
 		Assert.AreEqual("'abc'::text", before.Default);
+	}
+
+	[TestMethod]
+	public async Task AnAlterToNotNullOnNullRowsFailsAndLeavesTheColumnAndRowsAsTheyWere()
+	{
+		var table = $"t{Guid.NewGuid():N}";
+
+		await using var database = await ScratchDatabase.Create();
+		var connection = database.Connection;
+
+		await Execute(connection, $"""CREATE TABLE "{table}" ("id" INTEGER NOT NULL, "a" INTEGER NULL DEFAULT 1)""");
+		await Execute(connection, $"""INSERT INTO "{table}" VALUES (1, NULL), (2, 2)""");
+
+		var before = await Describe(connection, table, "a");
+		var thrown = await Assert.ThrowsExceptionAsync<PostgresException>(() => Alter(connection, table, new Column { Name = "a", DataType = DbType.Int32, IsNullable = false, DefaultValue = "9" }));
+
+		Assert.AreEqual(PostgresErrorCodes.NotNullViolation, thrown.SqlState);
+		Assert.AreEqual(before, await Describe(connection, table, "a"));
+		Assert.IsTrue(before.IsNullable);
+		Assert.AreEqual(2L, Convert.ToInt64(await Scalar(connection, $"""SELECT count(*) FROM "{table}" """)));
+		Assert.AreEqual(1L, Convert.ToInt64(await Scalar(connection, $"""SELECT count(*) FROM "{table}" WHERE "a" IS NULL""")));
+	}
+
+	[TestMethod]
+	public async Task AnAlterCanChangeNullabilityAndDefaultTogetherOnATableWithRows()
+	{
+		var table = $"t{Guid.NewGuid():N}";
+
+		await using var database = await ScratchDatabase.Create();
+		var connection = database.Connection;
+
+		await Execute(connection, $"""CREATE TABLE "{table}" ("id" INTEGER NOT NULL, "a" INTEGER NULL)""");
+		await Execute(connection, $"""INSERT INTO "{table}" VALUES (1, 1), (2, 2)""");
+
+		await Alter(connection, table, new Column { Name = "a", DataType = DbType.Int64, IsNullable = false, DefaultValue = "9" });
+
+		var described = await Describe(connection, table, "a");
+
+		Assert.AreEqual("bigint", described.DataType);
+		Assert.IsFalse(described.IsNullable);
+		Assert.AreEqual("'9'::bigint", described.Default);
+
+		await Execute(connection, $"""INSERT INTO "{table}" ("id") VALUES (3)""");
+
+		Assert.AreEqual(9L, Convert.ToInt64(await Scalar(connection, $"""SELECT "a" FROM "{table}" WHERE "id" = 3""")));
+		Assert.AreEqual(3L, Convert.ToInt64(await Scalar(connection, $"""SELECT count(*) FROM "{table}" """)));
 	}
 
 	[TestMethod]
