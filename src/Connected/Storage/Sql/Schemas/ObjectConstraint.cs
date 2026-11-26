@@ -174,18 +174,19 @@ internal class ObjectConstraint
 	/// Gets the default value expression for default constraints.
 	/// </summary>
 	/// <value>
-	/// The default value expression without parentheses, or the raw Keys value if not a standard format.
+	/// The default value in the form an entity declares it, or the raw Keys value if not a standard format.
 	/// </value>
 	/// <remarks>
-	/// Default value expressions are typically wrapped in parentheses. This property removes
-	/// the wrapping parentheses to get the actual expression.
+	/// Default value expressions are stored wrapped in parentheses, and a literal value additionally as the Unicode
+	/// string <see cref="SchemaExtensions.ParseDefaultValue"/> wrote (<c>(N'1')</c>). Both are removed, so the value
+	/// compares equal to the entity's <c>1</c>; otherwise every synchronization takes an unchanged table for altered.
 	/// </remarks>
 	public string? DefaultValue
 	{
 		get
 		{
 			if (ConstraintType == ConstraintType.Default && Keys is not null && Keys.StartsWith('(') && Keys.EndsWith(')'))
-				return Keys[1..^1];
+				return SchemaExtensions.UnquoteDefaultValue(Keys[1..^1]);
 
 			return Keys;
 		}
