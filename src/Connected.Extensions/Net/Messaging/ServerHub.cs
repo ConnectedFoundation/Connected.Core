@@ -55,6 +55,32 @@ public abstract class ServerHub(IServiceProvider services, IClients clients)
 		}
 	}
 
+	/// <summary>
+	/// How long a client is kept after its connection is lost.
+	/// </summary>
+	/// <remarks>
+	/// A client reconnecting within it keeps its identity and the messages still waiting for it. Its subscriptions end
+	/// with the lost connection, so it subscribes again on reconnecting and receives no events raised meanwhile. As long
+	/// as a message waits for delivery (<see cref="Message.Lifetime"/>). A client that doesn't reconnect within it is
+	/// removed by the registry's <see cref="IClients.Clean"/>.
+	/// </remarks>
+	public static readonly TimeSpan DisconnectedRetention = Message.Lifetime;
+
+	public override async Task OnDisconnectedAsync(Exception? exception)
+	{
+		if (clients.Select(Context.ConnectionId) is IClient client)
+		{
+			lock (client)
+			{
+				// A client that has already reconnected on another connection is not going away
+				if (string.Equals(client.Connection, Context.ConnectionId, StringComparison.OrdinalIgnoreCase))
+					client.RetentionDeadline = DateTime.UtcNow.Add(DisconnectedRetention);
+			}
+		}
+
+		await base.OnDisconnectedAsync(exception);
+	}
+
 	private static Client CreateClient(string connection, Guid id, string? identity)
 	{
 		return new Client

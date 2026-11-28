@@ -8,27 +8,56 @@ public abstract class Clients
 {
 	private ConcurrentDictionary<Guid, IClient> Items { get; set; } = [];
 
+	/*
+	 * A client and its registry entry change under the client's own lock, so a reconnect, a lost connection and the
+	 * cleanup can't undo each other.
+	 */
 	public void AddOrUpdate(IClient client)
 	{
-		if (!Items.TryGetValue(client.Id, out IClient? existing))
+		while (true)
 		{
-			Items.TryAdd(client.Id, client);
-			return;
-		}
+			if (!Items.TryGetValue(client.Id, out IClient? existing))
+			{
+				if (Items.TryAdd(client.Id, client))
+					return;
 
-		existing.Connection = client.Connection;
-		existing.RetentionDeadline = DateTime.MinValue;
+				continue;
+			}
+
+			lock (existing)
+			{
+				// Removed or replaced meanwhile: decide again on the entry that is there now
+				if (!Items.TryGetValue(client.Id, out IClient? current) || !ReferenceEquals(current, existing))
+					continue;
+
+				/*
+				 * The same client reconnecting as someone else - signed out and in again - is a new client. What the
+				 * earlier identity subscribed to and was sent stays with its own connection and lapses with it.
+				 */
+				if (!string.Equals(existing.Identity, client.Identity, StringComparison.Ordinal))
+				{
+					Items[client.Id] = client;
+					return;
+				}
+
+				existing.Connection = client.Connection;
+				existing.RetentionDeadline = DateTime.MinValue;
+				return;
+			}
+		}
 	}
 
 	public void Clean()
 	{
-		var dead = Items.Where(f => f.Value.RetentionDeadline != DateTime.MinValue && f.Value.RetentionDeadline <= DateTime.UtcNow).ToImmutableList();
-
-		if (dead.IsEmpty)
-			return;
-
-		foreach (var client in dead)
-			Items.TryRemove(client.Key, out _);
+		foreach (var item in Items)
+		{
+			lock (item.Value)
+			{
+				// Checked again under the lock: a client that has just reconnected is kept
+				if (item.Value.RetentionDeadline != DateTime.MinValue && item.Value.RetentionDeadline <= DateTime.UtcNow)
+					Items.TryRemove(item);
+			}
+		}
 	}
 
 	public void Remove(string connectionId)
@@ -36,7 +65,11 @@ public abstract class Clients
 		if (Select(connectionId) is not IClient client)
 			return;
 
-		Items.TryRemove(client.Id, out _);
+		lock (client)
+		{
+			// Only the client found: one that replaced it meanwhile, for the same id, stays
+			Items.TryRemove(new KeyValuePair<Guid, IClient>(client.Id, client));
+		}
 	}
 
 	public IImmutableList<IClient> Query()

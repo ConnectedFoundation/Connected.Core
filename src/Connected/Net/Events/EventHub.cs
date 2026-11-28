@@ -7,30 +7,18 @@ using Microsoft.AspNetCore.Http;
 
 namespace Connected.Net.Events;
 
-internal sealed class EventHub(IServiceProvider services, EventClients clients, IAuthenticationService authentication, IHttpContextAccessor http, IEventServer server)
+internal sealed class EventHub(IServiceProvider services, EventClients clients, EventSubscriptions subscriptions, IAuthenticationService authentication, IHttpContextAccessor http, IEventServer server)
 	: ServerHub(services, clients)
 {
 	public override async Task OnDisconnectedAsync(Exception? ex)
 	{
-		try
-		{
-			await HubAuthentication.Authenticate(Context, clients);
-			await base.OnDisconnectedAsync(ex);
-			await authentication.WithSystemIdentity();
+		/*
+		 * The connection is gone: it leaves every event it subscribed to, whoever it was signed in as. Done first and
+		 * in memory only, so nothing that follows can keep it subscribed.
+		 */
+		subscriptions.Remove(Context.ConnectionId);
 
-			var dto = new Dto<IUnsubscribeEventDto>().Value;
-
-			dto.Connection = Context.ConnectionId;
-
-			await server.Unsubscribe(dto);
-			await Commit();
-		}
-		catch
-		{
-			await Rollback();
-
-			throw;
-		}
+		await base.OnDisconnectedAsync(ex);
 	}
 
 	public async Task Subscribe(List<EventSubscription> subscriptions)
@@ -70,6 +58,10 @@ internal sealed class EventHub(IServiceProvider services, EventClients clients, 
 
 			foreach (var subscription in subscriptions)
 			{
+				// An entry without a service or an event names nothing; it never stands for all of them
+				if (string.IsNullOrWhiteSpace(subscription.Service) || string.IsNullOrWhiteSpace(subscription.Event))
+					continue;
+
 				var dto = new Dto<IUnsubscribeEventDto>().Value;
 
 				dto.Connection = Context.ConnectionId;
