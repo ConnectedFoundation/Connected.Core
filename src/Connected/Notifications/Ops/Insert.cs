@@ -1,15 +1,17 @@
+using Connected.Authentication;
 using Connected.Net.Events;
 using Connected.Net.Events.Dtos;
 using Connected.Net.Messaging;
 using Connected.Net.Messaging.Dtos;
 using Connected.Reflection;
 using Connected.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 
 namespace Connected.Notifications.Ops;
 
-internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEventServer server, EventSubscriptions subscriptions,
+internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, EventSubscriptions subscriptions, IServiceScopeFactory scopes,
 	ILogger<Insert<TService, TDto>> logger)
 	: ServiceAction<IInsertEventDto<TService, TDto>>
 	where TDto : IDto
@@ -58,23 +60,69 @@ internal sealed class Insert<TService, TDto>(IMiddlewareService middlewares, IEv
 			return;
 
 		var key = $"{url}/{Dto.Event}".ToLowerInvariant();
-		var clients = subscriptions.Items.TryGetValue(key, out List<IClient>? list) && list is not null ? list : [];
 
-		var ctx = new Dto<ISendContextDto>().Value;
+		if (!subscriptions.Items.TryGetValue(key, out List<IClient>? list) || list is null)
+			return;
 
-		ctx.Method = "Notify";
+		IClient[] clients;
 
-		foreach (var client in clients)
+		lock (list)
+			clients = [.. list];
+
+		if (clients.Length == 0)
+			return;
+
+		/*
+		 * The event is sent once the transaction has committed, as the system. By then the operation's own identity
+		 * may be gone or anonymous - an operation that raised it while elevated, or a request with no signed-in
+		 * user - and the event server would refuse the send. Who receives the event is decided by the
+		 * subscriptions, not by the identity that raised it.
+		 */
+		await using var scope = scopes.CreateAsyncScope();
+
+		try
 		{
-			var dto = new Dto<ISendEventDto>().Value;
+			await scope.WithSystemIdentity();
 
-			dto.Client = client;
-			dto.Event = Dto.Event;
-			dto.Service = url;
-			dto.Dto = Dto.Dto;
-			dto.Context = ctx;
+			var server = scope.ServiceProvider.GetRequiredService<IEventServer>();
+			var ctx = new Dto<ISendContextDto>().Value;
 
-			await server.Send(dto);
+			ctx.Method = "Notify";
+
+			foreach (var client in clients)
+			{
+				var dto = new Dto<ISendEventDto>().Value;
+
+				dto.Client = client;
+				dto.Event = Dto.Event;
+				dto.Service = url;
+				dto.Dto = Dto.Dto;
+				dto.Context = ctx;
+
+				/*
+				 * One connection that can't be reached doesn't hold back the others.
+				 */
+				try
+				{
+					await server.Send(dto);
+				}
+				catch (Exception ex)
+				{
+					logger.LogError(ex, "Event '{key}' could not be sent to connection {connection}.", key, client.Connection);
+				}
+			}
+
+			await scope.Commit();
+		}
+		catch (Exception ex)
+		{
+			/*
+			 * Not rethrown: the committed transaction this runs in would swallow it unseen. The data is saved either way;
+			 * only the event is lost, and that is logged.
+			 */
+			logger.LogError(ex, "Event '{key}' could not be sent.", key);
+
+			await scope.Rollback();
 		}
 	}
 }
