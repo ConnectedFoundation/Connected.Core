@@ -28,7 +28,12 @@ internal sealed class SqlStorage(IStorageProvider storage)
 
 	protected override async Task<object?> OnExecute(Expression expression)
 	{
-		return await CreateExecutionPlan(expression).Compile()(this);
+		/*
+		 * A plan is built for one query and run once, so it is interpreted: compiling it generated and jitted a new method for every
+		 * query, which cost far more than running it. The plan only starts the command; rows are read outside it, so interpreting
+		 * it costs nothing per row.
+		 */
+		return await CreateExecutionPlan(expression).Compile(preferInterpretation: true)(this);
 	}
 
 	private static Expression<Func<IStorageExecutor, Task<object>>> CreateExecutionPlan(Expression expression)
