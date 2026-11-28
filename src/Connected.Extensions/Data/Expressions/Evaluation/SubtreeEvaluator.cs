@@ -107,7 +107,11 @@ internal sealed class SubtreeEvaluator
 			e = Expression.Convert(e, typeof(object));
 
 		var lambda = Expression.Lambda<Func<object>>(e);
-		var fn = lambda.Compile();
+		/*
+		 * Evaluated once, to turn the subtree into a constant, so it is interpreted: compiling a method for one call cost far more
+		 * than the call.
+		 */
+		var fn = lambda.Compile(preferInterpretation: true);
 
 		return PostEval(Expression.Constant(fn(), type));
 	}
